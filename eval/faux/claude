@@ -1,0 +1,10 @@
+#!/bin/sh
+# faux Claude Code : modifie un fichier, dépose une preuve, répond au format attendu
+case "$*" in *stream-json*) ;; *) echo '{"is_error":false,"structured_output":{"reply":"Ticket ouvert.","actions":[{"type":"create_ticket","clientId":"essai","title":"Titre faux","request":"Le titre est faux <script>alert(1)</script>","kind":"bug"}]}}'; exit 0;; esac
+P=$(echo "$*" | sed -n 's/.*--add-dir \([^ ]*\/preuves\/[^ ]*\).*/\1/p')
+echo "<h1>Bonjour corrigé</h1>" > index.html
+printf 'PNG' > "$P/2-apres.png"
+echo '{"type":"system","subtype":"init","session_id":"sess-1"}'
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"Je corrige le titre."},{"type":"tool_use","name":"Edit","input":{"file_path":"index.html"}}]}}'
+case "$*" in *QUESTION*) echo '{"type":"result","is_error":false,"structured_output":{"status":"question","kind":"bug","summary":"Bloqué","question":"Quel titre ?","message":{"subject":"","body":""}}}';;
+*) echo '{"type":"result","is_error":false,"structured_output":{"status":"fait","kind":"bug","summary":"Titre corrigé, vérifié en local.","message":{"subject":"Titre corrigé","body":"Bonjour, c est corrigé. Simon"}}}';; esac

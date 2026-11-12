@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "gh $*" >> "$(dirname "$0")/gh.log"
+[ "$2" = create ] && echo "https://github.com/x/y/pull/1"
+exit 0

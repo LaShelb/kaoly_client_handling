@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kaoly Clients</title>
+<style>
+  /* Même famille que Kaoly Observability : toile gris très clair, cartes blanches cerclées d'un filet, titres serrés.
+     Ce qui attend Simon est en haut ; ce qui tourne seul reste consultable mais ne réclame rien. */
+  :root {
+    --bg: #fafafa; --card: #fff; --ink: #171717; --soft: #404040; --muted: #8a8a8a;
+    --rule: rgba(0,0,0,.07); --rule-strong: rgba(0,0,0,.14); --panel: rgba(0,0,0,.04);
+    --indigo: #615fff; --green: #0f7a4a; --red: #d12c2c; --amber: #9a6200;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace; --display: "SF Pro Display", -apple-system, sans-serif;
+    --ring: 0 0 0 4px rgba(0,0,0,.025), 0 1px 2px rgba(0,0,0,.04);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100vh; overflow: hidden; background: var(--bg); color: var(--ink); }
+  body { font: 14px/1.5 -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; display: flex; }
+  button, input, textarea { font: inherit; color: inherit; }
+  aside { width: 216px; flex: none; border-right: 1px solid var(--rule); display: flex; flex-direction: column; padding: 34px 12px 14px; }
+  .brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 14px; font-weight: 650; font-size: 14px; }
+  .brand i { width: 22px; height: 22px; border-radius: 7px; background: var(--indigo); }
+  nav a { display: flex; align-items: center; padding: 7px 8px; border-radius: 8px; color: var(--soft); text-decoration: none; margin-bottom: 2px; cursor: pointer; }
+  nav a:hover { background: var(--panel); }
+  nav a.on { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 0 0 1px var(--rule), 0 1px 2px rgba(0,0,0,.05); }
+  nav .count { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 400; }
+  nav .count.hot { background: var(--ink); color: #fff; border-radius: 9px; padding: 0 7px; }
+  .sources { margin-top: auto; font-size: 12px; color: var(--soft); }
+  .source { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; }
+  .source small { display: block; color: var(--muted); font-size: 12px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rule-strong); flex: none; margin-top: 6px; }
+  .dot.ok { background: var(--green); } .dot.bad { background: var(--red); }
+  main { flex: 1; min-width: 0; height: 100vh; overflow-y: auto; padding: 32px 44px 150px; }
+  .page { max-width: 900px; margin: 0 auto; }
+  h1 { font: 700 30px/1.1 var(--display); letter-spacing: -0.035em; margin: 0 0 6px; }
+  .lead { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 14px; box-shadow: var(--ring); margin-bottom: 18px; padding: 16px 20px; }
+  .card h2 { font: 650 18px/1.3 var(--display); letter-spacing: -0.02em; margin: 0 0 4px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  .tag { padding: 1px 8px; border-radius: 6px; font-size: 12px; background: var(--panel); color: var(--soft); white-space: nowrap; }
+  .tag.bug { background: #fdecec; color: var(--red); } .tag.visible { background: #eeeeff; color: #4340c9; } .tag.ok { background: #e7f5ee; color: var(--green); }
+  .tag.wait { background: #fff4dc; color: var(--amber); }
+  .text { white-space: pre-wrap; color: var(--soft); margin: 0 0 12px; }
+  details { margin: 0 0 12px; } summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+  details .text { margin-top: 6px; padding: 10px 12px; background: var(--panel); border-radius: 9px; }
+  .proofs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin: 0 0 14px; }
+  .proofs figure { margin: 0; } .proofs figcaption { color: var(--muted); font-size: 12px; padding-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .proofs img, .proofs video { width: 100%; border: 1px solid var(--rule-strong); border-radius: 9px; display: block; cursor: zoom-in; background: var(--panel); }
+  #zoom { position: fixed; inset: 0; background: rgba(0,0,0,.82); display: none; align-items: center; justify-content: center; z-index: 9; cursor: zoom-out; }
+  #zoom.on { display: flex; } #zoom img { max-width: 94vw; max-height: 94vh; border-radius: 8px; }
+  .noproof { border: 1px dashed var(--rule-strong); border-radius: 9px; padding: 10px 12px; color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  textarea, input[type=text], input[type=password] { width: 100%; padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: 9px; background: var(--card); outline: 0; }
+  textarea:focus, input:focus { border-color: var(--indigo); }
+  textarea { resize: vertical; min-height: 64px; display: block; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  .row label { color: var(--muted); font-size: 12px; width: 62px; flex: none; } .row .grow { flex: 1; min-width: 160px; }
+  .btn { padding: 6px 12px; border: 1px solid var(--rule-strong); border-radius: 9px; background: var(--card); cursor: pointer; white-space: nowrap; font-weight: 550; font-size: 12px; }
+  .btn:hover { border-color: var(--ink); } .btn.dark { background: var(--ink); color: #fff; border-color: var(--ink); } .btn[disabled] { opacity: .45; cursor: default; }
+  .link { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; color: var(--muted); font-size: 12px; }
+  .right { margin-left: auto; }
+  .alert { color: var(--red); margin: 0 0 12px; white-space: pre-wrap; }
+  .live { font: 12px/1.6 var(--mono); color: var(--soft); background: var(--panel); border-radius: 9px; padding: 9px 12px; margin: 0; white-space: pre-wrap; overflow: hidden; }
+  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+  .switch { appearance: none; width: 30px; height: 18px; border-radius: 18px; background: var(--rule-strong); position: relative; cursor: pointer; vertical-align: middle; margin: 0; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .12s; }
+  .switch:checked { background: var(--ink); } .switch:checked::after { left: 14px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+  /* barre de discussion */
+  #bar { position: fixed; left: 216px; right: 0; bottom: 0; padding: 0 44px 20px; pointer-events: none; }
+  #bar .in { max-width: 900px; margin: 0 auto; pointer-events: auto; }
+  #said { background: var(--ink); color: #fff; border-radius: 12px; padding: 9px 14px; margin-bottom: 8px; font-size: 12px; white-space: pre-wrap; display: none; }
+  #bar form { display: flex; gap: 8px; background: var(--card); border: 1px solid var(--rule-strong); border-radius: 14px; padding: 8px; box-shadow: 0 8px 30px rgba(0,0,0,.10); }
+  #bar textarea { border: 0; min-height: 22px; height: 38px; max-height: 180px; resize: none; padding: 8px; }
+</style>
+<aside>
+  <div class="brand"><i></i>Kaoly Clients</div>
+  <nav id="nav"></nav>
+  <div class="sources" id="sources"></div>
+</aside>
+<main><div class="page" id="page"></div></main>
+<div id="bar"><div class="in">
+  <div id="said"></div>
+  <form id="chat"><textarea id="say" placeholder="Colle un message de client, ou dis ce que tu veux : « ajoute le client Garonne, dépôt LaShelb/kao_garonne »…"></textarea><button class="btn dark">Envoyer</button></form>
+</div></div>
+<div id="zoom"></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let S = null, view = "toi", last = "";
+const MINE = ["valider", "message", "question", "erreur"];
+const KIND = { bug: "Bug", visible: "Changement visible", question: "Question" };
+const WAIT = { valider: "À valider avant la production", message: "Message prêt à envoyer", question: "Claude a une question", erreur: "Arrêté sur une erreur", file: "En attente", travail: "Claude y travaille" };
+
+async function post(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({ error: "Réponse illisible." }));
+  if (j.error) { say(j.error); return null; }
+  if (j.tickets) { S = j; render(true); }
+  return j;
+}
+const say = (t) => { $("#said").textContent = t; $("#said").style.display = t ? "block" : "none"; };
+
+function proofs(t) {
+  if (!t.proofs.length) return t.changed ? `<p class="noproof">Aucune capture ni vidéo : Claude n'a pas pu en produire (voir son résumé). À vérifier toi-même avant d'envoyer.</p>` : "";
+  return `<div class="proofs">${t.proofs.map((f) => { const u = `/preuve/${t.id}/${encodeURIComponent(f)}`;
+    return `<figure>${/\.(mp4|webm|mov)$/i.test(f) ? `<video src="${u}" controls preload="metadata"></video>` : `<img src="${u}" alt="${esc(f)}" data-zoom>`}<figcaption>${esc(f)}</figcaption></figure>`; }).join("")}</div>`;
+}
+
+function card(t) {
+  const who = t.source.channel === "toi" ? "ouvert par toi" : `${t.source.channel} de ${esc(t.source.name || t.source.from)}`;
+  let act = "";
+  if (t.status === "valider") act = `<textarea data-f="text" placeholder="Une retouche ? Écris-la ici (« rajoute le bouton », « ce parcours n'est pas clair »…)"></textarea>
+    <div class="row"><button class="btn dark" data-act="valider">Mettre en production</button><button class="btn" data-act="retouche">Demander la retouche</button>${t.pr ? `<span class="hint">PR : ${esc(t.pr)}</span>` : ""}</div>`;
+  if (t.status === "message") act = `<div class="row"><label>À</label><input type="text" class="grow" data-f="to" value="${esc(t.draft?.to)}"></div>
+    ${String(t.draft?.to).includes("@") && !/whatsapp|g\.us/.test(t.draft.to) ? `<div class="row"><label>Objet</label><input type="text" class="grow" data-f="subject" value="${esc(t.draft?.subject)}"></div>` : ""}
+    <div class="row"><textarea data-f="body" rows="7">${esc(t.draft?.body)}</textarea></div>
+    <div class="row"><button class="btn dark" data-act="envoyer">Envoyer au client</button>${t.shipped ? "" : t.changed ? `<span class="hint">Pas encore en production.</span>` : ""}</div>`;
+  if (t.status === "question") act = `<p class="text"><b>${esc(t.question)}</b></p><textarea data-f="text" placeholder="Ta réponse"></textarea><div class="row"><button class="btn dark" data-act="retouche">Répondre</button></div>`;
+  if (t.status === "erreur") act = `<p class="alert">${esc(t.error)}</p><div class="row"><button class="btn dark" data-act="relancer">Relancer</button></div>`;
+  if (t.status === "travail") act = `<pre class="live">${esc((t.live ?? []).join("\n") || "Démarrage…")}</pre>`;
+  return `<div class="card" data-id="${esc(t.id)}">
+    <h2>${esc(t.title)}</h2>
+    <div class="meta"><span class="tag">${esc(t.client)}</span><span class="tag ${t.kind}">${KIND[t.kind]}</span>
+      ${t.status === "fini" ? `<span class="tag">${t.dropped ? "Classé sans suite" : "Terminé"}</span>` : `<span class="tag wait">${WAIT[t.status]}</span>`}
+      ${t.shipped ? `<span class="tag ok">${t.shipped === "auto" ? "Mis en production automatiquement" : "En production"}</span>` : ""}
+      <span>${who}</span>${t.status !== "fini" ? `<button class="link right" data-act="fermer">Classer sans suite</button>` : ""}</div>
+    ${t.summary ? `<p class="text">${esc(t.summary)}</p>` : ""}
+    ${proofs(t)}
+    <details${t.summary ? "" : " open"}><summary>La demande du client</summary><p class="text">${esc(t.request)}</p></details>
+    ${act}</div>`;
+}
+
+function clients() {
+  return `<h1>Clients</h1><p class="lead">Un message n'ouvre un ticket que s'il vient d'un contact listé ici.</p>
+  ${S.clients.map((c) => `<div class="card" data-client="${esc(c.id)}"><h2>${esc(c.name)}</h2>
+    <div class="row"><label>Dépôt</label><input type="text" class="grow" data-c="repo" value="${esc(c.repo)}" placeholder="chemin local ou proprietaire/nom sur GitHub"></div>
+    <div class="row"><label>Contacts</label><input type="text" class="grow" data-c="contacts" value="${esc(c.contacts.join(", "))}" placeholder="claire@client.fr, @client.fr, 06 12 34 56 78, nom du groupe WhatsApp"></div>
+    <div class="row"><label></label><input type="checkbox" class="switch" data-c="autoProd" ${c.autoProd ? "checked" : ""}><span>Les corrections de bugs partent seules en production</span><button class="link right" data-act="removeClient">Retirer</button></div>
+    <p class="hint">Les changements d'interface et les messages au client t'attendent toujours.</p></div>`).join("")}
+  <div class="card"><h2>Boîte mail</h2>
+    <div class="row"><label>Adresse</label><input type="text" class="grow" id="mailUser" value="${esc(S.mail.user)}" placeholder="toi@kaoly.fr"></div>
+    <div class="row"><label>Mot de passe</label><input type="password" class="grow" id="mailPass" placeholder="${S.mail.ok ? "enregistré dans le trousseau du Mac" : "mot de passe d'application"}"><button class="btn" data-act="mail">Relier</button></div>
+    <p class="hint">Pour Gmail ou Google Workspace : un « mot de passe d'application » (compte Google › Sécurité › Validation en deux étapes). Il reste dans le trousseau du Mac et sert à lire la boîte de réception et à envoyer tes réponses.</p></div>`;
+}
+
+function render(force) {
+  if (!S) return;
+  const mine = S.tickets.filter((t) => MINE.includes(t.status)), going = S.tickets.filter((t) => ["file", "travail"].includes(t.status)), done = S.tickets.filter((t) => t.status === "fini");
+  $("#nav").innerHTML = [["toi", "À toi", mine.length, true], ["cours", "En cours", going.length], ["fini", "Terminé", done.length], ["clients", "Clients", S.clients.length]]
+    .map(([k, l, n, hot]) => `<a data-view="${k}" class="${view === k ? "on" : ""}">${l}<span class="count ${hot && n ? "hot" : ""}">${n}</span></a>`).join("");
+  $("#sources").innerHTML = `
+    <div class="source"><input type="checkbox" class="switch" id="auto" ${S.auto ? "checked" : ""}><div>Relève automatique<small>${S.auto ? "mails et WhatsApp lus toutes les 2 minutes" : "éteinte : rien n'est lu"}</small></div></div>
+    <div class="source"><i class="dot ${S.notes.mail ? "bad" : S.mail.ok ? "ok" : ""}"></i><div>Mail<small>${esc(S.notes.mail || (S.mail.ok ? S.mail.user : "non reliée"))}</small></div></div>
+    <div class="source"><i class="dot ${S.notes.whatsapp ? "bad" : S.whatsapp ? "ok" : ""}"></i><div>WhatsApp<small>${esc(S.notes.whatsapp || (S.whatsapp ? "application du Mac" : "application absente"))}</small></div></div>
+    ${S.notes.tri ? `<div class="source"><i class="dot bad"></i><div>Tri<small>${esc(S.notes.tri)}</small></div></div>` : ""}`;
+  // ponytail : on ne redessine pas pendant que Simon écrit dans la page, pour ne pas effacer sa saisie
+  if (!force && $("main").contains(document.activeElement) && /INPUT|TEXTAREA/.test(document.activeElement.tagName) && document.activeElement.type !== "checkbox") return;
+  const list = (ts, empty) => ts.length ? ts.map(card).join("") : `<p class="empty">${empty}</p>`;
+  const html = view === "toi" ? `<h1>À toi</h1><p class="lead">Ce qui attend une décision de ta part. Le reste tourne sans toi.</p>${list(mine, "Rien ne t'attend.")}`
+    : view === "cours" ? `<h1>En cours</h1><p class="lead">Deux sessions Claude Code au plus en même temps.</p>${list(going, "Aucun ticket en cours.")}`
+    : view === "fini" ? `<h1>Terminé</h1><p class="lead"></p>${list(done, "Rien pour l'instant.")}` : clients();
+  if (html !== last) { $("#page").innerHTML = last = html; }
+}
+
+async function tick() { try { S = await (await fetch("/api/state")).json(); render(); } catch {} }
+setInterval(tick, 2000); tick();
+
+document.addEventListener("click", async (e) => {
+  const el = e.target;
+  if (el.dataset.view) { view = el.dataset.view; return render(true); }
+  if ("zoom" in el.dataset) { $("#zoom").innerHTML = `<img src="${el.src}" alt="${esc(el.alt)}">`; return $("#zoom").classList.add("on"); }
+  if (el.closest("#zoom")) return $("#zoom").classList.remove("on");
+  const act = el.dataset.act; if (!act) return;
+  if (act === "mail") return post("/api/config", { mail: { user: $("#mailUser").value, password: $("#mailPass").value } });
+  if (act === "removeClient") return post("/api/config", { removeClient: el.closest("[data-client]").dataset.client });
+  const box = el.closest("[data-id]"), body = { id: box.dataset.id, action: act };
+  box.querySelectorAll("[data-f]").forEach((f) => (body[f.dataset.f] = f.value));
+  el.disabled = true; say("");
+  await post("/api/ticket", body);
+  el.disabled = false;
+});
+document.addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.id === "auto") return post("/api/config", { auto: el.checked });
+  const c = el.dataset.c; if (!c) return;
+  post("/api/config", { client: { id: el.closest("[data-client]").dataset.client, [c]: c === "autoProd" ? el.checked : c === "contacts" ? el.value.split(",") : el.value } });
+});
+$("#chat").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = $("#say").value.trim(); if (!text) return;
+  $("#say").value = ""; say("Claude réfléchit…");
+  const r = await post("/api/chat", { text });
+  if (r) { say([r.reply, ...r.done.map((d) => "· " + d)].join("\n")); tick(); } else $("#say").value = text;
+});
+$("#say").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#chat").requestSubmit(); } });
+</script>
+</html>
