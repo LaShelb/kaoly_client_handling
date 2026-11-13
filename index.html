@@ -101,9 +101,8 @@
   .voix + .voix { margin-top: 18px; }
   .qui { font-size: 12px; color: var(--gris); margin-bottom: 2px; }
   .dit { max-width: 68ch; overflow-wrap: anywhere; }
-  .replie { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; } /* une liste du client garde ses retours à la ligne */
+  .replie { white-space: pre-line; } /* une liste du client garde ses retours à la ligne */
   .deplie { white-space: pre-wrap; }
-  .replie.court { -webkit-line-clamp: 2; } /* un message attend : la demande du client tient sur 2 lignes, un clic la déplie */
   [data-act="deplier"] { cursor: pointer; }
   .reserve { margin-top: 4px; max-width: 68ch; }
   .reserve span:first-child { text-decoration: underline dashed rgba(0,0,0,.5); text-decoration-thickness: 1px; text-underline-offset: 4px; }
@@ -132,8 +131,14 @@
   .refus { flex: none; margin: 10px 0 0; font-size: 13px; display: flex; align-items: center; gap: 8px; }
   .actions { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 16px 0 0; }
   .fil > details { flex: none; margin-top: 6px; }
+  /* « Détail » à droite du bouton ; ouvert, son contenu passe dessous sur toute la largeur (même astuce que .reglages summary) */
+  .actions { position: relative; }
+  .actions > details { margin: 0 0 0 auto; }
+  .actions > details[open] { flex: 0 0 100%; margin: 0; }
+  .actions > details[open] > summary { position: absolute; top: 25px; right: 0; line-height: 16px; }
+  .actions > details .detail { margin-top: 2px; }
   details:not([open]) > .detail { display: none; } /* fermé : rien à lire, rien à compter */
-  .fil > details .detail { max-height: 160px; overflow-y: auto; padding-right: 4px; }
+  .fil details .detail { max-height: 160px; overflow-y: auto; padding-right: 4px; }
   .plein { display: inline-flex; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 8px; background: var(--encre); color: #fff; font-weight: 500; white-space: nowrap; }
   .plein:hover { background: #2b2b2b; }
   .plein[disabled] { opacity: .4; cursor: default; }
@@ -233,6 +238,7 @@
     .preuve .cadre.vide { flex: none; min-height: 0; max-height: none; height: 36px; padding: 0 12px; text-align: center; }
     .fil { flex: 0 1 auto; max-height: none; width: 100%; }
     .actions { border-top: 1px solid var(--filet); margin-top: 2px; padding-top: 12px; }
+    .actions > details[open] > summary { top: 21px; }
     details { margin-top: 6px; }
     /* le client et Claude tiennent sur une ligne chacun : le nom en gris, puis le texte coupé par « … » ; un clic déplie */
     .voix + .voix { margin-top: 6px; }
@@ -240,10 +246,12 @@
     .fil .voix:not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { display: inline; margin: 0; white-space: nowrap; }
     .fil .voix:not(:has(textarea, .envoye, .deplie)) .qui::after { content: "\a0\a0"; }
     .fil .voix:not(:has(textarea, .envoye, .deplie)) .reserve { margin: 0; white-space: normal; } /* la réserve ne se coupe jamais */
-    /* la phrase de Claude se lit entière ; elle ne tient sur une ligne qu'en dernier recours (couperTout) */
-    .fil-texte > .de-claude:not(:has(textarea, .envoye, .deplie)), .fil-texte > .de-claude:not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: normal; }
+    /* le client et Claude se lisent entiers ; la demande n'est coupée (sur un mot) qu'en dernier recours, la phrase de Claude ne tient sur une ligne qu'après (couperTout) */
+    .fil-texte > :is(.du-client, .de-claude):not(:has(textarea, .envoye, .deplie)), .fil-texte > :is(.du-client, .de-claude):not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: normal; }
+    .fil-texte > .du-client .replie { white-space: pre-line; }
     #vue.une .fil-texte > .de-claude:not(:has(textarea, .envoye, .deplie)), #vue.une .fil-texte > .de-claude:not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: nowrap; }
-    #vue.serre .fil-texte > .du-client:not(:has(textarea, .envoye, .deplie)) { display: none; } /* ça ne tient pas, même la preuve à 80 px : la ligne du client s'efface */
+    .fil .voix .reserve { display: inline; } /* « Claude  À vérifier : … » sur une ligne */
+    .fil .voix .dit + .reserve { margin-left: 6px; }
     /* les réglages passent au-dessus du registre, sur une ligne : la bascule, « Détail » ; les contacts et le reste sont dans le Détail */
     .fiche { display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow-y: auto; }
     .reglages { order: -1; position: relative; margin-bottom: 12px; }
@@ -517,8 +525,8 @@ function texteClient(t) {
   return s || brut;
 }
 function voixClient(t, serre) {
-  const a = auteur(t), ouvert = !serre || deplies.has(t.id), attend = ["valider", "message"].includes(t.status);
-  return voix(a ? `<span data-contenu>${esc(a)}</span>` : "Toi", `<div class="dit ${ouvert ? "deplie" : `replie${attend ? " court" : ""}`}"${serre ? ` data-act="deplier"` : ""} data-contenu>${esc(texteClient(t))}</div>`, "du-client");
+  const a = auteur(t), ouvert = !serre || deplies.has(t.id); // replié : couperTout la coupe, sur un mot entier, seulement si la place manque
+  return voix(a ? `<span data-contenu>${esc(a)}</span>` : "Toi", `<div class="dit ${ouvert ? "deplie" : "replie"}" data-id="${esc(t.id)}" data-contenu>${esc(texteClient(t))}</div>`, "du-client");
 }
 function voixClaude(t) {
   if (["travail", "question"].includes(t.status)) return ""; // sa phrase est déjà à gauche
@@ -600,14 +608,15 @@ function vueDemande(t, h) {
   if (t.live?.length) det.push(`<p class="num" data-contenu>${t.live.map(esc).join("<br>")}</p>`);
   for (const f of t.files ?? []) { const n = f.split("/").pop(); det.push(`<a class="lien" href="/piece/${encodeURIComponent(t.id)}/${encodeURIComponent(n)}" target="_blank" data-contenu>${esc(n)}</a>`); }
   const detail = det.length ? `<details${t.status === "erreur" ? "" : ""}><summary>Détail</summary><div class="detail">${det.join("")}</div></details>` : "";
-  let actions = "";
+  let actions = "", dehors = detail;
   if (["valider", "message", "erreur"].includes(t.status)) {
     const d = brouillon(t), bloque = t.status !== "erreur" && (!d.to || d.to.startsWith("@"));
     actions = `<div class="actions"><button class="plein" data-act="principal"${bloque ? " disabled" : ""}>${esc(libellePrincipal(t))}<kbd>⌘↵</kbd></button>
-      ${t.status === "valider" ? `<button class="lien" data-act="seulement">Sans envoyer</button>` : ""}</div>`;
+      ${t.status === "valider" ? `<button class="lien" data-act="seulement">Sans envoyer</button>` : ""}${detail}</div>`;
+    dehors = "";
   }
   const refus = t.status === "message" && t.error ? `<p class="refus"><i class="point"></i><span data-contenu>${esc(raison(t))}</span>${relier(t.error)}</p>` : "";
-  const fil = `<div class="fil"><div class="fil-texte">${voixClient(t, serre)}${claude}${message}</div>${refus}${actions}${detail}</div>`;
+  const fil = `<div class="fil"><div class="fil-texte">${voixClient(t, serre)}${claude}${message}</div>${refus}${actions}${dehors}</div>`;
   return `${tete}<div class="corps${image ? "" : " seul"}"><div class="preuve">${scene}</div>${fil}</div>`;
 }
 
@@ -718,9 +727,24 @@ const petit = () => matchMedia("(max-width: 999px)").matches;
 function couperTout(suivre) {
   const v = $("#vue"), f = $(".fil-texte", v), fi = $(".fiche", v), l = $("#liste"), on = $(".on", l);
   if (f) f.style.maxHeight = "";
-  v.classList.remove("tasse", "serre", "une");
-  // quand la place manque, on cède dans cet ordre : la preuve à 80 px, la ligne du client, la phrase de Claude sur une ligne. La réserve et le message ne cèdent jamais.
-  if (petit() && f) for (const k of ["tasse", "serre", "une"]) { if (f.scrollHeight <= f.clientHeight + 1) break; v.classList.add(k); }
+  v.classList.remove("tasse", "une");
+  // la demande du client repart du texte entier à chaque appel
+  const c = f && $(".du-client .replie", f), t = c && S.tickets.find((x) => x.id === c.dataset.id);
+  if (t) { c.textContent = texteClient(t); c.removeAttribute("data-act"); }
+  // trop : le fil défile, ou le bouton plein sortirait de l'écran
+  const plein = $(".actions .plein", v), trop = () => f && (f.scrollHeight > f.clientHeight + 1 || (plein && plein.getBoundingClientRect().bottom > v.getBoundingClientRect().bottom + 1));
+  // quand la place manque, on cède dans cet ordre : la preuve à sa hauteur minimale, la demande du client, la phrase de Claude sur une ligne. La réserve, le message et le bouton ne cèdent jamais.
+  if (petit() && trop()) v.classList.add("tasse");
+  if (t && /\s/.test(texteClient(t)) && trop()) {
+    const mots = texteClient(t).match(/\S+\s*/g) ?? [], vx = c.closest(".voix"), lh = parseFloat(getComputedStyle(c).lineHeight) || 20;
+    const lignes = () => Math.round((petit() ? vx.getBoundingClientRect().height : c.getBoundingClientRect().height) / lh);
+    const pose_ = (k) => { c.textContent = mots.slice(0, k).join("").replace(/[\s,;:]+$/, "") + "…"; };
+    const maxi = (ok) => { let lo = 1, hi = mots.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; pose_(m); if (ok()) lo = m; else hi = m - 1; } return lo; }; // dichotomie : le plus de mots qui tiennent
+    const mini = petit() ? 1 : 2, kMini = maxi(() => lignes() <= mini);
+    const k = Math.max(kMini, maxi(() => !trop()));
+    pose_(k); c.dataset.act = "deplier";
+  }
+  if (petit() && trop()) v.classList.add("une");
   couper(f);
   if (fi) fi.style.maxHeight = "";
   l.style.maxHeight = "";
