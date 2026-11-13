@@ -1,0 +1,15 @@
+{
+ "travail": [
+  "Je regarde comment la fiche client calcule l'âge.",
+  "Read · src/lib/dates.ts",
+  "L'âge est calculé sur l'année seulement, sans le mois ni le jour.",
+  "Edit · src/lib/dates.ts",
+  "Bash · npm test -- dates",
+  "Je prends les captures avant et après sur la fiche de Mme Roux."
+ ],
+ "en-cours": [
+  "Je cherche où le PDF du rapport trimestriel est fabriqué.",
+  "Read · server/pdf/rapport.ts",
+  "Le logo est dessiné à 24 px de haut ; sur le site il en fait 48."
+ ]
+}

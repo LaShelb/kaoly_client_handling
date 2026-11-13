@@ -17,3 +17,5 @@
 - serveur (relecture) · preuves et pièces jointes servies avec `content-security-policy: sandbox` : une pièce jointe HTML ouverte aurait lu le jeton et commandé l'application.
 - serveur (relecture) · un contact WhatsApp sous forme de nom ne vaut que pour un groupe : le nom d'une discussion à deux peut être celui que l'inconnu s'est choisi.
 - serveur (relecture) · `authOk` ignore les commentaires et chaînes entre guillemets de l'en-tête, qui recopient l'adresse d'enveloppe choisie par l'expéditeur.
+- mesure · la demande `travail` reste en travail grâce à `activite.json` du jeu (lu par `server.ts` seulement s'il existe, étapes comprises) au lieu du faux claude lent : capture identique d'une passe à l'autre, sans processus de 600 s. Trois ids ajoutés au jeu : `longue`, `en-cours` (deuxième place de travail, pour que `file` reste en attente) et `arion-passee`.
+- mesure · Chrome sans fenêtre piloté par le protocole DevTools (toujours `--headless=new`) plutôt que `--screenshot` seul : horloge arrêtée au 13/11 9 h 40, mesures prises dans la page, gestes clavier et souris. Tailles : 1280 × 860, 760 × 560, et 720 × 480 pour le défilement horizontal.

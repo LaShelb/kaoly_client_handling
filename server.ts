@@ -587,8 +587,11 @@ function check() {
 if (process.argv.includes("--check")) check();
 else if (import.meta.main) {
   tickets = load("tickets.json", []);
+  // banc de mesure seulement (eval/jeu) : activite.json, {id: [étapes]}, garde ces demandes « en travail » avec leurs étapes, sans session réelle
+  const activite = load("activite.json", {});
+  Object.assign(live, activite);
   // une session coupée par la fermeture de l'application ne reprend pas toute seule : Simon la relance d'un clic
-  for (const t of tickets) if (t.status === "travail") Object.assign(t, { status: "erreur", error: "Interrompu par la fermeture de l'application." });
+  for (const t of tickets) if (t.status === "travail" && !activite[t.id]) Object.assign(t, { status: "erreur", error: "Interrompu par la fermeture de l'application." });
   saveT();
   await refreshMail();
   Bun.serve({ port: PORT, hostname: "127.0.0.1", fetch: handle, idleTimeout: 240 });

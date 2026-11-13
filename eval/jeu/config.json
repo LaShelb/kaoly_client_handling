@@ -1,0 +1,40 @@
+{
+ "auto": false,
+ "mail": {
+  "user": "simon@kaoly.fr",
+  "imap": "127.0.0.1",
+  "smtp": "127.0.0.1"
+ },
+ "clients": [
+  {
+   "id": "arion",
+   "name": "Arion",
+   "repo": "LaShelb/arion_crm",
+   "contacts": [
+    "claire.vasseur@arion-patrimoine.fr",
+    "@arion-patrimoine.fr"
+   ],
+   "autoProd": false
+  },
+  {
+   "id": "buckwell",
+   "name": "Buckwell",
+   "repo": "LaShelb/kao_buckwell",
+   "contacts": [
+    "+33 6 12 34 56 78",
+    "Buckwell x Kaoly",
+    "sophie.marchal@buckwell-fo.com"
+   ],
+   "autoProd": true
+  },
+  {
+   "id": "garonne",
+   "name": "Garonne",
+   "repo": "LaShelb/garonne_immo",
+   "contacts": [
+    "julien@garonne-immo.fr"
+   ],
+   "autoProd": false
+  }
+ ]
+}
