@@ -89,6 +89,7 @@
   .choix button.on { color: var(--encre); text-decoration: underline; text-decoration-color: var(--indigo); text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
   .cadre { margin: 0; width: 100%; aspect-ratio: 16 / 10; min-height: 0; border: 1px solid rgba(0,0,0,.1); border-radius: 8px; overflow: hidden; background: #fff; cursor: zoom-in; }
   .cadre img, .cadre video { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .preuve.fen { align-self: stretch; }
   .cadre.vide { display: grid; place-items: center; aspect-ratio: auto; height: 56px; background: none; border: 1px dashed rgba(0,0,0,.28); color: var(--gris); cursor: default; }
 
   /* le fil : trois voix nommées par qui parle */
@@ -229,6 +230,7 @@
     .preuve .cadre { flex: 1; width: 100%; height: auto; aspect-ratio: auto; min-height: 112px; max-height: 200px; }
     #vue.tasse .preuve .cadre { min-height: 80px; }
     .preuve .cadre img, .preuve .cadre video { object-fit: cover; object-position: top; }
+    .preuve.fen:has(.cadre:not(.vide)) { flex: none; min-height: 0; }
     .preuve .cadre.vide { flex: none; min-height: 0; max-height: none; height: 36px; padding: 0 12px; text-align: center; }
     .fil { flex: 0 1 auto; max-height: none; width: 100%; }
     .actions { border-top: 1px solid var(--filet); margin-top: 2px; padding-top: 12px; }
@@ -386,29 +388,70 @@ async function ecart(t) {
       const w = 320, h = Math.max(1, Math.round((w * i.naturalHeight) / i.naturalWidth)), px = (im) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(im, 0, 0, w, h); return g.getImageData(0, 0, w, h).data; };
       const d = px(i), e = px(j); let x0 = w, y0 = h, x1 = -1, y1 = -1;
       for (let n = 0; n < d.length; n += 4) if (Math.abs(d[n] - e[n]) > 24 || Math.abs(d[n + 1] - e[n + 1]) > 24 || Math.abs(d[n + 2] - e[n + 2]) > 24) { const q = n / 4, x = q % w, y = (q / w) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-      if (x1 >= 0) r = { x0: x0 / w, y0: y0 / h, x1: (x1 + 1) / w, y1: (y1 + 1) / h };
+      // le fond de la page : la couleur la plus fréquente de « Après », 8 niveaux par canal
+      const nb = new Float64Array(512), sm = new Float64Array(1536);
+      for (let n = 0; n < e.length; n += 4) { const c = ((e[n] >> 5) << 6) | ((e[n + 1] >> 5) << 3) | (e[n + 2] >> 5); nb[c]++; sm[c * 3] += e[n]; sm[c * 3 + 1] += e[n + 1]; sm[c * 3 + 2] += e[n + 2]; }
+      const m = nb.indexOf(Math.max(...nb));
+      if (x1 >= 0) r = { x0: x0 / w, y0: y0 / h, x1: (x1 + 1) / w, y1: (y1 + 1) / h, e, w, h, f: [sm[m * 3] / nb[m], sm[m * 3 + 1] / nb[m], sm[m * 3 + 2] / nb[m]], nw: i.naturalWidth, nh: i.naturalHeight };
     }
   } catch { r = null; }
   ecarts.set(k, r); return r;
 }
+// Un « bon bord » ne tranche rien : la colonne v (ou la rangée v) sur a..b saute à peine par rapport à sa voisine et reste presque tout au fond de la page.
+const bon = (r, v, a, b, col) => {
+  const { e, w, h, f } = r; if (v <= 0 || v >= (col ? w : h)) return true; // le bord de l'image est toujours net
+  let s = 0, g = 0, n = 0;
+  for (let u = a; u <= b; u++, n++) {
+    const i = (col ? u * w + v : v * w + u) * 4, j = col ? i - 4 : i - w * 4;
+    if (Math.max(Math.abs(e[i] - e[j]), Math.abs(e[i + 1] - e[j + 1]), Math.abs(e[i + 2] - e[j + 2])) <= 24) s++;
+    if (Math.max(Math.abs(e[i] - f[0]), Math.abs(e[i + 1] - f[1]), Math.abs(e[i + 2] - f[2])) < 18) g++;
+  }
+  return s >= 0.97 * n && g >= 0.9 * n;
+};
+// premier bon bord en partant de v, vers pas (−1 ou 1), jusqu'au bord de l'image
+const vers = (r, v, pas, a, b, col) => { const max = col ? r.w : r.h; v = Math.min(max, Math.max(0, Math.round(v))); while (v > 0 && v < max && !bon(r, v, a, b, col)) v += pas; return v; };
+// ponytail : on s'étend d'au plus 40 px réels dans le blanc qui suit un bord, pour que la carte voisine ne soit pas rognée
+const large = (r, v, pas, a, b, col, k) => { for (let n = 0; n < 40 / k && v + pas > 0 && v + pas < (col ? r.w : r.h) && bon(r, v + pas, a, b, col); n++) v += pas; return v; };
+// La fenêtre : la boîte qui a changé, plus 24 px, prolongée jusqu'à des bords nets ; au moins la largeur du cadre, au plus sa hauteur libre.
+function fenetre(r, cw, hl, smax) {
+  const kx = r.nw / r.w, ky = r.nh / r.h, X0 = Math.floor(r.x0 * r.w), X1 = Math.ceil(r.x1 * r.w), Y0 = Math.floor(r.y0 * r.h), Y1 = Math.ceil(r.y1 * r.h), mx = 24 / kx, my = 24 / ky, mini = cw / (smax * kx);
+  let L = large(r, vers(r, X0 - mx, -1, Y0, Y1, 1), -1, Y0, Y1, 1, kx), R = vers(r, Math.max(X1 + mx, L + mini), 1, Y0, Y1, 1);
+  while (R - L < mini && L > 0) L = vers(r, L - 1, -1, Y0, Y1, 1); // pas assez de largeur à droite : on élargit à gauche, de bord net en bord net
+  const s = Math.min(smax, cw / ((R - L) * kx));
+  let T = large(r, vers(r, Y0 - my, -1, X0, X1, 0), -1, X0, X1, 0, ky), B = vers(r, T + hl / s / ky, -1, X0, X1, 0);
+  const q = Math.ceil(12 / ky), vide = (y) => { for (let i = 1; i <= q; i++) if (!bon(r, y - i, X0, X1, 0)) return false; return true; };
+  while (B - q > Y1 && vide(B)) B--; // la bande sous le dernier contenu est du fond : on la rend
+  const mh = Math.min(hl, cw * 0.625) / s / ky; // une fenêtre plus basse qu'un 16/10 : on remonte (puis on descend) de bord net en bord net
+  if (B - T < mh) { T = vers(r, T - (mh - (B - T)), -1, X0, X1, 0); if (B - T < mh) B = vers(r, T + mh, 1, X0, X1, 0); if ((B - T) * ky * s > hl) B = vers(r, T + hl / s / ky, -1, X0, X1, 0); }
+  for (let n = 0; n < 2; n++) { // seconde passe : la fenêtre entière est revérifiée, bords poussés vers l'extérieur
+    L = vers(r, L, -1, T, B, 1); R = vers(r, R, 1, T, B, 1);
+    T = vers(r, T, -1, L, R, 0); B = vers(r, B, -1, L, R, 0);
+  }
+  T = Math.max(0, T - 1); // ponytail : l'image réduite adoucit les glyphes ; une rangée de marge évite de rogner le haut d'un titre
+  if (L > X0 || R < X1 || T > Y0 || B < Y1) return null; // la boîte n'entre pas : on ne cadre pas
+  return { L: L * kx, R: R * kx, T: T * ky, B: B * ky, s: Math.min(smax, cw / ((R - L) * kx)) };
+}
 function cadrer() {
-  const img = $("#vue .cadre img"), cadre = img?.parentElement, h = adresse(); if (!img || "plein" in h) return;
+  const el = $("#vue .cadre img, #vue .cadre video"), cadre = el?.parentElement, h = adresse(); if (!el || "plein" in h) return;
   const t = S?.tickets.find((x) => x.id === h.d), x = t && choisie(t, preuves(t));
-  const [a, b] = t ? paire(t) : [], box = x && (x.cle === "avant" || x.cle === "apres") && a && b ? ecarts.get(`${t.id}/${a.f}|${b.f}`) : null;
-  const rien = () => { img.style.cssText = ""; if (cadre) cadre.style.width = ""; };
-  if (box === undefined) ecart(t).then(cadrer); // demande réglée : hors de la file, calculée à l'ouverture
-  if (!box) return rien();
-  if (!img.complete || !img.naturalWidth) { img.addEventListener("load", cadrer, { once: true }); return rien(); }
+  const [a, b] = t ? paire(t) : [], r = x && /^(avant|apres|video)$/.test(x.cle) && a && b ? ecarts.get(`${t.id}/${a.f}|${b.f}`) : null;
+  const rien = () => { el.style.cssText = ""; cadre.style.cssText = ""; cadre.closest(".preuve").classList.remove("fen"); };
+  if (r === undefined) ecart(t).then(cadrer); // demande réglée : hors de la file, calculée à l'ouverture
+  if (!r) return rien();
+  const v = el.tagName === "VIDEO", nw = v ? el.videoWidth : el.naturalWidth, nh = v ? el.videoHeight : el.naturalHeight;
+  if (!nw) { el.addEventListener(v ? "loadedmetadata" : "load", cadrer, { once: true }); return rien(); }
+  if (nw !== r.nw || nh !== r.nh) return rien(); // une vidéo d'une autre taille que la paire ne se cadre pas
   rien(); // on mesure le cadre au repos
-  const cw = cadre.clientWidth, ch = cadre.clientHeight, nw = img.naturalWidth, nh = img.naturalHeight;
-  if (!cw || !ch || (box.x1 - box.x0) * (box.y1 - box.y0) >= 0.5) return rien();
-  const s0 = Math.min(cw / nw, ch / nh), bw = (box.x1 - box.x0) * nw, bh = (box.y1 - box.y0) * nh;
-  let s = nw > 1600 ? 0.5 : 1; // ponytail : les captures demandées à Claude font 1280 px
-  s = Math.min(s, (cw - 24) / bw, (ch - 24) / bh);
-  if (s < 1.25 * s0) return rien();
-  const W = nw * s, H = nh * s, m = (c, g, v) => (g <= c ? (c - g) / 2 : Math.min(0, Math.max(c - g, c / 2 - v * g)));
-  cadre.style.width = `${cw + 2}px`; // ponytail : en petite fenêtre le cadre prend la largeur de l'image ; on le fige à sa taille mesurée
-  img.style.cssText = `width:${W}px;height:auto;max-width:none;object-fit:fill;transform:translate(${m(cw, W, (box.x0 + box.x1) / 2)}px,${m(ch, H, (box.y0 + box.y1) / 2)}px)`;
+  const cw = cadre.clientWidth, ch = cadre.clientHeight;
+  if (!cw || !ch || (r.x1 - r.x0) * (r.y1 - r.y0) >= 0.5) return;
+  const hl = petit() ? ch : $(".corps").getBoundingClientRect().bottom - cadre.getBoundingClientRect().top - 2;
+  const f = fenetre(r, cw, hl, nw > 1600 ? 0.5 : 1); // ponytail : les captures demandées à Claude font 1280 px
+  if (!f || (f.R - f.L) * (f.B - f.T) >= 0.92 * nw * nh) return;
+  const { s } = f, W = nw * s;
+  cadre.closest(".preuve").classList.add("fen");
+  cadre.style.cssText = `width:${cw + 2}px;height:${(f.B - f.T) * s + 2}px;aspect-ratio:auto;min-height:0;max-height:none;flex:none`; // ponytail : en petite fenêtre le cadre prend la largeur de l'image ; on la fige à sa taille mesurée
+  el.style.cssText = `width:${W}px;height:auto;max-width:none;object-fit:fill;transform:translate(${-f.L * s}px,${-f.T * s}px)`;
+  if ((f.R - f.L) * s < cw - 1) { el.style.clipPath = `inset(0 ${W - f.R * s}px 0 0)`; cadre.style.background = `rgb(${r.f.map(Math.round)})`; } // l'image ne remplit pas la largeur : le fond de la capture complète
 }
 const selecteur = (o, x) => (o.length > 1 ? `<div class="choix">${o.map((y) => `<button class="${y === x ? "on" : ""}" data-act="voir" data-cle="${y.cle}">${y.nom}</button>`).join("")}</div>` : "");
 
