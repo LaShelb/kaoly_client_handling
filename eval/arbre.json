@@ -384,7 +384,7 @@
           "etat": "fusionnée",
           "consignes_communes": "Commun à toutes : lire server.ts, index.html, docs/contrat.md et eval/LISEZMOI.md avant d'agir. Mesure : bun eval/score.ts --port <port propre, 4200 à 4299, jamais 4117 ni 4118> --out eval/sorties/<id>, note auto à garder ≥ 39,7, piège HTML à 0, rien qui défile en largeur à 720 px, bash eval/banc.sh vert (faux claude et gh de eval/faux/, aucun appel payant). Ne pas toucher donnees.ts, jeu/, captures.ts, score.ts, rubrique.md. Regarder soi-même, une à une, les captures grand/ et petit/ des vues touchées avant de conclure. Un commit par étape sur la branche de l'exécutant, message en français. Rester dans sa zone : cinq idées sont faites en parallèle puis fusionnées dans l'ordre petite-fenetre-entiere, f1-fiche-et-bouton, preuve-cadree, envoi-qui-dit-vrai, barre-sans-faux-pas. Tout serveur ou Chrome lancé (Chrome uniquement en --headless=new) est arrêté avant de finir. Mots de l'interface : français naturel, tutoiement, le moins de mots possible. Une simplification volontaire porte un commentaire « ponytail : ». Pas de bordure épaisse sur un seul côté, pas de dégradé.",
           "commit": "3d2d74f",
-          "fusion": "da8bad2",
+          "fusion": "eb5bfd6",
           "score": 97.7,
           "auto": 39.7,
           "verdict": "fusionnée",
