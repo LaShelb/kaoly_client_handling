@@ -111,7 +111,8 @@ vaut "$(ls "$D/preuves/$A/precedent" | tr '\n' ,)/$(champ "$A" '.proofs|join(","
 ok "retouche"
 
 # ── mise en ligne et envoi : l'envoi du mail échoue (127.0.0.1), la demande reste en ligne, message à envoyer ──
-vaut "$(ticket "$A" valider --argjson send true --arg to claire@arion.fr --arg subject Titre --arg body "Bonjour <b>Claire</b>")" 400 "mail impossible en local"
+vaut "$(ticket "$A" valider --argjson send true --arg to claire@arion.fr --arg subject Titre --arg body "Bonjour <b>Claire</b>" --argjson pieces '["apres-titre.png"]')" 400 "mail impossible en local"
+vaut "$(champ "$A" '.draft.pieces|join(",")')" "apres-titre.png" "les pièces choisies restent sur le brouillon après l'échec"
 vaut "$(champ "$A" .status)/$(champ "$A" .shipped)/$(champ "$A" .draft.body)" "message/validé/Bonjour <b>Claire</b>" "en ligne, message gardé"
 vaut "$(champ "$A" .status)/$([ -n "$(champ "$A" '.error // ""')" ] && echo raison)" "message/raison" "envoi raté : la raison reste sur la demande"
 grep -q "gh pr merge https://github.com/x/y/pull/1 --squash" "$L/gh.log" || echec "pas de mise en ligne"
@@ -236,6 +237,11 @@ ticket "$B" envoyer --arg to "+33 6 12 34 56 78" --arg subject "" --arg body "Do
 wait $P1 $P2; rm "$T/open-lent"
 vaut "$(grep -c "text=Double%20envoi" "$L/open.log")/$(champ "$B" .status)" "1/fini" "un seul envoi pour deux clics"
 ok "double clic : un seul envoi"
+
+# ── classer une demande en ligne dont le message n'est pas parti : pas « envoyée » ──
+vaut "$(ticket "$Q" fermer)" 200 "classer une demande en ligne sans message"
+vaut "$(champ "$Q" .unsent)/$(champ "$Q" .dropped)" "true/false" "en ligne, sans message : marquée comme telle"
+ok "classée en ligne sans message"
 
 # ── relève : les inconnus ne déclenchent rien ; un tri en échec ne crée rien et ne perd rien ──
 wa() { etat '[.tickets[]|select(.source.channel=="whatsapp")]|length'; }

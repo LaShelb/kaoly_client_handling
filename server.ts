@@ -91,6 +91,16 @@ export const reprise = (t: { step?: string; draft?: any; error?: string; base?: 
 // Deux demandes au même titre dans la même milliseconde (un tri qui en rend plusieurs) : -2, -3…, jamais le même identifiant.
 export const uniqueId = (base: string, taken: (id: string) => boolean) => { let id = base; for (let n = 2; taken(id); n++) id = `${base}-${n}`; return id; };
 
+// Ce que le mail joint : les noms choisis dans la page (jamais un nom hors du dossier), sinon les captures sans « avant », pas de vidéo.
+export const joindre = (preuves: string[], choix?: any) =>
+  Array.isArray(choix) ? preuves.filter((p) => choix.includes(p)) : preuves.filter((p) => /\.(png|jpe?g|gif)$/i.test(p) && !/avant/i.test(p));
+
+// Une réponse à un mail du client part dans son fil : « Re: » devant son objet, sans le doubler.
+export const objetReponse = (source: any, propose: string) => {
+  const s = String(source?.subject ?? "").trim();
+  return source?.channel === "mail" && s ? (/^re\s*:/i.test(s) ? s : `Re: ${s}`) : propose;
+};
+
 // ───────────────────────── état ─────────────────────────
 
 const DEFAULTS = {
@@ -418,9 +428,10 @@ async function send(t: any) {
     const m = cfg().mail, pass = await mailPass();
     if (!m.user || !pass) throw new Error("La boîte mail n'est pas reliée (Arrivées).");
     const { createTransport } = await import("nodemailer");
-    const files = proofsOf(t).map((f) => ({ filename: f, path: `${DIR}/preuves/${t.id}/${f}` })).filter((f) => Bun.file(f.path).size < 20e6);
+    const files = joindre(proofsOf(t), d.pieces).map((f) => ({ filename: f, path: `${DIR}/preuves/${t.id}/${f}` }));
+    if (files.reduce((n, f) => n + Bun.file(f.path).size, 0) > 18e6) throw new Error("Pièces trop lourdes pour un mail : retire la vidéo."); // Gmail refuse au-delà de 25 Mo
     await createTransport({ host: mailHosts().smtp, port: 465, secure: true, auth: { user: m.user, pass } })
-      .sendMail({ from: m.user, to: d.to, subject: d.subject, text: d.body, attachments: files, ...(t.source.ref ? { inReplyTo: t.source.ref, references: t.source.ref } : {}) });
+      .sendMail({ from: m.user, to: d.to, subject: objetReponse(t.source, d.subject), text: d.body, attachments: files, ...(t.source.ref ? { inReplyTo: t.source.ref, references: t.source.ref } : {}) });
   } else {
     // WhatsApp : le message s'ouvre prérempli dans l'application, Simon appuie sur Entrée. Les preuves s'ouvrent dans le Finder pour les glisser.
     const phone = digits(d.to.split("@")[0]);
@@ -428,12 +439,13 @@ async function send(t: any) {
     else { const p = Bun.spawn(["pbcopy"], { stdin: "pipe" }); p.stdin.write(d.body); p.stdin.end(); await p.exited; await sh(["open", "-a", "WhatsApp"]); }
     if (proofsOf(t).length) await sh(["open", `${DIR}/preuves/${t.id}`]);
   }
-  set(t, { status: "fini", error: null, sentAt: now(), sentVia: isMail(d.to) ? "mail" : "whatsapp" }); cleanup(t);
+  set(t, { status: "fini", error: null, sentAt: now(), sentVia: isMail(d.to) ? "mail" : "whatsapp", ...(isMail(d.to) ? { draft: { ...d, pieces: joindre(proofsOf(t), d.pieces) } } : {}) }); cleanup(t);
 }
 // un envoi qui échoue laisse la raison sur la demande (elle reste « message ») : la page la montre et le bouton réessaie
 const sendOuRaison = async (t: any) => { try { await send(t); } catch (e: any) { set(t, { error: e.message }); throw e; } };
 
-const setDraft = (t: any, b: any) => set(t, { draft: { to: String(b.to ?? t.draft?.to ?? "").trim(), subject: String(b.subject ?? t.draft?.subject ?? ""), body: String(b.body ?? t.draft?.body ?? "") } });
+const setDraft = (t: any, b: any) => set(t, { draft: { to: String(b.to ?? t.draft?.to ?? "").trim(), subject: String(b.subject ?? t.draft?.subject ?? ""), body: String(b.body ?? t.draft?.body ?? ""),
+  pieces: Array.isArray(b.pieces) ? b.pieces.slice(0, 20).map(String) : t.draft?.pieces } });
 
 // ───────────────────────── barre de discussion ─────────────────────────
 
@@ -559,7 +571,7 @@ async function handle(req: Request) {
           if (r.to === "finish") guarded(t, () => finish(t)); // Claude a déjà fini : on reprend à l'envoi du code
           else { set(t, { status: "file", error: null, followUp: r.consigne ?? t.followUp ?? (t.sessionId ? "Tu as été interrompu. Reprends où tu en étais et termine." : null) }); pump(); }
         }
-        else if (body.action === "fermer") { running.get(t.id)?.kill(); set(t, { status: "fini", dropped: !t.shipped }); cleanup(t); }
+        else if (body.action === "fermer") { running.get(t.id)?.kill(); set(t, { status: "fini", dropped: !t.shipped, ...(t.shipped && !t.sentAt ? { unsent: true } : {}) }); cleanup(t); }
         else throw new Error("Action inconnue.");
       } finally { busy.delete(t.id); }
     } else return new Response("Introuvable", { status: 404 });
@@ -601,6 +613,10 @@ function check() {
     reprise({ error: "Merge CONFLICT", step: "mise en ligne", draft: {}, base: "origin/dev" }).consigne?.includes("git merge origin/dev ;"), reprise({ error: "boum", step: "travail de Claude" }).consigne],
     ["work", "finish", true, undefined], "relancer : un conflit renvoie Claude, le reste reprend à l'étape");
   eq([uniqueId("a", () => false), uniqueId("a", (id) => ["a", "a-2"].includes(id))], ["a", "a-3"], "identifiants uniques");
+  eq([joindre(["apres-a.png", "avant-a.png", "video-a.mp4"]), joindre(["video-a.mp4", "apres-a.png"], ["video-a.mp4", "../x"]), joindre(["apres-a.png"], [])],
+    [["apres-a.png"], ["video-a.mp4"], []], "pièces jointes : le choix de la page, sinon la capture « Après »");
+  eq([objetReponse({ channel: "mail", subject: "Export" }, "X"), objetReponse({ channel: "mail", subject: "RE : x" }, "X"), objetReponse({ channel: "whatsapp", subject: "Export" }, "X"),
+    objetReponse({ channel: "toi" }, "X"), objetReponse({ channel: "mail", subject: " " }, "X")], ["Re: Export", "RE : x", "X", "X", "X"], "réponse dans le fil du client");
   console.log("vérification : tout est juste");
 }
 
