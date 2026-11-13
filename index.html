@@ -5,198 +5,689 @@
 <meta name="jeton" content="__JETON__">
 <title>Kaoly Clients</title>
 <style>
-  /* Même famille que Kaoly Observability : toile gris très clair, cartes blanches cerclées d'un filet, titres serrés.
-     Ce qui attend Simon est en haut ; ce qui tourne seul reste consultable mais ne réclame rien. */
+  /* Direction « clavier » : une demande à la fois, en grand, la preuve en vedette, la barre au centre du travail.
+     Papier clair (#fbfaf7, comme la fenêtre Swift), encre presque noire, un seul gris, l'indigo pour la sélection et le focus.
+     Trois tailles (12, 13, 20), deux graisses (400, 500). Un cadre seulement pour la preuve, la barre et un champ au focus. */
   :root {
-    --bg: #fafafa; --card: #fff; --ink: #171717; --soft: #404040; --muted: #8a8a8a;
-    --rule: rgba(0,0,0,.07); --rule-strong: rgba(0,0,0,.14); --panel: rgba(0,0,0,.04);
-    --indigo: #615fff; --green: #0f7a4a; --red: #d12c2c; --amber: #9a6200;
-    --mono: ui-monospace, "SF Mono", Menlo, monospace; --display: "SF Pro Display", -apple-system, sans-serif;
-    --ring: 0 0 0 4px rgba(0,0,0,.025), 0 1px 2px rgba(0,0,0,.04);
+    --fond: #fbfaf7; --encre: #171717; --gris: #666; --filet: rgba(0,0,0,.08); --survol: rgba(0,0,0,.04);
+    --indigo: #615fff; --indigo-texte: #4f4ce8; --choisi: rgba(97,95,255,.08);
+    --rouge: #c62828; --vert: #0f7a4a;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100vh; overflow: hidden; background: var(--bg); color: var(--ink); }
-  body { font: 14px/1.5 -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; display: flex; }
+  html, body { margin: 0; height: 100%; background: var(--fond); color: var(--encre); }
+  body { font: 13px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; display: flex; overflow: hidden; }
+  ::selection { background: rgba(97,95,255,.2); }
   button, input, textarea { font: inherit; color: inherit; }
-  aside { width: 216px; flex: none; border-right: 1px solid var(--rule); display: flex; flex-direction: column; padding: 34px 12px 14px; }
-  .brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 14px; font-weight: 650; font-size: 14px; }
-  .brand i { width: 22px; height: 22px; border-radius: 7px; background: var(--indigo); }
-  nav a { display: flex; align-items: center; padding: 7px 8px; border-radius: 8px; color: var(--soft); text-decoration: none; margin-bottom: 2px; cursor: pointer; }
-  nav a:hover { background: var(--panel); }
-  nav a.on { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 0 0 1px var(--rule), 0 1px 2px rgba(0,0,0,.05); }
-  nav .count { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 400; }
-  nav .count.hot { background: var(--ink); color: #fff; border-radius: 9px; padding: 0 7px; }
-  .sources { margin-top: auto; font-size: 12px; color: var(--soft); }
-  .source { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; }
-  .source small { display: block; color: var(--muted); font-size: 12px; }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rule-strong); flex: none; margin-top: 6px; }
-  .dot.ok { background: var(--green); } .dot.bad { background: var(--red); }
-  main { flex: 1; min-width: 0; height: 100vh; overflow-y: auto; padding: 32px 44px 150px; }
-  .page { max-width: 900px; margin: 0 auto; }
-  h1 { font: 700 30px/1.1 var(--display); letter-spacing: -0.035em; margin: 0 0 6px; }
-  .lead { color: var(--muted); margin: 0 0 20px; }
-  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 14px; box-shadow: var(--ring); margin-bottom: 18px; padding: 16px 20px; }
-  .card h2 { font: 650 18px/1.3 var(--display); letter-spacing: -0.02em; margin: 0 0 4px; }
-  .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
-  .tag { padding: 1px 8px; border-radius: 6px; font-size: 12px; background: var(--panel); color: var(--soft); white-space: nowrap; }
-  .tag.bug { background: #fdecec; color: var(--red); } .tag.visible { background: #eeeeff; color: #4340c9; } .tag.ok { background: #e7f5ee; color: var(--green); }
-  .tag.wait { background: #fff4dc; color: var(--amber); }
-  .text { white-space: pre-wrap; color: var(--soft); margin: 0 0 12px; }
-  details { margin: 0 0 12px; } summary { cursor: pointer; color: var(--muted); font-size: 12px; }
-  details .text { margin-top: 6px; padding: 10px 12px; background: var(--panel); border-radius: 9px; }
-  .proofs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin: 0 0 14px; }
-  .proofs figure { margin: 0; } .proofs figcaption { color: var(--muted); font-size: 12px; padding-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .proofs img, .proofs video { width: 100%; border: 1px solid var(--rule-strong); border-radius: 9px; display: block; cursor: zoom-in; background: var(--panel); }
-  #zoom { position: fixed; inset: 0; background: rgba(0,0,0,.82); display: none; align-items: center; justify-content: center; z-index: 9; cursor: zoom-out; }
-  #zoom.on { display: flex; } #zoom img { max-width: 94vw; max-height: 94vh; border-radius: 8px; }
-  .noproof { border: 1px dashed var(--rule-strong); border-radius: 9px; padding: 10px 12px; color: var(--muted); font-size: 12px; margin: 0 0 14px; }
-  textarea, input[type=text], input[type=password] { width: 100%; padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: 9px; background: var(--card); outline: 0; }
-  textarea:focus, input:focus { border-color: var(--indigo); }
-  textarea { resize: vertical; min-height: 64px; display: block; }
-  .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
-  .row label { color: var(--muted); font-size: 12px; width: 62px; flex: none; } .row .grow { flex: 1; min-width: 160px; }
-  .btn { padding: 6px 12px; border: 1px solid var(--rule-strong); border-radius: 9px; background: var(--card); cursor: pointer; white-space: nowrap; font-weight: 550; font-size: 12px; }
-  .btn:hover { border-color: var(--ink); } .btn.dark { background: var(--ink); color: #fff; border-color: var(--ink); } .btn[disabled] { opacity: .45; cursor: default; }
-  .link { background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; color: var(--muted); font-size: 12px; }
-  .right { margin-left: auto; }
-  .alert { color: var(--red); margin: 0 0 12px; white-space: pre-wrap; }
-  .live { font: 12px/1.6 var(--mono); color: var(--soft); background: var(--panel); border-radius: 9px; padding: 9px 12px; margin: 0; white-space: pre-wrap; overflow: hidden; }
-  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
-  .switch { appearance: none; width: 30px; height: 18px; border-radius: 18px; background: var(--rule-strong); position: relative; cursor: pointer; vertical-align: middle; margin: 0; flex: none; }
-  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .12s; }
-  .switch:checked { background: var(--ink); } .switch:checked::after { left: 14px; }
-  .hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
-  /* barre de discussion */
-  #bar { position: fixed; left: 216px; right: 0; bottom: 0; padding: 0 44px 20px; pointer-events: none; }
-  #bar .in { max-width: 900px; margin: 0 auto; pointer-events: auto; }
-  #said { background: var(--ink); color: #fff; border-radius: 12px; padding: 9px 14px; margin-bottom: 8px; font-size: 12px; white-space: pre-wrap; display: none; }
-  #bar form { display: flex; gap: 8px; background: var(--card); border: 1px solid var(--rule-strong); border-radius: 14px; padding: 8px; box-shadow: 0 8px 30px rgba(0,0,0,.10); }
-  #bar textarea { border: 0; min-height: 22px; height: 38px; max-height: 180px; resize: none; padding: 8px; }
+  button { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+  a { color: inherit; text-decoration: none; }
+  :focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; border-radius: 4px; }
+  p { margin: 0; }
+  [hidden] { display: none !important; }
+  .num { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .gris { color: var(--gris); }
+  .vert { color: var(--vert); }
+  .point { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--rouge); flex: none; }
+  .lien { color: var(--gris); font-size: 12px; }
+  .lien:hover { color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
+  svg { display: block; }
+
+  /* ── la colonne ── */
+  #col { width: 260px; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--filet); min-width: 0; }
+  #liste { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 8px 8px; }
+  .groupe { display: flex; align-items: baseline; gap: 8px; padding: 12px 10px 4px; font-size: 12px; color: var(--gris); }
+  .groupe:first-child { padding-top: 4px; }
+  .groupe .num { margin-left: auto; }
+  .groupe.toi { font-size: 13px; font-weight: 500; color: var(--encre); }
+  .groupe.toi .num { color: var(--encre); }
+  .groupe .plus { color: var(--gris); opacity: 0; padding: 2px; border-radius: 4px; }
+  .groupe:hover .plus, .groupe .plus:focus-visible { opacity: 1; }
+  .groupe .plus:hover { color: var(--encre); background: var(--survol); }
+  .filet { height: 1px; background: var(--filet); margin: 12px 10px 4px; }
+  .ligne { display: block; padding: 5px 10px; border-radius: 7px; }
+  .ligne:hover, .client:hover, #releve:hover { background: var(--survol); }
+  .ligne.on, .client.on, #releve.on { background: var(--choisi); }
+  .l1 { display: flex; align-items: baseline; gap: 10px; line-height: 18px; }
+  .l1 .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .moi .t { font-weight: 500; }
+  .loin .t { color: var(--gris); }
+  .l1 .num { color: var(--gris); }
+  .l2 { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 17px; color: var(--gris); white-space: nowrap; overflow: hidden; }
+  .l2 .v { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .l2 .num { margin-left: auto; }
+  .alerte .l1 .t { font-weight: 500; }
+  .alerte button { font-size: 12px; color: var(--gris); }
+  .alerte button:hover { color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
+  .client { display: flex; align-items: baseline; gap: 10px; padding: 4px 10px; border-radius: 7px; }
+  .client span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #releve { display: flex; align-items: center; gap: 8px; margin: 4px 8px 10px; padding: 6px 10px; border-radius: 7px; font-size: 12px; color: var(--gris); }
+  #releve i { width: 6px; height: 6px; border-radius: 50%; background: var(--gris); flex: none; }
+  #releve i.rouge { background: var(--rouge); }
+
+  /* ── le volet ── */
+  #volet { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; }
+  #vue { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 22px 28px 0; }
+  .tete { flex: none; margin-bottom: 20px; }
+  .tete .h { display: flex; align-items: baseline; gap: 16px; }
+  h1 { flex: 1; min-width: 0; margin: 0; font-size: 20px; font-weight: 500; line-height: 1.3; letter-spacing: -.015em; overflow-wrap: anywhere; text-wrap: balance; }
+  .tete .classer { opacity: 0; }
+  .tete:hover .classer, .tete .classer:focus-visible { opacity: 1; }
+  .etat { margin-top: 3px; color: var(--gris); overflow-wrap: anywhere; }
+  .etat a:hover { color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
+  .corps { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 332px; grid-template-rows: minmax(0, 1fr); gap: 36px; align-items: start; }
+  .corps.seul { grid-template-columns: minmax(0, 640px); }
+
+  /* la preuve : un seul cadre, Avant et Après au même endroit, à la même taille */
+  .preuve { display: flex; flex-direction: column; gap: 10px; min-height: 0; max-height: 100%; }
+  .choix { display: flex; gap: 16px; font-size: 12px; }
+  .choix button { color: var(--gris); padding: 1px 0; }
+  .choix button:hover { color: var(--encre); }
+  .choix button.on { color: var(--encre); text-decoration: underline; text-decoration-color: var(--indigo); text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
+  .cadre { margin: 0; width: 100%; aspect-ratio: 16 / 10; min-height: 0; border: 1px solid rgba(0,0,0,.1); border-radius: 8px; overflow: hidden; background: #fff; cursor: zoom-in; }
+  .cadre img, .cadre video { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .cadre.vide { display: grid; place-items: center; background: none; border: 1px dashed rgba(0,0,0,.28); color: var(--gris); cursor: default; }
+
+  /* le fil : trois voix nommées par qui parle */
+  .fil { display: flex; flex-direction: column; min-height: 0; max-height: 100%; }
+  .fil-texte { min-height: 0; overflow-y: auto; padding: 0 4px 2px 0; }
+  .voix + .voix { margin-top: 18px; }
+  .qui { font-size: 12px; color: var(--gris); margin-bottom: 2px; }
+  .dit { max-width: 68ch; overflow-wrap: anywhere; }
+  .replie { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .deplie { white-space: pre-wrap; }
+  [data-act="deplier"] { cursor: pointer; }
+  .reserve { margin-top: 4px; max-width: 68ch; }
+  .reserve span:first-child { text-decoration: underline dashed rgba(0,0,0,.5); text-decoration-thickness: 1px; text-underline-offset: 4px; }
+  .lead { font-size: 20px; line-height: 1.4; letter-spacing: -.01em; max-width: 34em; overflow-wrap: anywhere; }
+  .lead .point { width: 8px; height: 8px; margin: 0 10px 3px 0; vertical-align: middle; }
+  .lead + .voix, .voix.tete-fil + .voix { margin-top: 22px; }
+  .nom { color: var(--gris); border-radius: 4px; }
+  .nom:hover { color: var(--encre); background: var(--survol); }
+  .qui-ed { display: flex; align-items: center; gap: 4px; }
+  .crayon { margin-left: 2px; color: var(--gris); padding: 3px; border-radius: 4px; }
+  .crayon:hover { color: var(--encre); background: var(--survol); }
+  .incertain {text-decoration: underline dashed; text-underline-offset: 3px; }
+  .ed { display: block; width: calc(100% + 14px); margin: 0 -7px; padding: 2px 6px; border: 1px solid transparent; border-radius: 6px; background: none; outline: 0; resize: none; line-height: 1.5; overflow-wrap: anywhere; }
+  .ed:hover { background: var(--survol); }
+  .ed:focus { background: #fff; border-color: var(--indigo); }
+  .ed::placeholder { color: var(--gris); }
+  textarea.ed { overflow: hidden; }
+  .voix .ed { max-width: calc(68ch + 14px); }
+  .objet { font-weight: 500; }
+  .envoye { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; }
+  .actions { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 18px 0 4px; }
+  .plein { display: inline-flex; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 8px; background: var(--encre); color: #fff; font-weight: 500; white-space: nowrap; }
+  .plein:hover { background: #2b2b2b; }
+  .plein[disabled] { opacity: .4; cursor: default; }
+  .plein kbd { font: 12px var(--mono); opacity: .6; }
+  details { margin-top: 20px; }
+  summary { display: inline-block; list-style: none; cursor: pointer; font-size: 12px; color: var(--gris); }
+  summary::-webkit-details-marker { display: none; }
+  summary:hover { color: var(--encre); }
+  .detail { display: grid; gap: 10px; justify-items: start; margin-top: 8px; font-size: 12px; color: var(--gris); max-width: 68ch; }
+  .detail .resume { white-space: pre-wrap; color: var(--encre); }
+  .vide-etat { flex: 1; display: grid; place-items: center; font-size: 20px; color: var(--gris); padding-bottom: 40px; }
+
+  /* la fiche client et les arrivées : des lignes à filets, pas de cadre */
+  .chiffres { margin-top: 3px; color: var(--gris); }
+  .chiffres .num { color: var(--encre); }
+  .fiche { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 240px; grid-template-rows: minmax(0, 1fr); gap: 56px; align-items: start; }
+  .registre { max-height: 100%; overflow-y: auto; }
+  .reg { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 8px 6px; border-top: 1px solid var(--filet); }
+  .reg:hover { background: var(--survol); }
+  .reg .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reg .v { font-size: 12px; color: var(--gris); white-space: nowrap; }
+  .reg.passe { color: var(--gris); }
+  .reglages .bloc { padding: 10px 0 12px; border-top: 1px solid var(--filet); }
+  .contact { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+  .contact span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .croix { color: var(--gris); opacity: 0; padding: 3px; border-radius: 4px; }
+  .contact:hover .croix, .croix:focus-visible { opacity: 1; }
+  .croix:hover { color: var(--encre); background: var(--survol); }
+  .bascule { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+  .switch { appearance: none; -webkit-appearance: none; width: 28px; height: 16px; margin: 0; border-radius: 16px; background: rgba(0,0,0,.2); position: relative; cursor: pointer; flex: none; transition: background .15s; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .switch:checked { background: var(--encre); }
+  .switch:checked::after { left: 14px; }
+  .reglages .retirer { margin-top: 12px; opacity: 0; }
+  .reglages:hover .retirer, .reglages .retirer:focus-visible { opacity: 1; }
+  .arr { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 16px; align-items: center; max-width: 720px; padding: 12px 0; border-top: 1px solid var(--filet); }
+  .arr .val { display: flex; align-items: center; gap: 8px; color: var(--gris); min-width: 0; overflow-wrap: anywhere; }
+  .arr .val i { width: 6px; height: 6px; border-radius: 50%; background: var(--gris); flex: none; }
+  .arr .val i.non { background: none; box-shadow: inset 0 0 0 1px var(--gris); }
+  .arr .val i.rouge { background: var(--rouge); }
+  .arr-form { grid-column: 2 / 4; display: grid; gap: 6px; max-width: 360px; justify-items: start; }
+  .arr-form .rang { display: flex; gap: 16px; align-items: center; margin-top: 4px; }
+
+  /* ── la barre ── */
+  #barre { flex: none; padding: 0 28px 16px; }
+  #dit { min-height: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 0 2px 6px; font-size: 12px; color: var(--gris); }
+  #dit .fort { color: var(--encre); }
+  #dit button { font-size: 12px; color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
+  #dit.vient { animation: vient .15s ease-out; }
+  @keyframes vient { from { opacity: 0; transform: translateY(3px); } }
+  #champ { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border: 1px solid rgba(0,0,0,.13); border-radius: 10px; background: #fff; }
+  #champ:focus-within { border-color: var(--indigo); }
+  .puce { flex: none; max-width: 42%; padding: 1px 8px; border-radius: 6px; background: var(--choisi); color: var(--indigo-texte); font-size: 12px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #say { flex: 1; min-width: 0; height: 22px; max-height: 160px; padding: 1px 0; border: 0; outline: 0; background: none; resize: none; line-height: 20px; }
+  #say::placeholder { color: var(--gris); }
+  #champ kbd { font: 12px/22px var(--mono); color: var(--gris); }
+  #champ:focus-within kbd { display: none; }
+
+  /* ── la preuve en plein écran : même papier, la preuve flotte ── */
+  #plein { position: fixed; inset: 0; z-index: 5; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 18px 32px 28px; background: var(--fond); cursor: zoom-out; }
+  body.en-plein #plein { display: flex; }
+  body.en-plein #col, body.en-plein #volet { visibility: hidden; }
+  #plein .haut { display: flex; align-items: baseline; gap: 24px; width: min(100%, calc((100vh - 96px) * 1.6)); }
+  #plein .haut span { flex: 1; min-width: 0; color: var(--gris); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #plein .cadre { width: min(100%, calc((100vh - 96px) * 1.6)); cursor: zoom-out; box-shadow: 0 18px 50px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.05); }
+
+  /* ── sous 1000 px : la colonne se resserre, la preuve passe au-dessus du fil, le bouton reste visible ── */
+  @media (max-width: 999px) {
+    #col { width: 220px; }
+    #vue { padding: 16px 20px 0; }
+    #barre { padding: 0 20px 12px; }
+    .tete { margin-bottom: 14px; }
+    .corps, .corps.seul { display: flex; flex-direction: column; gap: 12px; }
+    .preuve { flex: none; gap: 6px; }
+    .preuve .cadre { width: auto; height: 28vh; max-width: 100%; align-self: flex-start; }
+    .fil { flex: 1; max-height: none; width: 100%; }
+    .actions { padding-top: 12px; }
+    .fiche { display: block; overflow-y: auto; }
+    .registre { max-height: none; margin-bottom: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
-<aside>
-  <div class="brand"><i></i>Kaoly Clients</div>
-  <nav id="nav"></nav>
-  <div class="sources" id="sources"></div>
-</aside>
-<main><div class="page" id="page"></div></main>
-<div id="bar"><div class="in">
-  <div id="said"></div>
-  <form id="chat"><textarea id="say" placeholder="Colle un message de client, ou dis ce que tu veux : « ajoute le client Garonne, dépôt LaShelb/kao_garonne »…"></textarea><button class="btn dark">Envoyer</button></form>
-</div></div>
-<div id="zoom"></div>
+<nav id="col">
+  <div id="liste"></div>
+  <a id="releve" href="#arrivees"></a>
+</nav>
+<main id="volet">
+  <div id="vue"></div>
+  <div id="barre">
+    <div id="dit" aria-live="polite"></div>
+    <form id="champ"><span class="puce" id="puce" hidden></span><textarea id="say" rows="1" placeholder="Écris ou colle ici" aria-label="Barre de commande"></textarea><kbd>⌘K</kbd></form>
+  </div>
+</main>
+<div id="plein" data-act="fermer-plein"></div>
 <script>
-const $ = (s) => document.querySelector(s);
+const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-let S = null, view = "toi", last = "", proposals = [];
-const JETON = document.querySelector('meta[name="jeton"]').content;
-const MINE = ["valider", "message", "question", "erreur"];
-const KIND = { bug: "Bug", visible: "Changement visible", question: "Question" };
-const WAIT = { valider: "À valider avant la production", message: "Message prêt à envoyer", question: "Claude a une question", erreur: "Arrêté sur une erreur", file: "En attente", travail: "Claude y travaille" };
+const JETON = $('meta[name="jeton"]').content;
+const MINE = ["question", "erreur", "valider", "message"];
+const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+const say = $("#say");
+const SVG_PLUS = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 2.5v7M2.5 6h7"/></svg>`;
+const SVG_CRAYON = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M8.2 1.8l2 2-6.4 6.4-2.6.6.6-2.6z"/></svg>`;
+const SVG_CROIX =`<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"/></svg>`;
 
-async function post(path, body) {
-  const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json", "x-kaoly": JETON }, body: JSON.stringify(body) });
-  const j = await r.json().catch(() => ({ error: "Réponse illisible." }));
-  if (j.error) { say(j.error); return null; }
-  if (j.tickets) { S = j; render(true); }
-  return j;
+let S = null;
+const drafts = {};          // brouillons modifiés par Simon, par demande, gardés jusqu'à l'envoi (le rafraîchissement ne les touche pas)
+const retenues = new Map(); // actions retenues 5 s dans la page : clé → { timer, chemin, body, retour }
+const deplies = new Set();  // demandes du client dépliées
+const choix = {};           // preuve affichée, par demande
+let destEdit = null, mailForm = false, mailAide = false, puceOff = null, propositions = [], rendus = {}, dernierCur = "", effacer = null;
+
+// ───────── petites règles d'affichage ─────────
+const minutes = (iso) => Math.max(1, Math.floor((Date.now() - Date.parse(iso)) / 60000));
+const age = (iso) => { const m = minutes(iso); return m < 60 ? `${m} min` : m < 1440 ? `${Math.floor(m / 60)} h` : `${Math.floor(m / 1440)} j`; };
+const ageMot = (iso) => (age(iso) === "1 j" ? "hier" : age(iso));
+const date = (iso) => { const d = new Date(iso); return `${d.getDate()} ${MOIS[d.getMonth()]}`; };
+const estGroupe = (t) => /@g\.us$/.test(t.source?.from ?? "");
+const prenom = (t) => String(t.source?.name ?? "").trim().split(/\s+/)[0] || "";
+const auteur = (t) => (t.source?.channel === "toi" ? null : estGroupe(t) ? t.source.name : prenom(t) || t.client);
+const isMail = (to) => to.includes("@") && !/@(s\.whatsapp\.net|g\.us)$/.test(to);
+const rang = (t) => ({ question: 0, erreur: 1 }[t.status] ?? 2);
+const parDate = (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt);
+const accepte = (t) => ["question", "valider", "erreur"].includes(t.status) || (t.status === "message" && !t.shipped);
+
+function files() {
+  const vis = S.tickets.filter((t) => !retenues.has(t.id));
+  const toi = vis.filter((t) => MINE.includes(t.status)).sort((a, b) => rang(a) - rang(b) || parDate(a, b));
+  const claude = vis.filter((t) => t.status === "travail").sort(parDate).concat(vis.filter((t) => t.status === "file").sort(parDate));
+  return { toi, claude };
 }
-const say = (t) => { $("#said").textContent = t; $("#said").style.display = t ? "block" : "none"; };
+function alertes() {
+  if (!S.auto) return [{ t: "Relève éteinte", geste: "allumer" }];
+  return [["mail", "Mail en panne", "relier"], ["whatsapp", "WhatsApp en panne", "voir"], ["tri", "Tri en panne", "voir"]]
+    .filter(([k]) => S.notes?.[k]).map(([, t, geste]) => ({ t, geste, rouge: true }));
+}
+function verbe(t) {
+  return { valider: "à valider", question: "Claude demande", erreur: "arrêtée", file: "en attente" }[t.status]
+    ?? (t.status === "message" ? (t.shipped ? "en ligne · à envoyer" : "à envoyer") : t.status === "travail" ? `<span class="num">${age(t.startedAt || t.updatedAt)}</span>` : "");
+}
+function issue(t) { return t.dropped ? "classée" : t.shipped === "auto" ? "en ligne sans toi puis envoyée" : t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"; }
 
-function proofs(t) {
-  if (!t.proofs.length) return t.changed ? `<p class="noproof">Aucune capture ni vidéo : Claude n'a pas pu en produire (voir son résumé). À vérifier toi-même avant d'envoyer.</p>` : "";
-  return `<div class="proofs">${t.proofs.map((f) => { const u = `/preuve/${t.id}/${encodeURIComponent(f)}`;
-    return `<figure>${/\.(mp4|webm|mov)$/i.test(f) ? `<video src="${u}" controls preload="metadata"></video>` : `<img src="${u}" alt="${esc(f)}" data-zoom>`}<figcaption>${esc(f)}</figcaption></figure>`; }).join("")}</div>`;
+// La phrase d'état : client, nature et mise en ligne, qui l'a envoyée, depuis quand. Elle remplace toutes les étiquettes.
+function phrase(t) {
+  const enLigne = `<span class="vert">en ligne</span>`;
+  const nat = t.kind === "bug" ? "bug corrigé" : t.kind === "question" || !t.changed ? "réponse prête" : "interface modifiée";
+  const etat = {
+    valider: `${nat}, pas encore en ligne`,
+    message: !t.changed ? "réponse prête" : t.shipped === "auto" ? `${nat}, ${enLigne} sans toi` : t.shipped ? `${nat}, ${enLigne}` : `${nat}, pas encore en ligne`,
+    question: "Claude te demande",
+    erreur: t.step ? `arrêtée à : <span data-contenu>${esc(t.step)}</span>` : "arrêtée",
+    travail: `Claude y travaille · <span class="num">${age(t.startedAt || t.updatedAt)}</span>`,
+    file: "en attente d'une place",
+    fini: t.dropped ? `classée le <span class="num">${date(t.updatedAt)}</span>` : `${t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"} le <span class="num">${date(t.sentAt || t.updatedAt)}</span>${t.shipped ? ` · ${enLigne}` : ""}`,
+  }[t.status] ?? "";
+  const a = auteur(t), qui = a ? `<span data-contenu>${esc(a)}</span> par ${t.source.channel === "whatsapp" ? "WhatsApp" : "mail"}` : "Toi";
+  return `<a href="#c=${encodeURIComponent(t.clientId)}" data-contenu>${esc(t.client)}</a> · ${etat} · ${qui}${t.status === "fini" ? "" : ` · <span class="num">${ageMot(t.createdAt)}</span>`}`;
 }
 
-function card(t) {
-  const who = t.source.channel === "toi" ? "ouvert par toi" : `${t.source.channel} de ${esc(t.source.name || t.source.from)}`;
-  let act = "";
-  if (t.status === "valider") act = `<textarea data-f="text" placeholder="Une retouche ? Écris-la ici (« rajoute le bouton », « ce parcours n'est pas clair »…)"></textarea>
-    <div class="row"><button class="btn dark" data-act="valider">Mettre en production</button><button class="btn" data-act="retouche">Demander la retouche</button>${t.pr ? `<span class="hint">PR : ${esc(t.pr)}</span>` : ""}</div>`;
-  if (t.status === "message") act = `<div class="row"><label>À</label><input type="text" class="grow" data-f="to" value="${esc(t.draft?.to)}"></div>
-    ${String(t.draft?.to).includes("@") && !/whatsapp|g\.us/.test(t.draft.to) ? `<div class="row"><label>Objet</label><input type="text" class="grow" data-f="subject" value="${esc(t.draft?.subject)}"></div>` : ""}
-    <div class="row"><textarea data-f="body" rows="7">${esc(t.draft?.body)}</textarea></div>
-    <div class="row"><button class="btn dark" data-act="envoyer">Envoyer au client</button>${t.shipped ? "" : t.changed ? `<span class="hint">Pas encore en production.</span>` : ""}</div>`;
-  if (t.status === "question") act = `<p class="text"><b>${esc(t.question)}</b></p><textarea data-f="text" placeholder="Ta réponse"></textarea><div class="row"><button class="btn dark" data-act="retouche">Répondre</button></div>`;
-  if (t.status === "erreur") act = `<p class="alert">${esc(t.error)}</p><div class="row"><button class="btn dark" data-act="relancer">Relancer</button></div>`;
-  if (t.status === "travail") act = `<pre class="live">${esc((t.live ?? []).join("\n") || "Démarrage…")}</pre>`;
-  return `<div class="card" data-id="${esc(t.id)}">
-    <h2>${esc(t.title)}</h2>
-    <div class="meta"><span class="tag">${esc(t.client)}</span><span class="tag ${t.kind}">${KIND[t.kind]}</span>
-      ${t.status === "fini" ? `<span class="tag">${t.dropped ? "Classé sans suite" : "Terminé"}</span>` : `<span class="tag wait">${WAIT[t.status]}</span>`}
-      ${t.shipped ? `<span class="tag ok">${t.shipped === "auto" ? "Mis en production automatiquement" : "En production"}</span>` : ""}
-      <span>${who}</span>${t.status !== "fini" ? `<button class="link right" data-act="fermer">Classer sans suite</button>` : ""}</div>
-    ${t.summary ? `<p class="text">${esc(t.summary)}</p>` : ""}
-    ${proofs(t)}
-    <details${t.summary ? "" : " open"}><summary>La demande du client</summary><p class="text">${esc(t.request)}</p></details>
-    ${act}</div>`;
+// La raison d'une panne en une phrase lisible ; le texte brut reste dans Détail.
+// ponytail : quelques erreurs techniques connues, traduites ; les autres passent telles quelles, coupées à 140 caractères
+function humain(e) {
+  e = String(e ?? "").trim();
+  if (/not mergeable|conflict|conflit/i.test(e)) return "Conflit avec une modification plus récente du même code.";
+  if (/ECONNREFUSED|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRESET/.test(e)) return "Le serveur de mail ne répond pas.";
+  if (/invalid login|authentication failed|535/i.test(e)) return "La boîte mail refuse le mot de passe.";
+  if (/^(gh|git)\b/.test(e) && !/[éèàç]/.test(e)) return "GitHub a refusé cette étape.";
+  return e.length > 140 ? `${e.slice(0, 139)}…` : e;
+}
+const raison = (t) => humain(t.error) || "Arrêtée sans explication.";
+
+function preuves(t) {
+  const vid = [], av = [], ap = [];
+  for (const f of t.proofs ?? []) (/\.(mp4|webm|mov)$/i.test(f) ? vid : /avant/i.test(f) ? av : ap).push(f);
+  const o = vid.map((f, i) => ({ cle: `video${i || ""}`, nom: `Vidéo${vid.length > 1 ? ` ${i + 1}` : ""}`, f, video: true }));
+  // ponytail : plusieurs paires deviennent « Après 2 · Avant 2 » à la suite, plutôt qu'un second sélecteur
+  for (let i = 0, n = Math.max(av.length, ap.length); i < n; i++) {
+    const s = n > 1 ? ` ${i + 1}` : "";
+    if (ap[i]) o.push({ cle: `apres${i || ""}`, nom: `Après${s}`, f: ap[i] });
+    if (av[i]) o.push({ cle: `avant${i || ""}`, nom: `Avant${s}`, f: av[i] });
+  }
+  return o;
+}
+const choisie = (t, o) => o.find((x) => x.cle === choix[t.id]) ?? o[0];
+const media = (t, x, grand) => {
+  const u = `/preuve/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`;
+  return x.video ? `<video src="${u}" muted loop playsinline autoplay preload="auto"></video>` : `<img src="${u}" alt="${x.nom}">`;
+};
+const selecteur = (o, x) => (o.length > 1 ? `<div class="choix">${o.map((y) => `<button class="${y === x ? "on" : ""}" data-act="voir" data-cle="${y.cle}">${y.nom}</button>`).join("")}</div>` : "");
+
+// ───────── l'adresse ─────────
+function adresse() {
+  const h = {};
+  for (const p of location.hash.slice(1).split("&")) if (p) { const [k, ...v] = p.split("="); h[decodeURIComponent(k)] = decodeURIComponent(v.join("=")); }
+  return h;
+}
+function aller(hash, remplacer) {
+  if (remplacer) history.replaceState(null, "", `#${hash}`);
+  else if (location.hash.slice(1) !== hash) location.hash = hash;
+  rendre();
+}
+const adrDemande = (id, extra = {}) => [`d=${encodeURIComponent(id)}`, ...Object.entries(extra).filter(([, v]) => v != null).map(([k, v]) => (v === true ? k : `${k}=${v}`))].join("&");
+function courante() { const h = adresse(); return h.d != null ? S?.tickets.find((t) => t.id === h.d) : null; }
+function brouillon(t) { return drafts[t.id] ?? { to: t.draft?.to ?? "", subject: t.draft?.subject ?? "", body: t.draft?.body ?? "" }; }
+function suivante(id) {
+  const { toi } = files(), i = toi.findIndex((t) => t.id === id), reste = toi.filter((t) => t.id !== id);
+  return (i >= 0 ? toi.slice(i + 1).find((t) => t.id !== id) : null) ?? reste[0] ?? null;
 }
 
-function clients() {
-  return `<h1>Clients</h1><p class="lead">Un message n'ouvre un ticket que s'il vient d'un contact listé ici.</p>
-  ${S.clients.map((c) => `<div class="card" data-client="${esc(c.id)}"><h2>${esc(c.name)}</h2>
-    <div class="row"><label>Dépôt</label><input type="text" class="grow" data-c="repo" value="${esc(c.repo)}" placeholder="chemin local ou proprietaire/nom sur GitHub"></div>
-    <div class="row"><label>Contacts</label><input type="text" class="grow" data-c="contacts" value="${esc(c.contacts.join(", "))}" placeholder="claire@client.fr, @client.fr, 06 12 34 56 78, nom du groupe WhatsApp"></div>
-    <div class="row"><label></label><input type="checkbox" class="switch" data-c="autoProd" ${c.autoProd ? "checked" : ""}><span>Les corrections de bugs partent seules en production</span><button class="link right" data-act="removeClient">Retirer</button></div>
-    <p class="hint">Les changements d'interface et les messages au client t'attendent toujours.</p></div>`).join("")}
-  <div class="card"><h2>Boîte mail</h2>
-    <div class="row"><label>Adresse</label><input type="text" class="grow" id="mailUser" value="${esc(S.mail.user)}" placeholder="toi@kaoly.fr"></div>
-    <div class="row"><label>Mot de passe</label><input type="password" class="grow" id="mailPass" placeholder="${S.mail.ok ? "enregistré dans le trousseau du Mac" : "mot de passe d'application"}"><button class="btn" data-act="mail">Relier</button></div>
-    <p class="hint">Pour Gmail ou Google Workspace : un « mot de passe d'application » (compte Google › Sécurité › Validation en deux étapes). Il reste dans le trousseau du Mac et sert à lire la boîte de réception et à envoyer tes réponses.</p></div>`;
+// ───────── la colonne ─────────
+function colonne(cur) {
+  const { toi, claude } = files();
+  // le titre a toute la largeur ; l'âge (ou la durée du travail de Claude) tombe à droite de la seconde ligne
+  const ligne = (t, moi) => { const tr = t.status === "travail";
+    return `<a class="ligne ${moi ? "moi" : "loin"}${cur === `d:${t.id}` ? " on" : ""}" href="#d=${encodeURIComponent(t.id)}">
+    <span class="l1"><span class="t" data-contenu>${esc(t.title)}</span></span>
+    <span class="l2">${t.status === "erreur" ? `<i class="point"></i>` : ""}<span class="v"><span data-contenu>${esc(t.client)}</span>${tr ? "" : ` · ${verbe(t)}`}</span><span class="num">${tr ? age(t.startedAt || t.updatedAt) : age(t.createdAt)}</span></span></a>`; };
+  const al = alertes().map((a) => `<a class="ligne alerte${cur === "arrivees" ? " on" : ""}" href="#arrivees"><span class="l1">${a.rouge ? `<i class="point"></i>` : ""}<span class="t">${a.t}</span><button data-act="${a.geste === "allumer" ? "allumer" : "arrivees"}">${a.geste}</button></span></a>`).join("");
+  const attente = (c) => toi.filter((t) => t.clientId === c.id).map((t) => t.createdAt).sort()[0];
+  const clients = S.clients.filter((c) => !retenues.has(`c:${c.id}`)).map((c) => ({ c, a: attente(c) }))
+    .sort((x, y) => (x.a && y.a ? x.a.localeCompare(y.a) : x.a ? -1 : y.a ? 1 : x.c.name.localeCompare(y.c.name)))
+    .map(({ c, a }) => `<a class="client${cur === `c:${c.id}` ? " on" : ""}" href="#c=${encodeURIComponent(c.id)}"><span data-contenu>${esc(c.name)}</span>${a ? `<span class="num gris">${age(a)}</span>` : ""}</a>`).join("");
+  return `<div class="groupe toi">À toi<span class="num">${toi.length}</span></div>${al}${toi.map((t) => ligne(t, true)).join("")}
+    ${claude.length ? `<div class="groupe">Claude y travaille<span class="num">${claude.length}</span></div>${claude.map((t) => ligne(t, false)).join("")}` : ""}
+    <div class="filet"></div><div class="groupe">Clients<button class="plus" data-act="nouveau" aria-label="Nouveau client">${SVG_PLUS}</button></div>${clients}`;
 }
 
-function render(force) {
+// ───────── une demande ─────────
+const voix = (qui, corps, cls = "") => `<div class="voix ${cls}"><div class="qui">${qui}</div>${corps}</div>`;
+function voixClient(t, serre) {
+  const a = auteur(t), ouvert = !serre || deplies.has(t.id);
+  // replié : on saute la formule d'appel pour que les deux lignes disent la demande
+  const txt = ouvert ? String(t.request ?? "").trim().replace(/\n\s*\n+/g, "\n") : String(t.request ?? "").replace(/^\s*(bonjour|bonsoir|hello|salut|coucou|hi)\b[^\n]{0,40}\n+/i, "").replace(/\s+/g, " ").trim();
+  return voix(a ? `<span data-contenu>${esc(a)}</span>` : "Toi", `<div class="dit ${ouvert ? "deplie" : "replie"}"${serre ? ` data-act="deplier"` : ""} data-contenu>${esc(txt)}</div>`);
+}
+function voixClaude(t) {
+  if (t.status === "travail") { // la dernière phrase de Claude, jamais son journal d'outils
+    const l = [...(t.live ?? [])].reverse().find((x) => !/^[A-Z][\w-]* · /.test(x));
+    return l ? voix("Claude", `<div class="dit gris" data-contenu>${esc(l)}</div>`) : "";
+  }
+  let s = t.change ? `<div class="dit" data-contenu>${esc(t.change)}</div>` : t.summary ? `<div class="dit replie" data-contenu>${esc(t.summary)}</div>` : "";
+  if (t.reserve) s += `<div class="reserve"><span>À vérifier : <span data-contenu>${esc(t.reserve)}</span></span></div>`;
+  return s ? voix("Claude", s) : "";
+}
+function nomDest(t, to) {
+  if (!to) return null;
+  if (to === t.source?.from) return auteur(t) ?? to;
+  if (/@s\.whatsapp\.net$/.test(to)) return `+${to.split("@")[0]}`;
+  if (/@g\.us$/.test(to)) return "le groupe";
+  return to;
+}
+function voixMessage(t, lecture) {
+  const d = lecture ? (t.draft ?? {}) : brouillon(t), to = d.to ?? "";
+  const canal = lecture ? (t.sentVia === "whatsapp" ? "WhatsApp" : "mail") : to ? (isMail(to) ? "mail" : "WhatsApp") : t.source?.channel === "whatsapp" ? "WhatsApp" : "mail";
+  const nom = nomDest(t, to);
+  let qui;
+  if (lecture) qui = `À <span data-contenu>${esc(nom ?? "")}</span> · ${canal}`;
+  else if (destEdit === t.id) qui = `<input class="ed" data-champ="to" value="${esc(to)}" placeholder="adresse ou numéro" aria-label="Destinataire">`;
+  else qui = nom ? `À <button class="nom" data-act="dest" data-contenu>${esc(nom)}</button> · ${canal}` : `<button class="nom incertain" data-act="dest">À qui ?</button> · ${canal}`;
+  // un crayon au trait : le message se modifie sur place, sans cadre au repos
+  if (!lecture && destEdit !== t.id) qui = `<span class="qui-ed">${qui}<button class="crayon" data-act="ecrire" aria-label="Modifier le message">${SVG_CRAYON}</button></span>`;
+  const mail = canal === "mail";
+  const corps = lecture
+    ? `${mail && d.subject ? `<div class="objet" data-contenu>${esc(d.subject)}</div>` : ""}<div class="envoye" data-contenu>${esc(d.body)}</div>`
+    : `${mail ? `<input class="ed objet" data-champ="subject" value="${esc(d.subject)}" aria-label="Objet">` : ""}<textarea class="ed" data-champ="body" rows="1" aria-label="Message">${esc(d.body)}</textarea>`;
+  return voix(qui, corps);
+}
+function libellePrincipal(t) {
+  if (t.status === "valider") return "Mettre en ligne et envoyer";
+  if (t.status === "erreur") return "Relancer";
+  const to = brouillon(t).to, nom = nomDest(t, to);
+  return estGroupe(t) && to === t.source?.from ? "Envoyer au groupe" : nom && !/[@+\d]/.test(nom) ? `Envoyer à ${nom}` : "Envoyer";
+}
+function vueDemande(t, h) {
+  const { toi } = files(), pos = toi.findIndex((x) => x.id === t.id), o = preuves(t);
+  const avecPreuve = t.status === "valider" ? t.changed || o.length > 0 : ["message", "fini"].includes(t.status) && o.length > 0;
+  const tete = `<header class="tete"><div class="h"><h1 data-contenu>${esc(t.title)}</h1>
+    ${t.status !== "fini" ? `<button class="lien classer" data-act="classer">Classer</button>` : ""}${pos >= 0 ? `<span class="num gris">${pos + 1}/${toi.length}</span>` : ""}</div>
+    <div class="etat">${phrase(t)}</div></header>`;
+  let preuve = "";
+  if (avecPreuve) {
+    const x = choisie(t, o);
+    preuve = o.length ? `<div class="preuve">${selecteur(o, x)}<figure class="cadre" data-act="plein">${media(t, x)}</figure></div>`
+      : `<div class="preuve"><div class="cadre vide">Pas de capture</div></div>`;
+  }
+  const serre = ["valider", "message"].includes(t.status) || (t.status === "fini" && !t.dropped);
+  let lead = "";
+  if (t.status === "question") lead = voix("Claude", `<p class="lead" data-contenu>${esc(t.question)}</p>`, "tete-fil");
+  if (t.status === "erreur") lead = `<p class="lead"><i class="point"></i><span data-contenu>${esc(raison(t))}</span></p>`;
+  const message = ["valider", "message"].includes(t.status) ? voixMessage(t, false) : t.status === "fini" && !t.dropped && t.draft?.body ? voixMessage(t, true) : "";
+  const det = [];
+  if (t.summary) det.push(`<p class="resume" data-contenu>${esc(t.summary)}</p>`);
+  if (t.status === "erreur" && t.error) det.push(`<p data-contenu>${esc(t.error)}</p>`);
+  if (/^https:\/\//.test(t.pr ?? "")) det.push(`<a class="lien" href="${esc(t.pr)}" target="_blank" rel="noopener">Code sur GitHub</a>`); // ponytail : lien simple, la fenêtre Swift ne l'ouvre pas encore ailleurs
+  if (t.live?.length) det.push(`<p class="num" data-contenu>${t.live.map(esc).join("<br>")}</p>`);
+  for (const f of t.files ?? []) { const n = f.split("/").pop(); det.push(`<a class="lien" href="/piece/${encodeURIComponent(t.id)}/${encodeURIComponent(n)}" target="_blank" data-contenu>${esc(n)}</a>`); }
+  const detail = det.length ? `<details${t.status === "erreur" ? "" : ""}><summary>Détail</summary><div class="detail">${det.join("")}</div></details>` : "";
+  let actions = "";
+  if (["valider", "message", "erreur"].includes(t.status)) {
+    const d = brouillon(t), bloque = t.status !== "erreur" && (!d.to || d.to.startsWith("@"));
+    actions = `<div class="actions"><button class="plein" data-act="principal"${bloque ? " disabled" : ""}>${esc(libellePrincipal(t))}<kbd>⌘↵</kbd></button>
+      ${t.status === "valider" ? `<button class="lien" data-act="seulement">Sans envoyer</button>` : ""}</div>`;
+  }
+  const fil = `<div class="fil"><div class="fil-texte">${lead}${voixClient(t, serre)}${t.status === "question" ? "" : voixClaude(t)}${message}${detail}</div>${actions}</div>`;
+  return `${tete}<div class="corps${avecPreuve ? "" : " seul"}">${preuve}${fil}</div>`;
+}
+
+// ───────── un client ─────────
+function vueClient(c) {
+  const ts = S.tickets.filter((t) => t.clientId === c.id && !retenues.has(t.id));
+  const ouv = ts.filter((t) => t.status !== "fini").sort((a, b) => parDate(b, a)); // un registre : le plus récent en haut, les ouvertes d'abord
+  const pas = ts.filter((t) => t.status === "fini").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  const n = new Date(), ceMois = pas.filter((t) => { const d = new Date(t.sentAt || t.updatedAt); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length;
+  const plusVieille = ouv.filter((t) => MINE.includes(t.status)).map((t) => t.createdAt).sort()[0];
+  const envoi = ts.map((t) => t.sentAt).filter(Boolean).sort().pop();
+  const ch = [ouv.length && `<span class="num">${ouv.length}</span> ouverte${ouv.length > 1 ? "s" : ""}`, plusVieille && `attend depuis <span class="num">${age(plusVieille)}</span>`,
+    ceMois && `<span class="num">${ceMois}</span> réglée${ceMois > 1 ? "s" : ""} ce mois`, envoi && `dernier envoi le <span class="num">${date(envoi)}</span>`].filter(Boolean).join(" · ");
+  const ligne = (t, passe) => `<a class="reg${passe ? " passe" : ""}" href="#d=${encodeURIComponent(t.id)}"><span class="num">${date(t.createdAt)}</span><span class="t" data-contenu>${esc(t.title)}</span><span class="v">${t.status === "erreur" ? `<i class="point"></i> ` : ""}${passe ? issue(t) : verbe(t)}</span></a>`;
+  const reg = ts.length ? `${ouv.map((t) => ligne(t, false)).join("")}${pas.map((t) => ligne(t, true)).join("")}` : `<p class="gris">Aucune demande.</p>`;
+  return `<header class="tete"><div class="h"><h1 data-contenu>${esc(c.name)}</h1></div>${ch ? `<div class="chiffres">${ch}</div>` : ""}</header>
+  <div class="fiche"><div class="registre">${reg}</div>
+  <aside class="reglages" data-client="${esc(c.id)}">
+    <div class="bloc"><div class="qui">Dépôt</div><input class="ed" data-cfg="repo" value="${esc(c.repo)}" placeholder="propriétaire/nom" aria-label="Dépôt"></div>
+    <div class="bloc"><div class="qui">Contacts</div>${c.contacts.map((k) => `<div class="contact"><span data-contenu>${esc(k)}</span><button class="croix" data-act="retirer-contact" data-k="${esc(k)}" aria-label="Retirer">${SVG_CROIX}</button></div>`).join("")}
+      <input class="ed" data-cfg="contact" placeholder="mail, @domaine, numéro, groupe" aria-label="Nouveau contact"></div>
+    <label class="bloc bascule"><span>Bugs sans validation</span><input type="checkbox" class="switch" data-cfg="autoProd"${c.autoProd ? " checked" : ""}></label>
+    <button class="lien retirer" data-act="retirer-client">Retirer le client</button>
+  </aside></div>`;
+}
+
+// ───────── les arrivées ─────────
+function vueArrivees() {
+  const n = S.notes ?? {}, ouvrir = mailForm || !S.mail.ok || n.mail;
+  const pt = (cls) => `<i class="${cls}"></i>`;
+  return `<header class="tete"><div class="h"><h1>Arrivées</h1></div></header><div>
+    <div class="arr"><span>Relève</span><span class="val">${S.auto ? `toutes les 2 min${S.lastPoll ? ` · dernière il y a <span class="num">${age(S.lastPoll)}</span>` : ""}` : "éteinte, rien n'est lu"}</span>
+      <input type="checkbox" class="switch" data-cfg="auto"${S.auto ? " checked" : ""} aria-label="Relève"></div>
+    <div class="arr"><span>Mail</span><span class="val">${pt(n.mail ? "rouge" : S.mail.ok ? "" : "non")}<span data-contenu>${esc(n.mail || (S.mail.ok ? S.mail.user : "pas reliée"))}</span></span>
+      ${ouvrir ? "" : `<button class="lien" data-act="relier">Relier</button>`}
+      ${ouvrir ? `<div class="arr-form"><input class="ed" id="mailUser" value="${esc(S.mail.user)}" placeholder="adresse" aria-label="Adresse"><input class="ed" id="mailPass" type="password" placeholder="mot de passe d'application" aria-label="Mot de passe">
+        <div class="rang"><button class="lien" data-act="mail" style="color:var(--encre)">Relier</button><button class="lien" data-act="aide">Comment ?</button></div>
+        ${mailAide ? `<p class="gris">Compte Google › Sécurité › Validation en deux étapes › Mots de passe des applications.</p>` : ""}</div>` : ""}</div>
+    <div class="arr"><span>WhatsApp</span><span class="val">${pt(n.whatsapp ? "rouge" : S.whatsapp ? "" : "non")}<span data-contenu>${esc(n.whatsapp || (S.whatsapp ? "lu sur ce Mac" : "absent de ce Mac"))}</span></span><span></span></div>
+    ${n.tri ? `<div class="arr"><span>Tri</span><span class="val">${pt("rouge")}<span data-contenu>${esc(n.tri)}</span></span><span></span></div>` : ""}
+  </div>`;
+}
+
+// ───────── rendu ─────────
+function rendre() {
   if (!S) return;
-  const mine = S.tickets.filter((t) => MINE.includes(t.status)), going = S.tickets.filter((t) => ["file", "travail"].includes(t.status)), done = S.tickets.filter((t) => t.status === "fini");
-  $("#nav").innerHTML = [["toi", "À toi", mine.length, true], ["cours", "En cours", going.length], ["fini", "Terminé", done.length], ["clients", "Clients", S.clients.length]]
-    .map(([k, l, n, hot]) => `<a data-view="${k}" class="${view === k ? "on" : ""}">${l}<span class="count ${hot && n ? "hot" : ""}">${n}</span></a>`).join("");
-  $("#sources").innerHTML = `
-    <div class="source"><input type="checkbox" class="switch" id="auto" ${S.auto ? "checked" : ""}><div>Relève automatique<small>${S.auto ? "mails et WhatsApp lus toutes les 2 minutes" : "éteinte : rien n'est lu"}</small></div></div>
-    <div class="source"><i class="dot ${S.notes.mail ? "bad" : S.mail.ok ? "ok" : ""}"></i><div>Mail<small>${esc(S.notes.mail || (S.mail.ok ? S.mail.user : "non reliée"))}</small></div></div>
-    <div class="source"><i class="dot ${S.notes.whatsapp ? "bad" : S.whatsapp ? "ok" : ""}"></i><div>WhatsApp<small>${esc(S.notes.whatsapp || (S.whatsapp ? "application du Mac" : "application absente"))}</small></div></div>
-    ${S.notes.tri ? `<div class="source"><i class="dot bad"></i><div>Tri<small>${esc(S.notes.tri)}</small></div></div>` : ""}`;
-  // ponytail : on ne redessine pas pendant que Simon écrit dans la page, pour ne pas effacer sa saisie
-  if (!force && $("main").contains(document.activeElement) && /INPUT|TEXTAREA/.test(document.activeElement.tagName) && document.activeElement.type !== "checkbox") return;
-  const list = (ts, empty) => ts.length ? ts.map(card).join("") : `<p class="empty">${empty}</p>`;
-  const html = view === "toi" ? `<h1>À toi</h1><p class="lead">Ce qui attend une décision de ta part. Le reste tourne sans toi.</p>${list(mine, "Rien ne t'attend.")}`
-    : view === "cours" ? `<h1>En cours</h1><p class="lead">Deux sessions Claude Code au plus en même temps.</p>${list(going, "Aucun ticket en cours.")}`
-    : view === "fini" ? `<h1>Terminé</h1><p class="lead"></p>${list(done, "Rien pour l'instant.")}` : clients();
-  if (html !== last) { $("#page").innerHTML = last = html; }
+  const h = adresse(), { toi } = files();
+  if (!location.hash.slice(1)) { if (toi[0]) return aller(adrDemande(toi[0].id), true); h.rien = ""; }
+  let t = null, c = null, cur = "", html;
+  if ("rien" in h) html = null;
+  else if (h.d != null) { t = S.tickets.find((x) => x.id === h.d); cur = `d:${h.d}`; html = t ? vueDemande(t, h) : null; }
+  else if (h.c != null) { c = S.clients.find((x) => x.id === h.c); cur = `c:${h.c}`; html = c ? vueClient(c) : null; }
+  else if ("arrivees" in h) { cur = "arrivees"; html = vueArrivees(); }
+  html ??= `<div class="vide-etat">Rien ne t'attend.</div>`;
+
+  pose("#liste", colonne(cur));
+  const panne = alertes().some((a) => a.rouge);
+  pose("#releve", `<i class="${panne ? "rouge" : ""}"></i>${!S.auto ? "Relève éteinte" : S.lastPoll ? `Relève · il y a <span class="num">${age(S.lastPoll)}</span>` : "Relève allumée"}`);
+  $("#releve").classList.toggle("on", cur === "arrivees");
+  document.title = toi.length ? `Kaoly Clients (${toi.length})` : "Kaoly Clients";
+
+  // une saisie en cours dans le volet n'est jamais effacée par le rafraîchissement
+  const a = document.activeElement, saisie = a && $("#vue").contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== "checkbox";
+  if (!saisie || cur !== dernierCur) { if (pose("#vue", html)) $("#vue").querySelectorAll("textarea.ed").forEach(taille); }
+
+  // la preuve en plein écran
+  const o = t ? preuves(t) : [], plein = t && "plein" in h && o.length;
+  document.body.classList.toggle("en-plein", !!plein);
+  if (plein) { const x = choisie(t, o); pose("#plein", `<div class="haut"><span data-contenu>${esc(t.title)}</span>${selecteur(o, x)}</div><figure class="cadre" data-act="fermer-plein">${media(t, x, true)}</figure>`); }
+  else pose("#plein", "");
+
+  // la barre : la puce nomme la demande visée
+  const cible = t && accepte(t) && puceOff !== t.id ? t : null;
+  $("#puce").hidden = !cible;
+  if (cible) $("#puce").textContent = `${cible.client} · ${cible.title}`;
+  say.placeholder = !cible ? "Écris ou colle ici" : cible.status === "question" ? "Ta réponse" : cible.status === "erreur" ? "Une consigne ?" : "Une retouche ?";
+  if (cur !== dernierCur) { if (dernierCur && !cur.startsWith("d:" + puceOff)) puceOff = null; if (t?.status === "question" && !plein) say.focus(); }
+  dernierCur = cur;
+}
+function pose(sel, html) { if (rendus[sel] === html) return false; rendus[sel] = html; $(sel).innerHTML = html; return true; }
+function taille(el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight + 2}px`; }
+function tailleBarre() { say.style.height = "22px"; say.style.height = `${Math.min(160, Math.max(22, say.scrollHeight))}px`; }
+function forcer() { rendus["#vue"] = null; rendre(); }
+
+// ───────── serveur ─────────
+async function tick() {
+  try { const r = await fetch("/api/state"); if (r.ok) { S = await r.json(); rendre(); } }
+  catch { dire("Le serveur local ne répond pas."); }
+}
+async function post(chemin, body) {
+  try {
+    const r = await fetch(chemin, { method: "POST", headers: { "content-type": "application/json", "x-kaoly": JETON }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({ error: "Réponse illisible." }));
+    if (j.error) { dire(humain(j.error)); return null; }
+    if (j.tickets) S = j;
+    return j;
+  } catch { dire("Le serveur local ne répond pas."); return null; }
+}
+// la ligne au-dessus de la barre : réponse de Claude, bandeau « Annuler » ou erreur ; elle s'efface seule
+function dire(html, ms = 8000, brut = false) {
+  const d = $("#dit"); d.innerHTML = brut ? html : esc(html);
+  d.classList.remove("vient"); void d.offsetWidth; d.classList.add("vient");
+  clearTimeout(effacer); if (ms) effacer = setTimeout(() => { d.innerHTML = ""; }, ms);
 }
 
-async function tick() { try { S = await (await fetch("/api/state")).json(); render(); } catch {} }
-setInterval(tick, 2000); tick();
+// Une action ne part au serveur qu'au bout de 5 s ; « Annuler » l'arrête et rouvre la demande. Rien n'est à défaire côté serveur.
+function retenir(cle, chemin, body, libelle, retour, apres) {
+  const r = { chemin, body, retour, timer: setTimeout(() => partir(cle), 5000) };
+  retenues.set(cle, r);
+  dire(`<span class="fort">${esc(libelle)}</span><button data-act="annuler" data-cle="${esc(cle)}">Annuler</button>`, 5000, true);
+  if (apres) aller(apres, true); else rendre();
+}
+async function partir(cle) {
+  const r = retenues.get(cle); if (!r) return;
+  const j = await post(r.chemin, r.body);
+  retenues.delete(cle);
+  if (j) delete drafts[cle];
+  forcer();
+}
+function annuler(cle) {
+  const r = retenues.get(cle); if (!r) return;
+  clearTimeout(r.timer); retenues.delete(cle);
+  $("#dit").innerHTML = "";
+  if (r.retour) aller(r.retour); else forcer();
+}
+function agir(t, action) {
+  const nx = suivante(t.id), apres = nx ? adrDemande(nx.id) : "rien", d = brouillon(t), nom = nomDest(t, d.to) ?? "";
+  const wa = d.to && !isMail(d.to), pour = wa ? "Prêt dans WhatsApp" : `Envoyé à ${nom}`;
+  if (action === "principal") {
+    if (t.status === "valider") retenir(t.id, "/api/ticket", { id: t.id, action: "valider", send: true, ...d }, pour, adrDemande(t.id), apres);
+    else if (t.status === "message") retenir(t.id, "/api/ticket", { id: t.id, action: "envoyer", ...d }, pour, adrDemande(t.id), apres);
+    else if (t.status === "erreur") retenir(t.id, "/api/ticket", { id: t.id, action: "relancer" }, "Relancée", adrDemande(t.id), apres);
+  }
+  if (action === "seulement") retenir(t.id, "/api/ticket", { id: t.id, action: "valider" }, "Mise en ligne", adrDemande(t.id), apres);
+  if (action === "classer") retenir(t.id, "/api/ticket", { id: t.id, action: "fermer" }, "Classée", adrDemande(t.id), MINE.includes(t.status) ? apres : null);
+}
+
+// ───────── la barre ─────────
+function decrire(p) {
+  const c = S.clients.find((x) => x.id === p.id), ch = [];
+  if (!c) ch.push("nouveau client");
+  if (p.name && c && p.name !== c.name) ch.push(`nom → ${p.name}`);
+  if (typeof p.repo === "string" && p.repo !== (c?.repo ?? "")) ch.push(`dépôt → ${p.repo || "aucun"}`);
+  if (Array.isArray(p.contacts)) ch.push(`contacts → ${p.contacts.join(", ")}`);
+  if (typeof p.autoProd === "boolean" && p.autoProd !== c?.autoProd) ch.push(`bugs sans validation → ${p.autoProd ? "oui" : "non"}`);
+  return `${c?.name ?? p.name ?? ""} : ${ch.join(", ") || "rien ne change"}`;
+}
+async function envoyerBarre() {
+  const text = say.value.trim(); if (!text) return;
+  const t = courante(), cible = t && accepte(t) && puceOff !== t.id ? t : null;
+  say.value = ""; tailleBarre();
+  if (cible) {
+    dire("…", 0);
+    const j = await post("/api/ticket", { id: cible.id, action: "retouche", text });
+    if (!j) { say.value = text; tailleBarre(); return; }
+    dire("✓ Transmis à Claude");
+    const nx = suivante(cible.id);
+    return aller(nx ? adrDemande(nx.id) : "rien", true);
+  }
+  dire("Claude réfléchit…", 0);
+  const j = await post("/api/chat", { text });
+  if (!j) { say.value = text; tailleBarre(); return; }
+  propositions = j.propose ?? [];
+  const parts = [`<span class="fort" data-contenu>${esc(j.reply)}</span>`, ...(j.done ?? []).map((d) => `<span data-contenu>✓ ${esc(d)}</span>`),
+    ...propositions.map((p) => `<span data-contenu>${esc(decrire(p))}</span>`)];
+  if (propositions.length) parts.push(`<button data-act="appliquer">Appliquer</button>`);
+  dire(parts.join(""), propositions.length ? 0 : 8000, true); // ponytail : une proposition reste affichée tant qu'elle n'est pas appliquée
+  tick();
+}
+$("#champ").addEventListener("submit", (e) => { e.preventDefault(); envoyerBarre(); });
+say.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.metaKey) { e.preventDefault(); envoyerBarre(); } });
+
+// ───────── gestes ─────────
+function voisin(pas) {
+  const { toi, claude } = files(), l = [...toi, ...claude]; if (!l.length) return;
+  const i = l.findIndex((t) => t.id === adresse().d);
+  const n = i < 0 ? l[0] : l[Math.max(0, Math.min(l.length - 1, i + pas))];
+  aller(adrDemande(n.id), true);
+}
+function basculer(pas, cle) {
+  const t = courante(); if (!t) return;
+  const o = preuves(t); if (o.length < 2 && !cle) return;
+  const x = choisie(t, o), n = cle ? o.find((y) => y.cle === cle) : o[(o.indexOf(x) + pas + o.length) % o.length];
+  choix[t.id] = n.cle;
+  const h = adresse();
+  aller(adrDemande(t.id, { v: n.cle, plein: "plein" in h || null }), true);
+}
+function plein(ouvrir) {
+  const t = courante(); if (!t || !preuves(t).length) return;
+  const h = adresse();
+  aller(adrDemande(t.id, { v: h.v, plein: ouvrir || null }), true);
+}
+document.addEventListener("keydown", (e) => {
+  const a = document.activeElement, saisie = a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== "checkbox" || a.isContentEditable);
+  const enPlein = document.body.classList.contains("en-plein");
+  if (e.metaKey && e.key.toLowerCase() === "k") { e.preventDefault(); say.focus(); return; }
+  if (e.metaKey && e.key === "Enter") { const b = $("#vue .plein:not([disabled])"); if (b) { e.preventDefault(); b.click(); } return; }
+  if (e.key === "Escape") {
+    if (enPlein) plein(false);
+    else if (a === say && !$("#puce").hidden) { puceOff = courante()?.id ?? null; rendre(); }
+    else if (destEdit) { destEdit = null; forcer(); }
+    else a?.blur?.();
+    return;
+  }
+  if (saisie && !(a === say && !say.value)) return; // dans la barre vide, ↑ ↓ passent quand même d'une demande à l'autre
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); voisin(e.key === "ArrowDown" ? 1 : -1); }
+  else if (saisie) return;
+  else if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); basculer(e.key === "ArrowRight" ? 1 : -1); }
+  else if (e.key === " ") { e.preventDefault(); plein(!enPlein); }
+});
 
 document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const act = el.dataset.act, t = courante();
+  if (el.closest("a")) e.preventDefault();
+  if (act === "principal" || act === "seulement" || act === "classer") { if (t && !el.disabled) agir(t, act); return; }
+  if (act === "voir") { e.stopPropagation(); return basculer(0, el.dataset.cle); }
+  if (act === "plein") return plein(true);
+  if (act === "fermer-plein") return plein(false);
+  if (act === "deplier") { if (getSelection().toString()) return; deplies.has(t.id) ? deplies.delete(t.id) : deplies.add(t.id); return forcer(); }
+  if (act === "dest") { destEdit = t.id; forcer(); const i = $('#vue [data-champ="to"]'); i?.focus(); i?.select(); return; }
+  if (act === "ecrire") { const b = $('#vue [data-champ="body"]'); b?.focus(); b?.setSelectionRange(b.value.length, b.value.length); return; }
+  if (act === "annuler") return annuler(el.dataset.cle);
+  if (act === "allumer") { await post("/api/config", { auto: true }); return rendre(); }
+  if (act === "arrivees") return aller("arrivees");
+  if (act === "nouveau") { puceOff = t?.id ?? null; say.value = "Nouveau client : "; tailleBarre(); rendre(); say.focus(); return; }
+  if (act === "appliquer") { const ps = propositions; propositions = []; for (const p of ps) if (!(await post("/api/config", { client: p }))) return; dire("✓ Appliqué"); return rendre(); }
+  if (act === "relier") { mailForm = true; return forcer(); }
+  if (act === "aide") { mailAide = !mailAide; return forcer(); }
+  if (act === "mail") { const j = await post("/api/config", { mail: { user: $("#mailUser").value, password: $("#mailPass").value } }); if (j) { mailForm = false; dire("✓ Boîte reliée"); } return forcer(); }
+  const box = el.closest("[data-client]"), c = box && S.clients.find((x) => x.id === box.dataset.client);
+  if (act === "retirer-contact" && c) { await post("/api/config", { client: { id: c.id, contacts: c.contacts.filter((k) => k !== el.dataset.k) } }); return forcer(); }
+  if (act === "retirer-client" && c) {
+    const nx = files().toi[0];
+    return retenir(`c:${c.id}`, "/api/config", { removeClient: c.id }, `${c.name} retiré`, `c=${encodeURIComponent(c.id)}`, nx ? adrDemande(nx.id) : "rien");
+  }
+});
+document.addEventListener("input", (e) => {
+  const el = e.target, k = el.dataset.champ;
+  if (el === say) return tailleBarre();
+  if (!k) return;
+  const t = courante(); if (!t) return;
+  drafts[t.id] = { ...brouillon(t), [k]: el.value };
+  if (el.tagName === "TEXTAREA") taille(el);
+  const b = $("#vue .plein"), to = drafts[t.id].to;
+  if (b && t.status !== "erreur") b.disabled = !to || to.startsWith("@");
+});
+document.addEventListener("focusout", (e) => { if (e.target.dataset?.champ === "to") setTimeout(() => { if (destEdit && !$("#vue").contains(document.activeElement)) { destEdit = null; forcer(); } }, 0); });
+document.addEventListener("keydown", (e) => {
   const el = e.target;
-  if (el.dataset.view) { view = el.dataset.view; return render(true); }
-  if ("zoom" in el.dataset) { $("#zoom").innerHTML = `<img src="${el.src}" alt="${esc(el.alt)}">`; return $("#zoom").classList.add("on"); }
-  if (el.closest("#zoom")) return $("#zoom").classList.remove("on");
-  const act = el.dataset.act; if (!act) return;
-  if (act === "mail") return post("/api/config", { mail: { user: $("#mailUser").value, password: $("#mailPass").value } });
-  if (act === "appliquer") { for (const p of proposals) await post("/api/config", { client: p }); proposals = []; return say(""); }
-  if (act === "removeClient") return post("/api/config", { removeClient: el.closest("[data-client]").dataset.client });
-  const box = el.closest("[data-id]"), body = { id: box.dataset.id, action: act };
-  box.querySelectorAll("[data-f]").forEach((f) => (body[f.dataset.f] = f.value));
-  el.disabled = true; say("");
-  await post("/api/ticket", body);
-  el.disabled = false;
+  if (el.dataset?.champ === "to" && e.key === "Enter") { e.preventDefault(); destEdit = null; el.blur(); forcer(); }
+  if (el.dataset?.cfg === "contact" && e.key === "Enter" && el.value.trim()) {
+    e.preventDefault();
+    const c = S.clients.find((x) => x.id === el.closest("[data-client]").dataset.client), v = el.value.trim();
+    el.value = ""; el.blur();
+    post("/api/config", { client: { id: c.id, contacts: [...c.contacts, v] } }).then(forcer);
+  }
+  if (el.dataset?.cfg === "repo" && e.key === "Enter") el.blur();
 });
 document.addEventListener("change", (e) => {
-  const el = e.target;
-  if (el.id === "auto") return post("/api/config", { auto: el.checked });
-  const c = el.dataset.c; if (!c) return;
-  post("/api/config", { client: { id: el.closest("[data-client]").dataset.client, [c]: c === "autoProd" ? el.checked : c === "contacts" ? el.value.split(",") : el.value } });
+  const el = e.target, k = el.dataset.cfg; if (!k) return;
+  if (k === "auto") return post("/api/config", { auto: el.checked }).then(forcer);
+  const id = el.closest("[data-client]")?.dataset.client; if (!id) return;
+  if (k === "repo") post("/api/config", { client: { id, repo: el.value } }).then(forcer);
+  if (k === "autoProd") post("/api/config", { client: { id, autoProd: el.checked } }).then(forcer);
 });
-$("#chat").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const text = $("#say").value.trim(); if (!text) return;
-  $("#say").value = ""; say("Claude réfléchit…");
-  const r = await post("/api/chat", { text });
-  // ponytail : affichage minimal des propositions, la page sera réécrite
-  if (r) { proposals = r.propose ?? []; say([r.reply, ...r.done.map((d) => "· " + d), ...proposals.map((p) => "Proposé : " + (p.name || p.id))].join("\n"));
-    if (proposals.length) $("#said").insertAdjacentHTML("beforeend", ` <button class="link" data-act="appliquer">Appliquer</button>`); tick(); } else $("#say").value = text;
-});
-$("#say").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#chat").requestSubmit(); } });
+addEventListener("hashchange", () => { destEdit = null; rendre(); });
+setInterval(tick, 2000); tick();
 </script>
 </html>
