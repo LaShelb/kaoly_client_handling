@@ -246,5 +246,38 @@ if [ -x "$CHROME" ]; then
   ok "texte du client échappé"
 else echo "--   Chrome absent : échappement non vérifié"; fi
 
+# ── la barre trouve avant de demander à Claude : « exporter » puis ↓ Entrée ouvre la demande, « garonne » le client, un texte long rien ──
+if [ -x "$CHROME" ]; then
+  cat > "$T/trouve.ts" <<'EOF'
+const [chrome, url, profil] = process.argv.slice(2);
+const p = Bun.spawn([chrome, "--headless=new", "--disable-gpu", "--no-first-run", "--remote-debugging-port=0", `--user-data-dir=${profil}`, "about:blank"], { stdout: "ignore", stderr: "pipe" });
+const lec = p.stderr.getReader(), dec = new TextDecoder(); let tam = "", ws = "";
+while (!ws) { const { value, done } = await lec.read(); if (done) process.exit(3); tam += dec.decode(value); ws = tam.match(/listening on (ws:\/\/\S+)/)?.[1] ?? ""; }
+const s = new WebSocket(ws); await new Promise((ok) => (s.onopen = ok));
+let n = 0; const att = new Map<number, any>(); s.onmessage = (e) => { const m = JSON.parse(String(e.data)); att.get(m.id)?.(m); };
+const env = (method: string, params: any = {}, sessionId?: string): Promise<any> => new Promise((ok) => { att.set(++n, ok); s.send(JSON.stringify({ id: n, method, params, sessionId })); });
+const { result: { targetId } } = await env("Target.createTarget", { url: "about:blank" });
+const { result: { sessionId } } = await env("Target.attachToTarget", { targetId, flatten: true });
+await env("Page.navigate", { url: `${url}/#arrivees` }, sessionId); await Bun.sleep(1500);
+const js = async (x: string) => (await env("Runtime.evaluate", { expression: x, returnByValue: true }, sessionId)).result?.result?.value;
+const taper = (v: string) => js(`(() => { const s = document.querySelector("#say"); s.value = ${JSON.stringify(v)}; s.dispatchEvent(new Event("input")); return [...document.querySelectorAll("#trouve a")].map((a) => a.textContent).join("|"); })()`);
+const touche = (k: string) => js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: ${JSON.stringify(k)}, bubbles: true, cancelable: true })); location.hash`);
+const bon = [];
+bon.push((await taper("EXPORTÉ")).includes("Bouton Exporter") ? "" : "exporter ne trouve pas Bouton Exporter");
+await touche("ArrowDown"); await touche("Enter");
+bon.push((await js("location.hash")) === "#d=ancien" ? "" : "Entrée sur la ligne ne l'ouvre pas");
+await js(`location.hash = "#arrivees"`); await Bun.sleep(300); await taper("garonne"); await touche("ArrowDown"); await touche("Enter");
+bon.push((await js("location.hash")) === "#c=garonne" ? "" : "garonne n'ouvre pas le client");
+bon.push((await taper("a\nb\nc")) === "" ? "" : "un texte long est filtré");
+bon.push((await taper("zzzz")) === "" ? "" : "une ligne sans rapport");
+p.kill(); console.log(bon.filter(Boolean).join(" ; "));
+EOF
+  ( sleep 60; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
+  R=$(bun "$T/trouve.ts" "$CHROME" "$U" "$T/chrome2" 2>&1) || echec "essai de la barre : $R"
+  kill $W 2>/dev/null
+  [ -z "$R" ] || echec "la barre qui trouve : $R"
+  ok "la barre trouve avant de demander à Claude"
+fi
+
 grep -qi "unhandled\|TypeError\|ReferenceError" "$L/serveur.log" && echec "erreur dans le journal du serveur"
 echo "banc : tout est juste"
