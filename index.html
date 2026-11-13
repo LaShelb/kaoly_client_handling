@@ -229,7 +229,6 @@
     #vue.tasse .preuve:has(.cadre:not(.vide)) { min-height: 108px; }
     .preuve .cadre { flex: 1; width: 100%; height: auto; aspect-ratio: auto; min-height: 112px; max-height: 200px; }
     #vue.tasse .preuve .cadre { min-height: 80px; }
-    .preuve .cadre img, .preuve .cadre video { object-fit: cover; object-position: top; }
     .preuve.fen:has(.cadre:not(.vide)) { flex: none; min-height: 0; }
     .preuve .cadre.vide { flex: none; min-height: 0; max-height: none; height: 36px; padding: 0 12px; text-align: center; }
     .fil { flex: 0 1 auto; max-height: none; width: 100%; }
@@ -374,28 +373,36 @@ const media = (t, x, grand) => {
   const u = `/preuve/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`;
   return x.video ? `<video src="${u}" muted loop playsinline autoplay preload="auto"></video>` : `<img src="${u}" alt="${x.nom}">`;
 };
-// ───────── la preuve cadrée : Avant et Après comparés, on montre ce qui a changé à taille lisible ─────────
-const ecarts = new Map(); // « avant|apres » → boîte en fractions, ou null (en attente : absent)
+// ───────── la preuve cadrée : une seule règle, on cadre sans rétrécir (entre 75 % et 100 % de la taille réelle) ─────────
+const ecarts = new Map(); // clé → analyse { b: boîte en fractions ou null, e, w, h, f, nw, nh }, ou null (échec) ; absent = pas encore calculée
 const paire = (t) => { const o = preuves(t); return [o.find((x) => x.cle === "avant"), o.find((x) => x.cle === "apres")]; };
+// ce qu'on analyse : « Après » (avec « Avant » pour la boîte qui a changé), sinon la seule image
+const cibles = (t) => { const [a, b] = paire(t), base = b ?? preuves(t).find((x) => !x.video); return base ? { a, b, base, k: a && b ? `${t.id}/${a.f}|${b.f}` : `${t.id}/${base.f}` } : null; };
 const charge = (u) => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = u; });
 async function ecart(t) {
-  const [a, b] = paire(t); if (!a || !b) return null;
-  const k = `${t.id}/${a.f}|${b.f}`; if (ecarts.has(k)) return ecarts.get(k);
+  const c = cibles(t); if (!c) return null;
+  if (ecarts.has(c.k)) return ecarts.get(c.k);
   let r = null;
   try {
-    const [i, j] = await Promise.all([a, b].map((x) => charge(`/preuve/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`)));
-    if (i.naturalWidth === j.naturalWidth && i.naturalHeight === j.naturalHeight) {
-      const w = 320, h = Math.max(1, Math.round((w * i.naturalHeight) / i.naturalWidth)), px = (im) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(im, 0, 0, w, h); return g.getImageData(0, 0, w, h).data; };
-      const d = px(i), e = px(j); let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    const u = (x) => `/preuve/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`;
+    const [j, i] = await Promise.all([charge(u(c.base)), c.a && c.b ? charge(u(c.a)) : null]);
+    const nw = j.naturalWidth, nh = j.naturalHeight, w = Math.min(nw, 640), h = Math.max(1, Math.round((w * nh) / nw));
+    const px = (im) => { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const g = cv.getContext("2d", { willReadFrequently: true }); g.drawImage(im, 0, 0, w, h); return g.getImageData(0, 0, w, h).data; };
+    const e = px(j); let b = null;
+    if (i && i.naturalWidth === nw && i.naturalHeight === nh) { // une paire de même taille : la boîte qui a changé
+      const d = px(i); let x0 = w, y0 = h, x1 = -1, y1 = -1;
       for (let n = 0; n < d.length; n += 4) if (Math.abs(d[n] - e[n]) > 24 || Math.abs(d[n + 1] - e[n + 1]) > 24 || Math.abs(d[n + 2] - e[n + 2]) > 24) { const q = n / 4, x = q % w, y = (q / w) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-      // le fond de la page : la couleur la plus fréquente de « Après », 8 niveaux par canal
-      const nb = new Float64Array(512), sm = new Float64Array(1536);
-      for (let n = 0; n < e.length; n += 4) { const c = ((e[n] >> 5) << 6) | ((e[n + 1] >> 5) << 3) | (e[n + 2] >> 5); nb[c]++; sm[c * 3] += e[n]; sm[c * 3 + 1] += e[n + 1]; sm[c * 3 + 2] += e[n + 2]; }
-      const m = nb.indexOf(Math.max(...nb));
-      if (x1 >= 0) r = { x0: x0 / w, y0: y0 / h, x1: (x1 + 1) / w, y1: (y1 + 1) / h, e, w, h, f: [sm[m * 3] / nb[m], sm[m * 3 + 1] / nb[m], sm[m * 3 + 2] / nb[m]], nw: i.naturalWidth, nh: i.naturalHeight };
+      if (x1 >= 0) b = { x0: x0 / w, y0: y0 / h, x1: (x1 + 1) / w, y1: (y1 + 1) / h };
     }
-  } catch { r = null; }
-  ecarts.set(k, r); return r;
+    // le fond de la page : le pourtour de la capture (bande de 4 px), couleur la plus fréquente puis moyenne de ce qui lui ressemble
+    const ed = []; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (x < 4 || y < 4 || x >= w - 4 || y >= h - 4) ed.push((y * w + x) * 4);
+    const q = (n) => ((e[n] >> 4) << 8) | ((e[n + 1] >> 4) << 4) | (e[n + 2] >> 4), nb = new Map();
+    for (const n of ed) nb.set(q(n), (nb.get(q(n)) ?? 0) + 1);
+    const q0 = [...nb].sort((p, o) => o[1] - p[1])[0][0];
+    const moy = (ok) => { const s = [0, 0, 0]; let k = 0; for (const n of ed) if (ok(n)) { s[0] += e[n]; s[1] += e[n + 1]; s[2] += e[n + 2]; k++; } return s.map((v) => v / k); };
+    const c0 = moy((n) => q(n) === q0), f = moy((n) => Math.max(Math.abs(e[n] - c0[0]), Math.abs(e[n + 1] - c0[1]), Math.abs(e[n + 2] - c0[2])) < 18);
+    r = { b, e, w, h, f, nw, nh };  } catch { r = null; }
+  ecarts.set(c.k, r); return r;
 }
 // Un « bon bord » ne tranche rien : la colonne v (ou la rangée v) sur a..b saute à peine par rapport à sa voisine et reste presque tout au fond de la page.
 const bon = (r, v, a, b, col) => {
@@ -412,41 +419,57 @@ const bon = (r, v, a, b, col) => {
 const vers = (r, v, pas, a, b, col) => { const max = col ? r.w : r.h; v = Math.min(max, Math.max(0, Math.round(v))); while (v > 0 && v < max && !bon(r, v, a, b, col)) v += pas; return v; };
 // ponytail : on s'étend d'au plus 40 px réels dans le blanc qui suit un bord, pour que la carte voisine ne soit pas rognée
 const large = (r, v, pas, a, b, col, k) => { for (let n = 0; n < 40 / k && v + pas > 0 && v + pas < (col ? r.w : r.h) && bon(r, v + pas, a, b, col); n++) v += pas; return v; };
-// La fenêtre : la boîte qui a changé, plus 24 px, prolongée jusqu'à des bords nets ; au moins la largeur du cadre, au plus sa hauteur libre.
-function fenetre(r, cw, hl, smax) {
-  const kx = r.nw / r.w, ky = r.nh / r.h, X0 = Math.floor(r.x0 * r.w), X1 = Math.ceil(r.x1 * r.w), Y0 = Math.floor(r.y0 * r.h), Y1 = Math.ceil(r.y1 * r.h), mx = 24 / kx, my = 24 / ky, mini = cw / (smax * kx);
-  let L = large(r, vers(r, X0 - mx, -1, Y0, Y1, 1), -1, Y0, Y1, 1, kx), R = vers(r, Math.max(X1 + mx, L + mini), 1, Y0, Y1, 1);
-  while (R - L < mini && L > 0) L = vers(r, L - 1, -1, Y0, Y1, 1); // pas assez de largeur à droite : on élargit à gauche, de bord net en bord net
-  const s = Math.min(smax, cw / ((R - L) * kx));
-  let T = large(r, vers(r, Y0 - my, -1, X0, X1, 0), -1, X0, X1, 0, ky), B = vers(r, T + hl / s / ky, -1, X0, X1, 0);
-  const q = Math.ceil(12 / ky), vide = (y) => { for (let i = 1; i <= q; i++) if (!bon(r, y - i, X0, X1, 0)) return false; return true; };
-  while (B - q > Y1 && vide(B)) B--; // la bande sous le dernier contenu est du fond : on la rend
-  const mh = Math.min(hl, cw * 0.625) / s / ky; // une fenêtre plus basse qu'un 16/10 : on remonte (puis on descend) de bord net en bord net
-  if (B - T < mh) { T = vers(r, T - (mh - (B - T)), -1, X0, X1, 0); if (B - T < mh) B = vers(r, T + mh, 1, X0, X1, 0); if ((B - T) * ky * s > hl) B = vers(r, T + hl / s / ky, -1, X0, X1, 0); }
-  for (let n = 0; n < 2; n++) { // seconde passe : la fenêtre entière est revérifiée, bords poussés vers l'extérieur
-    L = vers(r, L, -1, T, B, 1); R = vers(r, R, 1, T, B, 1);
-    T = vers(r, T, -1, L, R, 0); B = vers(r, B, -1, L, R, 0);
+// La fenêtre : autour de la boîte qui a changé (bx), ou depuis le haut du contenu (bx = null). Une seule échelle s, entre 0,75 × smax et smax ; null si la boîte n'y entre pas.
+function fenetre(r, cw, hl, smax, bx) {
+  const { e, w, h, f } = r, kx = r.nw / w, ky = r.nh / h, mini = cw / (smax * kx), maxi = mini / 0.75;
+  const loin = (x, y) => { const n = (y * w + x) * 4; return Math.max(Math.abs(e[n] - f[0]), Math.abs(e[n + 1] - f[1]), Math.abs(e[n + 2] - f[2])); };
+  const rang = (y, a, b) => { let k = 0; for (let x = a; x <= b && k < 2; x++) if (loin(x, y) > 6) k++; return k >= 2; }; // la rangée y a du contenu
+  const colonne = (x) => { let k = 0; for (let y = 0; y < h && k < 2; y++) if (loin(x, y) > 6) k++; return k >= 2; };
+  const X0 = bx ? Math.floor(bx.x0 * w) : 0, X1 = bx ? Math.ceil(bx.x1 * w) : 0, Y0 = bx ? Math.floor(bx.y0 * h) : 0, Y1 = bx ? Math.ceil(bx.y1 * h) : 0;
+  let L, T;
+  if (bx) L = large(r, vers(r, X0 - 24 / kx, -1, Y0, Y1, 1), -1, Y0, Y1, 1, kx);
+  else {
+    // le menu latéral du site : des colonnes unies, différentes du fond, sur toute la hauteur, dans le premier tiers
+    const uni = (x) => { const n = ((h - 1) * w + x) * 4; if (loin(x, h - 1) <= 18) return false; let k = 0; for (let y = 0; y < h; y++) { const i = (y * w + x) * 4; if (Math.abs(e[i] - e[n]) <= 24 && Math.abs(e[i + 1] - e[n + 1]) <= 24 && Math.abs(e[i + 2] - e[n + 2]) <= 24) k++; } return k >= 0.75 * h; };
+    let m = 0; while (m < w / 3 && uni(m)) m++;
+    if (m >= 4) L = vers(r, m, 1, 0, h - 1, 1);
+    else { let x = 0; while (x < w - 1 && !colonne(x)) x++; L = vers(r, x - 24 / kx, -1, 0, h - 1, 1); }
   }
+  if (bx) T = large(r, vers(r, Y0 - 24 / ky, -1, X0, X1, 0), -1, X0, X1, 0, ky);
+  else { const Rt = Math.min(w - 1, Math.ceil(L + maxi)); let y = 0; while (y < h - 1 && !rang(y, L, Rt)) y++; T = vers(r, y - 12 / ky, -1, L, Rt, 0); }
+  // bord droit : entre L + cw/smax et L + cw/(0,75 × smax) (et à droite de la boîte), le bon bord le plus uni de haut en bas ; la gouttière avant le blanc d'une carte
+  const a = T, b = Math.min(h - 1, Math.ceil(T + hl / (0.75 * smax * ky))), lo = Math.min(w, Math.max(Math.ceil(L + mini), X1)), hi = Math.min(w, Math.floor(L + maxi));
+  if (lo > hi) return null;
+  const sc = []; let M = -1;
+  for (let v = lo; v <= hi; v++) { let s = -1; if (v >= w) s = 1e9; else if (bon(r, v, a, b, 1)) { s = 0; for (let y = a; y <= b; y++) if (loin(v, y) <= 6) s++; } sc[v] = s; if (s > M) M = s; }
+  const sans = M < 0; let R = lo;
+  if (!sans) { let i = lo; while (sc[i] !== M) i++; let j = i; while (sc[j + 1] === M) j++; R = (i + j) >> 1; }
+  const s = Math.min(smax, cw / ((R - L) * kx));
+  let B = vers(r, T + hl / s / ky, -1, L, R, 0);
+  if (sans) for (let y = T; y < B; y++) if (loin(R, y) > 60) { B = vers(r, y - 1, -1, L, R, 0); break; } // aucun bon bord : on s'arrête au-dessus du texte que R traverse
+  let yl = h - 1; while (yl > T && !rang(yl, L, R)) yl--;
+  B = Math.min(B, vers(r, yl + 1 + 12 / ky, 1, L, R, 0)); // la bande de fond sous le dernier contenu est rendue
+  if (B - T < 24 / ky) B = Math.floor(Math.min(h, T + hl / s / ky)); // ponytail : aucune ligne entière dans la hauteur libre, on coupe net plutôt que de ne rien montrer
+  if (bx && (L > X0 || R < X1 || T > Y0 || B < Y1)) return null;
   T = Math.max(0, T - 1); // ponytail : l'image réduite adoucit les glyphes ; une rangée de marge évite de rogner le haut d'un titre
-  if (L > X0 || R < X1 || T > Y0 || B < Y1) return null; // la boîte n'entre pas : on ne cadre pas
-  return { L: L * kx, R: R * kx, T: T * ky, B: B * ky, s: Math.min(smax, cw / ((R - L) * kx)) };
+  return { L: L * kx, R: R * kx, T: T * ky, B: B * ky, s };
 }
 function cadrer() {
   const el = $("#vue .cadre img, #vue .cadre video"), cadre = el?.parentElement, h = adresse(); if (!el || "plein" in h) return;
-  const t = S?.tickets.find((x) => x.id === h.d), x = t && choisie(t, preuves(t));
-  const [a, b] = t ? paire(t) : [], r = x && /^(avant|apres|video)$/.test(x.cle) && a && b ? ecarts.get(`${t.id}/${a.f}|${b.f}`) : null;
+  const t = S?.tickets.find((x) => x.id === h.d), x = t && choisie(t, preuves(t)), c = t && cibles(t);
+  const r = x && /^(avant|apres|video)$/.test(x.cle) && c ? ecarts.get(c.k) : null;
   const rien = () => { el.style.cssText = ""; cadre.style.cssText = ""; cadre.closest(".preuve").classList.remove("fen"); };
   if (r === undefined) ecart(t).then(cadrer); // demande réglée : hors de la file, calculée à l'ouverture
   if (!r) return rien();
   const v = el.tagName === "VIDEO", nw = v ? el.videoWidth : el.naturalWidth, nh = v ? el.videoHeight : el.naturalHeight;
   if (!nw) { el.addEventListener(v ? "loadedmetadata" : "load", cadrer, { once: true }); return rien(); }
-  if (nw !== r.nw || nh !== r.nh) return rien(); // une vidéo d'une autre taille que la paire ne se cadre pas
+  if (nw !== r.nw || nh !== r.nh) return rien(); // une image ou une vidéo d'une autre taille que celle analysée : seul cas où rien() reste
   rien(); // on mesure le cadre au repos
-  const cw = cadre.clientWidth, ch = cadre.clientHeight;
-  if (!cw || !ch || (r.x1 - r.x0) * (r.y1 - r.y0) >= 0.5) return;
-  const hl = petit() ? ch : $(".corps").getBoundingClientRect().bottom - cadre.getBoundingClientRect().top - 2;
-  const f = fenetre(r, cw, hl, nw > 1600 ? 0.5 : 1); // ponytail : les captures demandées à Claude font 1280 px
-  if (!f || (f.R - f.L) * (f.B - f.T) >= 0.92 * nw * nh) return;
+  const cw = cadre.clientWidth, ch = cadre.clientHeight; if (!cw || !ch) return;
+  const hl = petit() ? ch : $(".corps").getBoundingClientRect().bottom - cadre.getBoundingClientRect().top - 2, smax = nw > 1600 ? 0.5 : 1; // ponytail : les captures demandées à Claude font 1280 px
+  const bx = r.b && (r.b.x1 - r.b.x0) * (r.b.y1 - r.b.y0) < 0.5 ? r.b : null;
+  const f = (bx && fenetre(r, cw, hl, smax, bx)) || fenetre(r, cw, hl, smax, null);
+  if (!f) return;
   const { s } = f, W = nw * s;
   cadre.closest(".preuve").classList.add("fen");
   cadre.style.cssText = `width:${cw + 2}px;height:${(f.B - f.T) * s + 2}px;aspect-ratio:auto;min-height:0;max-height:none;flex:none`; // ponytail : en petite fenêtre le cadre prend la largeur de l'image ; on la fige à sa taille mesurée
