@@ -163,6 +163,9 @@
   #barre { flex: none; padding: 0 28px 16px; }
   #dit { min-height: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 0 2px 6px; font-size: 12px; color: var(--gris); }
   #trouve { padding-bottom: 6px; }
+  #trouve .envoi { display: flex; align-items: baseline; gap: 12px; padding: 5px 8px; border-radius: 6px; font-size: 12px; color: var(--gris); cursor: pointer; }
+  #trouve .envoi .num { margin-left: auto; }
+  #trouve .envoi.on { background: var(--choisi); }
   #dit .fort { color: var(--encre); }
   #dit button { font-size: 12px; color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
   #dit.vient { animation: vient .15s ease-out; }
@@ -624,7 +627,7 @@ const nu = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLow
 function trouver() {
   const q = nu(say.value.trim()), t = courante(), puce = t && accepte(t) && puceOff !== t.id;
   trouvees = []; pris = -1;
-  if (q && say.value.length < 40 && !say.value.includes("\n") && !puce) {
+  if (q && say.value.length < 40 && !say.value.includes("\n")) {
     const ok = (s) => nu(s).includes(q), { toi, claude } = files();
     const reste = S.tickets.filter((x) => !retenues.has(x.id) && !toi.includes(x) && !claude.includes(x)).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
     const ligne = (x, moi) => `<a class="{on}ligne ${moi ? "moi" : "loin"}" href="#${adrDemande(x.id)}" data-h="${adrDemande(x.id)}"><span class="l1"><span class="t" data-contenu>${esc(x.title)}</span></span>
@@ -636,21 +639,26 @@ function trouver() {
     // l'ordre : ce qui est à toi, Claude, les clients, le passé
     trouvees = [...toi.filter((x) => ok(x.title)).map((x) => ligne(x, true)), ...claude.filter((x) => ok(x.title)).map((x) => ligne(x, false)), ...cl, ...arr,
       ...reste.filter((x) => ok(x.title)).map((x) => ligne(x, false))].slice(0, 5);
+    // la dernière ligne envoie la barre ; la première ligne trouvée est choisie d'avance, Entrée l'ouvre
+    if (trouvees.length) { trouvees.push(`<a class="{on}envoi" data-envoi><span>${puce ? "Envoyer en retouche" : "Demander à Claude"}</span><span class="num">⌘↵</span></a>`); pris = 0; }
   }
-  $("#trouve").innerHTML = trouvees.map((h) => h.replace("{on}", "")).join("");
+  $("#trouve").innerHTML = trouvees.map((h, i) => h.replace("{on}", i === pris ? "on " : "")).join("");
   $("#dit").hidden = trouvees.length > 0;
 }
 function choisir(pas) {
   pris = pris < 0 ? (pas > 0 ? 0 : trouvees.length - 1) : (pris + pas + trouvees.length) % trouvees.length;
   [...$("#trouve").children].forEach((el, i) => el.classList.toggle("on", i === pris));
 }
+function envoyer() { envoyerBarre(); trouver(); } // envoyerBarre vide la barre tout de suite : la liste suit
 function ouvrirTrouve(el) { say.value = ""; tailleBarre(); trouver(); aller(el.dataset.h); }
-$("#trouve").addEventListener("click", (e) => { const a = e.target.closest("[data-h]"); if (a) { e.preventDefault(); ouvrirTrouve(a); } });
+$("#trouve").addEventListener("click", (e) => { const a = e.target.closest("[data-h]"); if (a) { e.preventDefault(); ouvrirTrouve(a); } else if (e.target.closest("[data-envoi]")) envoyer(); });
 $("#trouve").addEventListener("mousedown", (e) => e.preventDefault()); // la barre garde le focus
 say.addEventListener("input", trouver);
-const entree = () => (pris >= 0 ? ouvrirTrouve($("#trouve").children[pris]) : envoyerBarre());
+const entree = () => { const el = pris >= 0 && $("#trouve").children[pris]; if (!el) envoyer(); else if (el.dataset.envoi !== undefined) envoyer(); else ouvrirTrouve(el); };
 $("#champ").addEventListener("submit", (e) => { e.preventDefault(); entree(); });
 say.addEventListener("keydown", (e) => {
+  // ⌘↵ dans la barre envoie la barre, jamais le bouton de la demande ; barre vide, il remonte et garde son sens
+  if (e.metaKey && e.key === "Enter" && say.value.trim()) { e.preventDefault(); e.stopPropagation(); envoyer(); return; }
   if (trouvees.length && (e.key === "ArrowDown" || e.key === "ArrowUp")) { e.preventDefault(); choisir(e.key === "ArrowDown" ? 1 : -1); }
   else if (trouvees.length && e.key === "Escape") { e.stopPropagation(); trouvees = []; pris = -1; $("#trouve").innerHTML = ""; $("#dit").hidden = false; }
   else if (e.key === "Enter" && !e.shiftKey && !e.metaKey) { e.preventDefault(); entree(); }
