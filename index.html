@@ -559,6 +559,11 @@ function libellePrincipal(t) {
   const to = brouillon(t).to, nom = nomDest(t, to);
   return estGroupe(t) && to === t.source?.from ? "Envoyer au groupe" : nom && !/[@+\d]/.test(nom) ? `Envoyer à ${nom}` : "Envoyer";
 }
+// ce que Simon a dit à Claude reste dans le fil, entre le client et Claude
+function voixToi(t) {
+  if (!t.said?.text) return "";
+  return voix(`Toi · ${age(t.said.at)}`, (t.said.q ? `<div class="gris" data-contenu>${esc(t.said.q)}</div>` : "") + `<div class="dit" data-contenu>${esc(t.said.text)}</div>`, "de-toi");
+}
 function vueDemande(t, h) {
   const { toi } = files(), o = preuves(t);
   const avecPreuve = t.status === "valider" ? t.changed || o.length > 0 : ["message", "fini"].includes(t.status) && o.length > 0;
@@ -597,7 +602,7 @@ function vueDemande(t, h) {
       ${t.status === "valider" ? `<button class="lien" data-act="seulement">Sans envoyer</button>` : ""}</div>`;
   }
   const refus = t.status === "message" && t.error ? `<p class="refus"><i class="point"></i><span data-contenu>${esc(raison(t))}</span>${relier(t.error)}</p>` : "";
-  const fil = `<div class="fil"><div class="fil-texte">${gauche ? "" : voixClient(t, serre)}${voixClaude(t)}${message}</div>${refus}${actions}${detail}</div>`;
+  const fil = `<div class="fil"><div class="fil-texte">${gauche ? "" : voixClient(t, serre)}${voixToi(t)}${voixClaude(t)}${message}</div>${refus}${actions}${detail}</div>`;
   return `${tete}<div class="corps"><div class="preuve">${scene}</div>${fil}</div>`;
 }
 

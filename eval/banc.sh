@@ -112,6 +112,7 @@ ok "bug sur client non autorisé : attend Simon"
 vaut "$(ticket "$A" retouche --arg text "[VISIBLE] ajoute le bouton")" 200 "retouche"
 attendre "$A" valider
 vaut "$(champ "$A" .kind)/$(travaux)/$(commits "$A")" "visible/2/2" "retouche : Claude repris, deuxième commit, changement visible"
+vaut "$(champ "$A" .said.text)" "[VISIBLE] ajoute le bouton" "ta parole reste sur la demande"
 vaut "$(ls "$D/preuves/$A/precedent" | tr '\n' ,)/$(champ "$A" '.proofs|join(",")')" "apres-titre.png,/apres-titre.png,avant-titre.png" "ancienne capture rangée dans precedent/, avant gardée"
 ok "retouche"
 
@@ -140,6 +141,7 @@ Q=$(dernier); attendre "$Q" question
 vaut "$(champ "$Q" .question)" "Quel titre ?" "question posée"
 vaut "$(ticket "$Q" retouche --arg text "Garde Bonjour")" 200 "réponse"
 attendre "$Q" valider
+vaut "$(champ "$Q" .said.text)/$(champ "$Q" .said.q)" "Garde Bonjour/Quel titre ?" "ta réponse reste avec la question"
 ok "question puis réponse"
 
 # ── PR fusionnée à la main, « Seulement mettre en ligne » ──

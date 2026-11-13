@@ -501,7 +501,8 @@ function answer(t: any, text: string) {
     rangees = " Tes anciennes captures sont dans precedent/.";
   }
   // en file : le nombre de sessions reste borné par pump()
-  set(t, { status: "file", error: null, question: null, reprises: null, revalider: null, followUp: t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}${rangees}` });
+  // ponytail : seule la dernière parole de Simon est gardée
+  set(t, { status: "file", error: null, question: null, said: { text: String(text).trim().slice(0, 2000), at: now(), ...(t.status === "question" && t.question ? { q: String(t.question).slice(0, 300) } : {}) }, reprises: null, revalider: null, followUp: t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}${rangees}` });
   pump();
 }
 
