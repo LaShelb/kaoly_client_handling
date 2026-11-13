@@ -171,8 +171,6 @@
   .puce { flex: none; max-width: 42%; padding: 1px 8px; border-radius: 6px; background: var(--choisi); color: var(--indigo-texte); font-size: 12px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #say { flex: 1; min-width: 0; height: 22px; max-height: 160px; padding: 1px 0; border: 0; outline: 0; background: none; resize: none; line-height: 20px; }
   #say::placeholder { color: var(--gris); }
-  #champ kbd { font: 12px/22px var(--mono); color: var(--gris); }
-  #champ:focus-within kbd { display: none; }
 
   /* ── la preuve en plein écran : même papier, la preuve flotte ── */
   #plein { position: fixed; inset: 0; z-index: 5; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 18px 32px 28px; background: var(--fond); cursor: zoom-out; }
@@ -210,7 +208,7 @@
   <div id="vue"></div>
   <div id="barre">
     <div id="dit" aria-live="polite"></div>
-    <form id="champ"><span class="puce" id="puce" hidden></span><textarea id="say" rows="1" placeholder="Écris ou colle ici" aria-label="Barre de commande"></textarea><kbd>⌘K</kbd></form>
+    <form id="champ"><span class="puce" id="puce" hidden></span><textarea id="say" rows="1" placeholder="Écris ou colle ici" aria-label="Barre de commande (⌘K)"></textarea></form>
   </div>
 </main>
 <div id="plein" data-act="fermer-plein"></div>
