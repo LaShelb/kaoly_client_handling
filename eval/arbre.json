@@ -1,0 +1,42 @@
+{
+  "mesure": "bun eval/score.ts --port 4320 --out eval/sorties/base (note automatique sur 40) + juge sur 60 (eval/rubrique.md)",
+  "racine": { "commit": "d4dfc4d", "score": 10.2, "note": "page de départ (b02981d), même mesure" },
+  "directions": [
+    { "nom": "clavier", "commit": "4942222735fb078f9dc76977d32a0e35f648f25a", "score": 91.5, "auto": 39.5, "verdict": "gagnante, fusionnée",
+      "raison": "Une demande à la fois, même squelette, phrase d'état grise, un seul bouton plein avec ⌘↵, envoi retenu 5 s. Défauts relevés : preuve ouverte sur une vidéo figée identique à Avant, v= ignoré, relève dite deux fois en tête de file, fil qui change de côté sans preuve, petite fenêtre qui tranche le fil." },
+    { "nom": "page-continue", "commit": "d4d9fde31e4d87e278b707e3701c140351818853", "score": 90.3, "auto": 39.3, "verdict": "non fusionnée, idées reprises",
+      "raison": "Même logique que clavier. Repris : la panne dite comme un blocage, sans jargon. Écarté : la relève en tête de file et le bouton collé en bas qui change de hauteur." },
+    { "nom": "par-client", "commit": "b67127b7fdec13c5fc48ab99cd5ac729c2b2677e", "score": 89.5, "auto": 39.5, "verdict": "non fusionnée, idées reprises",
+      "raison": "Repris : la preuve qui ouvre sur Après (contour visible) et l'ordre Après · Avant · Vidéo, le registre client qui distingue ce que Claude a en main. Écarté : la suppression du groupe « Claude y travaille » (écart au contrat, brouille la colonne)." },
+    { "nom": "deux-volets", "commit": "e849f6b42c4382f917bf6bfc4b01f7c0f4b298c5", "score": 89.4, "auto": 39.4, "verdict": "non fusionnée, idées reprises",
+      "raison": "Repris : la relève portée par le pied de colonne (même concept que les arrivées), « éteinte » sans phrase en plus, plein écran sans ombre. Écarté : le bouton placé juste sous le message (place variable)." },
+    { "nom": "references", "commit": "f61c036797aeafb9685099f6e739d5506a3139e7", "score": 89.4, "auto": 39.4, "verdict": "non fusionnée, idées reprises",
+      "raison": "Repris : le canal dit une seule fois (sur « À Claire · mail »), une seule durée sur une demande en travail, le message parti en gris pour le distinguer du brouillon. Écarté : plein écran sur fond noir avec les commandes de Chrome." }
+  ],
+  "greffes": [
+    { "id": "g1", "commit": "52e04a8", "parent": "clavier", "score_avant": 39.5, "score_apres": 39.5, "verdict": "gardée",
+      "quoi": "La preuve s'ouvre sur « Après », ordre Après · Avant · Vidéo, l'adresse &v= choisit l'onglet, plein écran sans ombre.",
+      "raison": "D2 et F4 : la première image montre le changement à valider ; preuve-avant, preuve-apres et preuve-video sont désormais trois captures différentes." },
+    { "id": "g2", "commit": "8107291", "parent": "g1", "score_avant": 39.5, "score_apres": 39.5, "verdict": "gardée",
+      "quoi": "« Relève éteinte · allumer » n'a qu'une place, le pied de la colonne (pannes de mail, WhatsApp ou tri au même endroit, point rouge) ; la tête de colonne est rendue aux demandes. Le nom du client cède avant le verbe d'état ; « à envoyer » seul ; colonne de 236 px sous 1000 px ; la ligne ouverte défile dans la vue.",
+      "raison": "H2 et F3 : un réglage ne passe plus devant la file, le même concept n'est plus à deux endroits, le verbe d'état n'est plus coupé." },
+    { "id": "g3", "commit": "89d07eb", "parent": "g2", "score_avant": 39.5, "score_apres": 39.6, "verdict": "gardée",
+      "quoi": "Même squelette pour tous les états : à gauche ce qu'il y a à regarder (la preuve, la question de Claude, la raison de la panne, ce que Claude fait en ce moment), à droite le fil et le geste, toujours à la même place. « Pas de capture » réduit à une bande en tirets. Phrase d'état : canal dit une fois, une seule durée en travail, « mise en ligne bloquée » au lieu de « arrêtée à : mise en ligne ». Demande du client repliée à 5 lignes (1 en petite fenêtre), filet au-dessus du bouton en petite fenêtre, fil coupé entre deux lignes.",
+      "raison": "R5, F3, S5 : en descendant la file, le fil et le bouton ne sautent plus d'un côté à l'autre ; plus de ligne tranchée au-dessus du bouton." },
+    { "id": "g4", "commit": "c9e5c69", "parent": "g3", "score_avant": 39.6, "score_apres": 39.6, "verdict": "gardée",
+      "quoi": "Registre client : ce qui attend Simon, puis ce que Claude a en main (« Claude · 12 min »), puis le passé. Message parti en gris.",
+      "raison": "Regroupement par concept et D3 : un brouillon (encre, modifiable) ne ressemble plus à un message parti." },
+    { "id": "g5", "commit": "a3c57ad", "parent": "g4", "score_avant": 39.6, "score_apres": 39.7, "verdict": "gardée",
+      "quoi": "Le rappel ⌘K n'est plus écrit dans la barre (il reste dans l'étiquette d'accessibilité).",
+      "raison": "Un mot fixe de moins sur chaque écran ; ⌘↵ reste sur le bouton, c'est lui qui fait gagner du temps." },
+    { "id": "g6", "commit": "47c00c7", "parent": "g5", "score_avant": 39.7, "score_apres": 39.7, "verdict": "gardée",
+      "quoi": "Demande repliée qui garde ses retours à la ligne (la liste de Buckwell se lit point par point), objet parti en gris, défilement de la colonne après mise en page, registre resserré en petite fenêtre.",
+      "raison": "Simon compare ce qui a été demandé à ce qu'il voit sans déplier." }
+  ],
+  "ecartees": [
+    { "quoi": "Supprimer le groupe « Claude y travaille » (par-client)", "raison": "écart au contrat et la colonne perd la distinction à toi / pas à toi" },
+    { "quoi": "Fil à gauche et preuve à droite (deux-volets, references)", "raison": "contraire au contrat §4 ; garder le fil à droite partout règle R5 sans changer le regard titre → preuve → bouton" },
+    { "quoi": "Fondu en bas de la zone qui défile", "raison": "c'est un dégradé ; remplacé par une coupe calculée entre deux lignes et un filet" }
+  ],
+  "final": { "commit": "voir HEAD", "auto": 39.7 }
+}

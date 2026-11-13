@@ -19,3 +19,9 @@
 - serveur (relecture) · `authOk` ignore les commentaires et chaînes entre guillemets de l'en-tête, qui recopient l'adresse d'enveloppe choisie par l'expéditeur.
 - mesure · la demande `travail` reste en travail grâce à `activite.json` du jeu (lu par `server.ts` seulement s'il existe, étapes comprises) au lieu du faux claude lent : capture identique d'une passe à l'autre, sans processus de 600 s. Trois ids ajoutés au jeu : `longue`, `en-cours` (deuxième place de travail, pour que `file` reste en attente) et `arion-passee`.
 - mesure · Chrome sans fenêtre piloté par le protocole DevTools (toujours `--headless=new`) plutôt que `--screenshot` seul : horloge arrêtée au 13/11 9 h 40, mesures prises dans la page, gestes clavier et souris. Tailles : 1280 × 860, 760 × 560, et 720 × 480 pour le défilement horizontal.
+- page (fusion) · direction « clavier » fusionnée, puis greffes des quatre autres (détail dans `eval/arbre.json`).
+- page (écart §5) · « Sans envoyer » au lieu de « Seulement mettre en ligne », trois mots au plus par libellé ; « Bugs sans validation » au lieu de « Bugs en ligne sans toi ».
+- page (écart §7) · le lien « Une retouche » est retiré : la barre et sa puce font déjà ce travail. Invite sans puce : « Écris ou colle ici ».
+- page (écart §12) · la colonne dit « à envoyer » aussi quand le bug est déjà en ligne ; la phrase d'état sous le titre garde « en ligne » en vert.
+- page (écart §1) · « Relève éteinte » n'est plus en tête de « À toi » : un seul endroit, le pied de la colonne, avec « allumer » ; les pannes de mail, WhatsApp ou tri y passent aussi, avec le point rouge.
+- page (précision §4) · à gauche ce qu'il y a à regarder (preuve, question de Claude, raison de la panne, ce que Claude fait), à droite le fil et le geste, dans tous les états ; le canal n'est écrit qu'une fois (sur « À Claire · mail » quand il y a un message).
