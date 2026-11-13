@@ -24,7 +24,7 @@ P=$(echo "$*" | sed -n 's/.*--add-dir \([^ ]*\/preuves\/[^ ]*\).*/\1/p')
 echo '{"type":"system","subtype":"init","session_id":"sess-1"}'
 echo '{"type":"assistant","message":{"content":[{"type":"text","text":"Je corrige le titre."},{"type":"tool_use","name":"Edit","input":{"file_path":"index.html"}}]}}'
 case "$*" in *"[QUESTION]"*)
-  echo '{"type":"result","is_error":false,"structured_output":{"status":"question","kind":"bug","summary":"Bloqué","change":"","reserve":"","question":"Quel titre ?","message":{"subject":"","body":""}}}'; exit 0;; esac
+  echo '{"type":"result","is_error":false,"structured_output":{"status":"question","kind":"bug","summary":"Bloqué","change":"","reserve":"","question":"Quel titre ?","options":["Garde Bonjour","Mets Bienvenue"],"message":{"subject":"","body":""}}}'; exit 0;; esac
 K=bug; case "$*" in *"[VISIBLE]"*) K=visible;; esac
 case "$*" in *"[RIEN]"*) K=question;; *)
   echo "<p>modifié $$</p>" >> index.html
