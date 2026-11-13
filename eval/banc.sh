@@ -287,12 +287,26 @@ const taper = (v: string) => js(`(() => { const s = document.querySelector("#say
 const touche = (k: string) => js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: ${JSON.stringify(k)}, bubbles: true, cancelable: true })); location.hash`);
 const bon = [];
 bon.push((await taper("EXPORTÉ")).includes("Bouton Exporter") ? "" : "exporter ne trouve pas Bouton Exporter");
-await touche("ArrowDown"); await touche("Enter");
+await touche("Enter");
 bon.push((await js("location.hash")) === "#d=ancien" ? "" : "Entrée sur la ligne ne l'ouvre pas");
-await js(`location.hash = "#arrivees"`); await Bun.sleep(300); await taper("garonne"); await touche("ArrowDown"); await touche("Enter");
+await js(`location.hash = "#arrivees"`); await Bun.sleep(300); await taper("garonne"); await touche("Enter");
 bon.push((await js("location.hash")) === "#c=garonne" ? "" : "garonne n'ouvre pas le client");
 bon.push((await taper("a\nb\nc")) === "" ? "" : "un texte long est filtré");
 bon.push((await taper("zzzz")) === "" ? "" : "une ligne sans rapport");
+// sans faux pas : avec une puce (#d=ancien), « garonne » + Entrée ouvre le client sans rien envoyer ; ⌘↵ envoie la barre, jamais le bouton plein
+await js(`location.hash = "#d=ancien"`); await Bun.sleep(600);
+await js(`window.__p = []; const f = fetch; window.fetch = (u, o) => { if (o && o.method === "POST") window.__p.push(String(u) + " " + String(o.body)); return f(u, o); }; 0`);
+await taper("garonne"); await touche("Enter");
+bon.push((await js("location.hash")) === "#c=garonne" && (await js("window.__p.length")) === 0 ? "" : "avec une puce, garonne + Entrée envoie ou n'ouvre pas le client");
+await js(`location.hash = "#d=ancien"`); await Bun.sleep(600);
+const ligne = await taper("exporter");
+bon.push(ligne.endsWith("Envoyer en retouche⌘↵") && (await js(`document.querySelector("#trouve .on")?.textContent`)).includes("Bouton Exporter") ? "" : "dernière ligne ou première ligne choisie absente : " + ligne);
+await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); 0`);
+bon.push((await js(`document.querySelectorAll("#trouve a").length`)) === 0 && (await js(`document.querySelector("#puce").hidden`)) === false ? "" : "Échap ne ferme pas d'abord la liste");
+await taper("plus gros");
+await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true, cancelable: true })); 0`); await Bun.sleep(800);
+const envoyes = await js("window.__p.join(' ; ')");
+bon.push(envoyes.includes('"retouche"') && !envoyes.includes('"valider"') && !envoyes.includes('"envoyer"') ? "" : "⌘↵ dans la barre : " + envoyes);
 p.kill(); console.log(bon.filter(Boolean).join(" ; "));
 EOF
   ( sleep 60; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
