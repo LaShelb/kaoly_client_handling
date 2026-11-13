@@ -77,7 +77,6 @@
   .etat { margin-top: 3px; color: var(--gris); overflow-wrap: anywhere; }
   .etat a:hover { color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
   .corps { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 332px; grid-template-rows: minmax(0, 1fr); gap: 36px; align-items: start; }
-  .corps.seul { grid-template-columns: minmax(0, 640px); }
 
   /* la preuve : un seul cadre, Avant et Après au même endroit, à la même taille */
   .preuve { display: flex; flex-direction: column; gap: 10px; min-height: 0; max-height: 100%; }
@@ -87,7 +86,7 @@
   .choix button.on { color: var(--encre); text-decoration: underline; text-decoration-color: var(--indigo); text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
   .cadre { margin: 0; width: 100%; aspect-ratio: 16 / 10; min-height: 0; border: 1px solid rgba(0,0,0,.1); border-radius: 8px; overflow: hidden; background: #fff; cursor: zoom-in; }
   .cadre img, .cadre video { display: block; width: 100%; height: 100%; object-fit: contain; }
-  .cadre.vide { display: grid; place-items: center; background: none; border: 1px dashed rgba(0,0,0,.28); color: var(--gris); cursor: default; }
+  .cadre.vide { display: grid; place-items: center; aspect-ratio: auto; height: 56px; background: none; border: 1px dashed rgba(0,0,0,.28); color: var(--gris); cursor: default; }
 
   /* le fil : trois voix nommées par qui parle */
   .fil { display: flex; flex-direction: column; min-height: 0; max-height: 100%; }
@@ -95,14 +94,13 @@
   .voix + .voix { margin-top: 18px; }
   .qui { font-size: 12px; color: var(--gris); margin-bottom: 2px; }
   .dit { max-width: 68ch; overflow-wrap: anywhere; }
-  .replie { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .replie { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
   .deplie { white-space: pre-wrap; }
   [data-act="deplier"] { cursor: pointer; }
   .reserve { margin-top: 4px; max-width: 68ch; }
   .reserve span:first-child { text-decoration: underline dashed rgba(0,0,0,.5); text-decoration-thickness: 1px; text-underline-offset: 4px; }
   .lead { font-size: 20px; line-height: 1.4; letter-spacing: -.01em; max-width: 34em; overflow-wrap: anywhere; }
   .lead .point { width: 8px; height: 8px; margin: 0 10px 3px 0; vertical-align: middle; }
-  .lead + .voix, .voix.tete-fil + .voix { margin-top: 22px; }
   .nom { color: var(--gris); border-radius: 4px; }
   .nom:hover { color: var(--encre); background: var(--survol); }
   .qui-ed { display: flex; align-items: center; gap: 4px; }
@@ -190,9 +188,13 @@
     #vue { padding: 16px 20px 0; }
     #barre { padding: 0 20px 12px; }
     .tete { margin-bottom: 14px; }
-    .corps, .corps.seul { display: flex; flex-direction: column; gap: 12px; }
+    .corps { display: flex; flex-direction: column; gap: 12px; }
     .preuve { flex: none; gap: 6px; }
-    .preuve .cadre { width: auto; height: 28vh; max-width: 100%; align-self: flex-start; }
+    .preuve:empty { display: none; }
+    .preuve .cadre { width: auto; height: 22vh; max-width: 100%; align-self: flex-start; }
+    .preuve .cadre.vide { width: 100%; height: 40px; }
+    .replie { -webkit-line-clamp: 1; }
+    .actions { border-top: 1px solid var(--filet); margin-top: 2px; }
     .fil { flex: 1; max-height: none; width: 100%; }
     .actions { padding-top: 12px; }
     .fiche { display: block; overflow-y: auto; }
@@ -268,20 +270,22 @@ function phrase(t) {
     valider: `${nat}, pas encore en ligne`,
     message: !t.changed ? "réponse prête" : t.shipped === "auto" ? `${nat}, ${enLigne} sans toi` : t.shipped ? `${nat}, ${enLigne}` : `${nat}, pas encore en ligne`,
     question: "Claude te demande",
-    erreur: t.step ? `arrêtée à : <span data-contenu>${esc(t.step)}</span>` : "arrêtée",
-    travail: `Claude y travaille · <span class="num">${age(t.startedAt || t.updatedAt)}</span>`,
+    erreur: { "copie du dépôt": "copie bloquée", "envoi du code": "mise en ligne bloquée", "mise en ligne": "mise en ligne bloquée", "envoi au client": "envoi bloqué" }[t.step] ?? "arrêtée",
+    travail: `Claude y travaille depuis <span class="num">${age(t.startedAt || t.updatedAt)}</span>`,
     file: "en attente d'une place",
     fini: t.dropped ? `classée le <span class="num">${date(t.updatedAt)}</span>` : `${t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"} le <span class="num">${date(t.sentAt || t.updatedAt)}</span>${t.shipped ? ` · ${enLigne}` : ""}`,
   }[t.status] ?? "";
-  const a = auteur(t), qui = a ? `<span data-contenu>${esc(a)}</span> par ${t.source.channel === "whatsapp" ? "WhatsApp" : "mail"}` : "Toi";
-  return `<a href="#c=${encodeURIComponent(t.clientId)}" data-contenu>${esc(t.client)}</a> · ${etat} · ${qui}${t.status === "fini" ? "" : ` · <span class="num">${ageMot(t.createdAt)}</span>`}`;
+  // le canal n'est dit qu'une fois : sur la ligne « À Claire · mail » quand il y a un message, sinon ici
+  const a = auteur(t), aMessage = ["valider", "message"].includes(t.status) || (t.status === "fini" && !t.dropped && t.draft?.body);
+  const qui = a ? `<span data-contenu>${esc(a)}</span>${aMessage ? "" : ` par ${t.source.channel === "whatsapp" ? "WhatsApp" : "mail"}`}` : "Toi";
+  return `<a href="#c=${encodeURIComponent(t.clientId)}" data-contenu>${esc(t.client)}</a> · ${etat} · ${qui}${["fini", "travail"].includes(t.status) ? "" : ` · <span class="num">${ageMot(t.createdAt)}</span>`}`;
 }
 
 // La raison d'une panne en une phrase lisible ; le texte brut reste dans Détail.
 // ponytail : quelques erreurs techniques connues, traduites ; les autres passent telles quelles, coupées à 140 caractères
 function humain(e) {
   e = String(e ?? "").trim();
-  if (/not mergeable|conflict|conflit/i.test(e)) return "Conflit avec une modification plus récente du même code.";
+  if (/not mergeable|conflict|conflit/i.test(e)) return "Une modification plus récente bloque la mise en ligne.";
   if (/ECONNREFUSED|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRESET/.test(e)) return "Le serveur de mail ne répond pas.";
   if (/invalid login|authentication failed|535/i.test(e)) return "La boîte mail refuse le mot de passe.";
   if (/^(gh|git)\b/.test(e) && !/[éèàç]/.test(e)) return "GitHub a refusé cette étape.";
@@ -354,10 +358,7 @@ function voixClient(t, serre) {
   return voix(a ? `<span data-contenu>${esc(a)}</span>` : "Toi", `<div class="dit ${ouvert ? "deplie" : "replie"}"${serre ? ` data-act="deplier"` : ""} data-contenu>${esc(txt)}</div>`);
 }
 function voixClaude(t) {
-  if (t.status === "travail") { // la dernière phrase de Claude, jamais son journal d'outils
-    const l = [...(t.live ?? [])].reverse().find((x) => !/^[A-Z][\w-]* · /.test(x));
-    return l ? voix("Claude", `<div class="dit gris" data-contenu>${esc(l)}</div>`) : "";
-  }
+  if (["travail", "question"].includes(t.status)) return ""; // sa phrase est déjà à gauche
   let s = t.change ? `<div class="dit" data-contenu>${esc(t.change)}</div>` : t.summary ? `<div class="dit replie" data-contenu>${esc(t.summary)}</div>` : "";
   if (t.reserve) s += `<div class="reserve"><span>À vérifier : <span data-contenu>${esc(t.reserve)}</span></span></div>`;
   return s ? voix("Claude", s) : "";
@@ -397,16 +398,19 @@ function vueDemande(t, h) {
   const tete = `<header class="tete"><div class="h"><h1 data-contenu>${esc(t.title)}</h1>
     ${t.status !== "fini" ? `<button class="lien classer" data-act="classer">Classer</button>` : ""}${pos >= 0 ? `<span class="num gris">${pos + 1}/${toi.length}</span>` : ""}</div>
     <div class="etat">${phrase(t)}</div></header>`;
-  let preuve = "";
+  // La place de gauche montre ce qu'il y a à regarder : la preuve, ou ce qui bloque Claude, ou ce qu'il fait en ce moment.
+  // Le fil reste toujours à droite, à la même place, quel que soit l'état.
+  let scene = "";
   if (avecPreuve) {
     const x = choisie(t, o);
-    preuve = o.length ? `<div class="preuve">${selecteur(o, x)}<figure class="cadre" data-act="plein">${media(t, x)}</figure></div>`
-      : `<div class="preuve"><div class="cadre vide">Pas de capture</div></div>`;
+    scene = o.length ? `${selecteur(o, x)}<figure class="cadre" data-act="plein">${media(t, x)}</figure>` : `<div class="cadre vide">Pas de capture</div>`;
+  } else if (t.status === "question") scene = voix("Claude", `<p class="lead" data-contenu>${esc(t.question)}</p>`);
+  else if (t.status === "erreur") scene = `<p class="lead"><i class="point"></i><span data-contenu>${esc(raison(t))}</span></p>`;
+  else if (t.status === "travail") { // la dernière phrase de Claude, jamais son journal d'outils
+    const l = [...(t.live ?? [])].reverse().find((x) => !/^[A-Z][\w-]* · /.test(x));
+    if (l) scene = voix("Claude", `<p class="lead gris" data-contenu>${esc(l)}</p>`);
   }
   const serre = ["valider", "message"].includes(t.status) || (t.status === "fini" && !t.dropped);
-  let lead = "";
-  if (t.status === "question") lead = voix("Claude", `<p class="lead" data-contenu>${esc(t.question)}</p>`, "tete-fil");
-  if (t.status === "erreur") lead = `<p class="lead"><i class="point"></i><span data-contenu>${esc(raison(t))}</span></p>`;
   const message = ["valider", "message"].includes(t.status) ? voixMessage(t, false) : t.status === "fini" && !t.dropped && t.draft?.body ? voixMessage(t, true) : "";
   const det = [];
   if (t.summary) det.push(`<p class="resume" data-contenu>${esc(t.summary)}</p>`);
@@ -421,8 +425,8 @@ function vueDemande(t, h) {
     actions = `<div class="actions"><button class="plein" data-act="principal"${bloque ? " disabled" : ""}>${esc(libellePrincipal(t))}<kbd>⌘↵</kbd></button>
       ${t.status === "valider" ? `<button class="lien" data-act="seulement">Sans envoyer</button>` : ""}</div>`;
   }
-  const fil = `<div class="fil"><div class="fil-texte">${lead}${voixClient(t, serre)}${t.status === "question" ? "" : voixClaude(t)}${message}${detail}</div>${actions}</div>`;
-  return `${tete}<div class="corps${avecPreuve ? "" : " seul"}">${preuve}${fil}</div>`;
+  const fil = `<div class="fil"><div class="fil-texte">${voixClient(t, serre)}${voixClaude(t)}${message}${detail}</div>${actions}</div>`;
+  return `${tete}<div class="corps"><div class="preuve">${scene}</div>${fil}</div>`;
 }
 
 // ───────── un client ─────────
@@ -487,7 +491,7 @@ function rendre() {
 
   // une saisie en cours dans le volet n'est jamais effacée par le rafraîchissement
   const a = document.activeElement, saisie = a && $("#vue").contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== "checkbox";
-  if (!saisie || cur !== dernierCur) { if (pose("#vue", html)) $("#vue").querySelectorAll("textarea.ed").forEach(taille); }
+  if (!saisie || cur !== dernierCur) { if (pose("#vue", html)) { $("#vue").querySelectorAll("textarea.ed").forEach(taille); couper(); } }
 
   // la preuve en plein écran
   const o = t ? preuves(t) : [], plein = t && "plein" in h && o.length;
@@ -503,6 +507,21 @@ function rendre() {
   if (cur !== dernierCur) { if (dernierCur && !cur.startsWith("d:" + puceOff)) puceOff = null; if (t?.status === "question" && !plein) say.focus(); }
   dernierCur = cur;
 }
+// La zone du fil qui défile s'arrête entre deux lignes, jamais au milieu d'une (petite fenêtre surtout).
+function couper() {
+  const f = $("#vue .fil-texte"); if (!f) return;
+  f.style.maxHeight = "";
+  if (f.scrollHeight <= f.clientHeight + 1) return;
+  const haut = f.getBoundingClientRect().top, bas = haut + f.clientHeight, rg = document.createRange(), w = document.createTreeWalker(f, NodeFilter.SHOW_TEXT);
+  let lim = bas;
+  for (let n; (n = w.nextNode());) { rg.selectNodeContents(n); for (const b of rg.getClientRects()) if (b.top < bas && b.bottom > bas + 1) lim = Math.min(lim, b.top); }
+  for (const el of f.querySelectorAll("textarea, input")) { // le texte d'un champ n'est pas dans le DOM : on compte ses lignes
+    const b = el.getBoundingClientRect(), lh = parseFloat(getComputedStyle(el).lineHeight) || 19.5, d = b.top + 3;
+    if (b.top < bas && b.bottom > bas + 1) lim = Math.min(lim, d + Math.max(0, Math.floor((bas - d) / lh)) * lh);
+  }
+  if (lim < bas - 1) f.style.maxHeight = `${Math.max(0, lim - haut)}px`;
+}
+addEventListener("resize", couper);
 function pose(sel, html) { if (rendus[sel] === html) return false; rendus[sel] = html; $(sel).innerHTML = html; return true; }
 function taille(el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight + 2}px`; }
 function tailleBarre() { say.style.height = "22px"; say.style.height = `${Math.min(160, Math.max(22, say.scrollHeight))}px`; }
