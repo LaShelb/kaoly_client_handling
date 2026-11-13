@@ -115,6 +115,7 @@
   .voix .ed { max-width: calc(68ch + 14px); }
   .objet { font-weight: 400; color: var(--gris); }
   .envoye { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; color: var(--gris); } /* parti : en gris, comme le passé ; le brouillon reste en encre */
+  .refus { flex: none; margin: 10px 0 0; font-size: 13px; display: flex; align-items: center; gap: 8px; }
   .actions { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 18px 0 4px; }
   .plein { display: inline-flex; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 8px; background: var(--encre); color: #fff; font-weight: 500; white-space: nowrap; }
   .plein:hover { background: #2b2b2b; }
@@ -164,6 +165,7 @@
   #dit { min-height: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 0 2px 6px; font-size: 12px; color: var(--gris); }
   #trouve { padding-bottom: 6px; }
   #dit .fort { color: var(--encre); }
+  #dit a { font-size: 12px; color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
   #dit button { font-size: 12px; color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
   #dit.vient { animation: vient .15s ease-out; }
   @keyframes vient { from { opacity: 0; transform: translateY(3px); } }
@@ -242,7 +244,7 @@ const estGroupe = (t) => /@g\.us$/.test(t.source?.from ?? "");
 const prenom = (t) => String(t.source?.name ?? "").trim().split(/\s+/)[0] || "";
 const auteur = (t) => (t.source?.channel === "toi" ? null : estGroupe(t) ? t.source.name : prenom(t) || t.client);
 const isMail = (to) => to.includes("@") && !/@(s\.whatsapp\.net|g\.us)$/.test(to);
-const rang = (t) => ({ question: 0, erreur: 1 }[t.status] ?? 2);
+const rang = (t) => t.status === "question" ? 0 : t.status === "erreur" || t.error ? 1 : 2; // un message qui n'est pas parti se range avec les pannes
 const parDate = (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt);
 const accepte = (t) => ["question", "valider", "erreur"].includes(t.status) || (t.status === "message" && !t.shipped);
 
@@ -258,6 +260,7 @@ function alertes() {
     .filter(([k]) => S.notes?.[k]).map(([, t, geste]) => ({ t, geste, rouge: true }));
 }
 function verbe(t) {
+  if (t.status === "message" && t.error) return "arrêtée";
   return { valider: "à valider", question: "Claude demande", erreur: "arrêtée", file: "en attente" }[t.status]
     ?? (t.status === "message" ? "à envoyer" : t.status === "travail" ? `<span class="num">${age(t.startedAt || t.updatedAt)}</span>` : "");
 }
@@ -269,7 +272,7 @@ function phrase(t) {
   const nat = t.kind === "bug" ? "bug corrigé" : t.kind === "question" || !t.changed ? "réponse prête" : "interface modifiée";
   const etat = {
     valider: `${nat}, pas encore en ligne`,
-    message: !t.changed ? "réponse prête" : t.shipped === "auto" ? `${nat}, ${enLigne} sans toi` : t.shipped ? `${nat}, ${enLigne}` : `${nat}, pas encore en ligne`,
+    message: t.error ? (t.shipped ? `${nat}, ${enLigne}, envoi bloqué` : "envoi bloqué") : !t.changed ? "réponse prête" : t.shipped === "auto" ? `${nat}, ${enLigne} sans toi` : t.shipped ? `${nat}, ${enLigne}` : `${nat}, pas encore en ligne`,
     question: "Claude te demande",
     erreur: { "copie du dépôt": "copie bloquée", "envoi du code": "mise en ligne bloquée", "mise en ligne": "mise en ligne bloquée", "envoi au client": "envoi bloqué" }[t.step] ?? "arrêtée",
     travail: `Claude y travaille depuis <span class="num">${age(t.startedAt || t.updatedAt)}</span>`,
@@ -288,11 +291,13 @@ function humain(e) {
   e = String(e ?? "").trim();
   if (/not mergeable|conflict|conflit/i.test(e)) return "Une modification plus récente bloque la mise en ligne.";
   if (/ECONNREFUSED|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|ECONNRESET/.test(e)) return "Le serveur de mail ne répond pas.";
+  if (/pas reliée/i.test(e)) return "La boîte mail n'est pas reliée.";
   if (/invalid login|authentication failed|535/i.test(e)) return "La boîte mail refuse le mot de passe.";
   if (/^(gh|git)\b/.test(e) && !/[éèàç]/.test(e)) return "GitHub a refusé cette étape.";
   return e.length > 140 ? `${e.slice(0, 139)}…` : e;
 }
 const raison = (t) => humain(t.error) || "Arrêtée sans explication.";
+const relier = (e) => /pas reliée/i.test(e ?? "") ? ` <a class="lien" href="#arrivees">relier</a>` : "";
 
 function preuves(t) {
   const vid = [], av = [], ap = [];
@@ -340,7 +345,7 @@ function colonne(cur) {
   const ligne = (t, moi) => { const tr = t.status === "travail";
     return `<a class="ligne ${moi ? "moi" : "loin"}${cur === `d:${t.id}` ? " on" : ""}" href="#d=${encodeURIComponent(t.id)}">
     <span class="l1"><span class="t" data-contenu>${esc(t.title)}</span></span>
-    <span class="l2">${t.status === "erreur" ? `<i class="point"></i>` : ""}<span class="v"><span data-contenu>${esc(t.client)}</span>${tr ? "" : `<span> · ${verbe(t)}</span>`}</span><span class="num">${tr ? age(t.startedAt || t.updatedAt) : age(t.createdAt)}</span></span></a>`; };
+    <span class="l2">${t.status === "erreur" || t.error ? `<i class="point"></i>` : ""}<span class="v"><span data-contenu>${esc(t.client)}</span>${tr ? "" : `<span> · ${verbe(t)}</span>`}</span><span class="num">${tr ? age(t.startedAt || t.updatedAt) : age(t.createdAt)}</span></span></a>`; };
   const attente = (c) => toi.filter((t) => t.clientId === c.id).map((t) => t.createdAt).sort()[0];
   const clients = S.clients.filter((c) => !retenues.has(`c:${c.id}`)).map((c) => ({ c, a: attente(c) }))
     .sort((x, y) => (x.a && y.a ? x.a.localeCompare(y.a) : x.a ? -1 : y.a ? 1 : x.c.name.localeCompare(y.c.name)))
@@ -429,7 +434,8 @@ function vueDemande(t, h) {
     actions = `<div class="actions"><button class="plein" data-act="principal"${bloque ? " disabled" : ""}>${esc(libellePrincipal(t))}<kbd>⌘↵</kbd></button>
       ${t.status === "valider" ? `<button class="lien" data-act="seulement">Sans envoyer</button>` : ""}</div>`;
   }
-  const fil = `<div class="fil"><div class="fil-texte">${voixClient(t, serre)}${voixClaude(t)}${message}${detail}</div>${actions}</div>`;
+  const refus = t.status === "message" && t.error ? `<p class="refus"><i class="point"></i><span data-contenu>${esc(raison(t))}</span>${relier(t.error)}</p>` : "";
+  const fil = `<div class="fil"><div class="fil-texte">${voixClient(t, serre)}${voixClaude(t)}${message}${detail}</div>${refus}${actions}</div>`;
   return `${tete}<div class="corps"><div class="preuve">${scene}</div>${fil}</div>`;
 }
 
@@ -478,6 +484,7 @@ function vueArrivees() {
 function rendre() {
   if (!S) return;
   const h = adresse(), { toi } = files();
+  if (pasParti && h.d === pasParti) { pasParti = null; $("#dit").innerHTML = ""; }
   if (!location.hash.slice(1)) { if (toi[0]) return aller(adrDemande(toi[0].id), true); h.rien = ""; }
   let t = null, c = null, cur = "", html;
   if ("rien" in h) html = null;
@@ -537,18 +544,19 @@ async function tick() {
   try { const r = await fetch("/api/state"); if (r.ok) { S = await r.json(); rendre(); } }
   catch { dire("Le serveur local ne répond pas."); }
 }
+let derniereErreur = ""; // la raison du dernier POST raté ; post() continue de rendre null
 async function post(chemin, body) {
   try {
     const r = await fetch(chemin, { method: "POST", headers: { "content-type": "application/json", "x-kaoly": JETON }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({ error: "Réponse illisible." }));
-    if (j.error) { dire(humain(j.error)); return null; }
+    if (j.error) { derniereErreur = j.error; dire(humain(j.error)); return null; }
     if (j.tickets) S = j;
     return j;
-  } catch { dire("Le serveur local ne répond pas."); return null; }
+  } catch { derniereErreur = "Le serveur local ne répond pas."; dire(derniereErreur); return null; }
 }
 // la ligne au-dessus de la barre : réponse de Claude, bandeau « Annuler » ou erreur ; elle s'efface seule
 function dire(html, ms = 8000, brut = false) {
-  const d = $("#dit"); d.innerHTML = brut ? html : esc(html);
+  const d = $("#dit"); d.innerHTML = brut ? html : esc(html); pasParti = null; // une nouvelle phrase remplace « Pas parti »
   d.classList.remove("vient"); void d.offsetWidth; d.classList.add("vient");
   clearTimeout(effacer); if (ms) effacer = setTimeout(() => { d.innerHTML = ""; }, ms);
 }
@@ -560,11 +568,16 @@ function retenir(cle, chemin, body, libelle, retour, apres) {
   dire(`<span class="fort">${esc(libelle)}</span><button data-act="annuler" data-cle="${esc(cle)}">Annuler</button>`, 5000, true);
   if (apres) aller(apres, true); else rendre();
 }
+let pasParti = null;
 async function partir(cle) {
   const r = retenues.get(cle); if (!r) return;
   const j = await post(r.chemin, r.body);
   retenues.delete(cle);
   if (j) delete drafts[cle];
+  else { // pas parti : la ligne reste jusqu'à la prochaine phrase de la barre ou l'ouverture de la demande
+    const t = S?.tickets.find((x) => x.id === cle);
+    if (t) { dire(`<i class="point"></i><span class="fort">Pas parti · <span data-contenu>${esc(t.title)}</span></span><span>· ${esc(humain(derniereErreur))} ·</span><a class="lien" href="#${adrDemande(cle)}">Ouvrir</a>`, 0, true); pasParti = cle; }
+  }
   forcer();
 }
 function annuler(cle) {
@@ -575,11 +588,11 @@ function annuler(cle) {
 }
 function agir(t, action) {
   const nx = suivante(t.id), apres = nx ? adrDemande(nx.id) : "rien", d = brouillon(t), nom = nomDest(t, d.to) ?? "";
-  const wa = d.to && !isMail(d.to), pour = wa ? "Prêt dans WhatsApp" : `Envoyé à ${nom}`;
+  const wa = d.to && !isMail(d.to), pour = wa ? "Ouverture de WhatsApp" : `Envoi à ${nom}`;
   if (action === "principal") {
     if (t.status === "valider") retenir(t.id, "/api/ticket", { id: t.id, action: "valider", send: true, ...d }, pour, adrDemande(t.id), apres);
     else if (t.status === "message") retenir(t.id, "/api/ticket", { id: t.id, action: "envoyer", ...d }, pour, adrDemande(t.id), apres);
-    else if (t.status === "erreur") retenir(t.id, "/api/ticket", { id: t.id, action: "relancer" }, "Relancée", adrDemande(t.id), apres);
+    else if (t.status === "erreur") retenir(t.id, "/api/ticket", { id: t.id, action: "relancer" }, "Relance", adrDemande(t.id), apres);
   }
   if (action === "seulement") retenir(t.id, "/api/ticket", { id: t.id, action: "valider" }, "Mise en ligne", adrDemande(t.id), apres);
   if (action === "classer") retenir(t.id, "/api/ticket", { id: t.id, action: "fermer" }, "Classée", adrDemande(t.id), MINE.includes(t.status) ? apres : null);

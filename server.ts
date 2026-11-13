@@ -428,8 +428,10 @@ async function send(t: any) {
     else { const p = Bun.spawn(["pbcopy"], { stdin: "pipe" }); p.stdin.write(d.body); p.stdin.end(); await p.exited; await sh(["open", "-a", "WhatsApp"]); }
     if (proofsOf(t).length) await sh(["open", `${DIR}/preuves/${t.id}`]);
   }
-  set(t, { status: "fini", sentAt: now(), sentVia: isMail(d.to) ? "mail" : "whatsapp" }); cleanup(t);
+  set(t, { status: "fini", error: null, sentAt: now(), sentVia: isMail(d.to) ? "mail" : "whatsapp" }); cleanup(t);
 }
+// un envoi qui échoue laisse la raison sur la demande (elle reste « message ») : la page la montre et le bouton réessaie
+const sendOuRaison = async (t: any) => { try { await send(t); } catch (e: any) { set(t, { error: e.message }); throw e; } };
 
 const setDraft = (t: any, b: any) => set(t, { draft: { to: String(b.to ?? t.draft?.to ?? "").trim(), subject: String(b.subject ?? t.draft?.subject ?? ""), body: String(b.body ?? t.draft?.body ?? "") } });
 
@@ -543,13 +545,13 @@ async function handle(req: Request) {
           if (t.status !== "valider") throw new Error("Cette demande n'est pas à valider.");
           if (body.send) setDraft(t, body); // le message relu est gardé même si l'envoi échoue
           await ship(t);
-          if (body.send) await send(t); // en cas d'échec, la demande reste en ligne, message à envoyer
+          if (body.send) await sendOuRaison(t); // en cas d'échec, la demande reste en ligne, message à envoyer
         }
         else if (body.action === "retouche") { if (!String(body.text ?? "").trim()) throw new Error("Écris d'abord ta remarque."); answer(t, String(body.text)); }
         else if (body.action === "envoyer") {
           if (t.status !== "message") throw new Error("Ce message n'est pas prêt.");
           setDraft(t, body);
-          await send(t);
+          await sendOuRaison(t);
         }
         else if (body.action === "relancer") {
           if (t.status !== "erreur") throw new Error("Cette demande n'est pas arrêtée.");
