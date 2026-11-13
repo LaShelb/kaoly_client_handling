@@ -88,6 +88,10 @@ export const reprise = (t: { step?: string; draft?: any; error?: string; base?: 
     ? { to: "work", consigne: `La branche principale a changé et la mise en ligne bloque sur un conflit. Intègre-la dans ta branche (git fetch, puis git merge ${t.base ?? "la branche principale"} ; pas de rebase, l'application pousse sans forcer), règle les conflits en gardant ton changement, relance les vérifications et refais la capture après.` }
     : { to: resumeAt(t) };
 
+// Une panne que l'application règle seule, une fois : conflit de mise en ligne ou fermeture de l'application. À la seconde (reprises à 1), c'est à Simon.
+export const seule = (t: { reprises?: number | null; error?: string }) =>
+  t.reprises !== 1 && (/not mergeable|conflict|conflit/i.test(t.error ?? "") || (t.error ?? "").startsWith("Interrompu par la fermeture"));
+
 // Deux demandes au même titre dans la même milliseconde (un tri qui en rend plusieurs) : -2, -3…, jamais le même identifiant.
 export const uniqueId = (base: string, taken: (id: string) => boolean) => { let id = base; for (let n = 2; taken(id); n++) id = `${base}-${n}`; return id; };
 
@@ -277,8 +281,9 @@ const work = (t: any, followUp?: string) => guarded(t, async () => {
     t.files?.length ? `\n\nPièces jointes du client, à regarder : ${t.files.join(", ")}` : ""}${repo ? "" : "\n\nIl n'y a pas de dépôt pour ce client : rédige seulement la réponse."}`);
   if (t.status === "fini") return; // classée pendant que Claude travaillait
   if (r.status === "question") return set(t, { status: "question", question: r.question || r.summary, summary: r.summary, followUp: null });
+  // revalider : le brouillon déjà relu par Simon reste tel quel, Claude ne fait qu'intégrer la branche principale
   set(t, { followUp: null, kind: strictest(t.kind, r.kind), summary: r.summary, change: r.change ?? "", reserve: r.reserve ?? "",
-    draft: { to: recipient(t.source.from, c.contacts), subject: r.message?.subject ?? "", body: r.message?.body ?? "" } });
+    draft: t.revalider && t.draft ? t.draft : { to: recipient(t.source.from, c.contacts), subject: r.message?.subject ?? "", body: r.message?.body ?? "" } });
   await finish(t);
 });
 
@@ -305,14 +310,26 @@ async function finish(t: any) {
 
 // ponytail : « mettre en ligne » = fusionner la PR dans la branche principale (le déploiement suit la fusion, comme sur Vercel).
 // Si un client déploie autrement, ajouter une commande de déploiement par client ici.
-async function ship(t: any, auto = false) {
+// Rend true quand c'est en ligne ; false si Claude repart intégrer la branche (conflit, une seule fois) : alors rien ne part au client.
+async function ship(t: any, auto = false): Promise<boolean> {
   set(t, { step: STEPS[3] });
   try {
     if (!t.pr) throw new Error("Le code n'a pas été envoyé sur GitHub.");
     const state = await sh(["gh", "pr", "view", t.pr, "--json", "state", "-q", ".state"]).catch(() => "");
     if (state !== "MERGED") await sh(["gh", "pr", "merge", t.pr, "--squash"]); // déjà fusionnée à la main : rien à faire
     set(t, { status: "message", shipped: auto && state !== "MERGED" ? "auto" : "validé" });
-  } catch (e: any) { set(t, { status: "erreur", error: e.message }); throw e; }
+    return true;
+  } catch (e: any) {
+    if (seule({ ...t, error: e.message })) { set(t, { error: e.message, reprises: 1, revalider: true }); relance(t); return false; }
+    set(t, { status: "erreur", error: e.message }); throw e;
+  }
+}
+
+// Reprise d'une demande arrêtée : à l'étape, ou chez Claude pour un conflit.
+function relance(t: any) {
+  const r = reprise(t);
+  if (r.to === "finish") guarded(t, () => finish(t)); // Claude a déjà fini : on reprend à l'envoi du code
+  else { set(t, { status: "file", error: null, followUp: r.consigne ?? t.followUp ?? (t.sessionId ? "Tu as été interrompu. Reprends où tu en étais et termine." : null) }); pump(); }
 }
 
 function pump() {
@@ -484,7 +501,7 @@ function answer(t: any, text: string) {
     rangees = " Tes anciennes captures sont dans precedent/.";
   }
   // en file : le nombre de sessions reste borné par pump()
-  set(t, { status: "file", error: null, question: null, followUp: t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}${rangees}` });
+  set(t, { status: "file", error: null, question: null, reprises: null, revalider: null, followUp: t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}${rangees}` });
   pump();
 }
 
@@ -556,8 +573,8 @@ async function handle(req: Request) {
         if (body.action === "valider") {
           if (t.status !== "valider") throw new Error("Cette demande n'est pas à valider.");
           if (body.send) setDraft(t, body); // le message relu est gardé même si l'envoi échoue
-          await ship(t);
-          if (body.send) await sendOuRaison(t); // en cas d'échec, la demande reste en ligne, message à envoyer
+          const enLigne = await ship(t);
+          if (body.send && enLigne) await sendOuRaison(t); // en cas d'échec, la demande reste en ligne, message à envoyer
         }
         else if (body.action === "retouche") { if (!String(body.text ?? "").trim()) throw new Error("Écris d'abord ta remarque."); answer(t, String(body.text)); }
         else if (body.action === "envoyer") {
@@ -567,9 +584,8 @@ async function handle(req: Request) {
         }
         else if (body.action === "relancer") {
           if (t.status !== "erreur") throw new Error("Cette demande n'est pas arrêtée.");
-          const r = reprise(t);
-          if (r.to === "finish") guarded(t, () => finish(t)); // Claude a déjà fini : on reprend à l'envoi du code
-          else { set(t, { status: "file", error: null, followUp: r.consigne ?? t.followUp ?? (t.sessionId ? "Tu as été interrompu. Reprends où tu en étais et termine." : null) }); pump(); }
+          set(t, { reprises: null, revalider: null });
+          relance(t);
         }
         else if (body.action === "fermer") { running.get(t.id)?.kill(); set(t, { status: "fini", dropped: !t.shipped, ...(t.shipped && !t.sentAt ? { unsent: true } : {}) }); cleanup(t); }
         else throw new Error("Action inconnue.");
@@ -612,6 +628,8 @@ function check() {
   eq([reprise({ error: "gh pr merge x --squash : GraphQL: Pull request is not mergeable", step: "mise en ligne", draft: {} }).to, reprise({ error: "pull request create failed: x", step: "envoi du code", draft: {} }).to,
     reprise({ error: "Merge CONFLICT", step: "mise en ligne", draft: {}, base: "origin/dev" }).consigne?.includes("git merge origin/dev ;"), reprise({ error: "boum", step: "travail de Claude" }).consigne],
     ["work", "finish", true, undefined], "relancer : un conflit renvoie Claude, le reste reprend à l'étape");
+  eq([seule({ error: "Pull request is not mergeable" }), seule({ error: "conflit", reprises: 1 }), seule({ error: "Interrompu par la fermeture de l'application." }), seule({ error: "boum" })],
+    [true, false, true, false], "panne réglée seule une fois");
   eq([uniqueId("a", () => false), uniqueId("a", (id) => ["a", "a-2"].includes(id))], ["a", "a-3"], "identifiants uniques");
   eq([joindre(["apres-a.png", "avant-a.png", "video-a.mp4"]), joindre(["video-a.mp4", "apres-a.png"], ["video-a.mp4", "../x"]), joindre(["apres-a.png"], [])],
     [["apres-a.png"], ["video-a.mp4"], []], "pièces jointes : le choix de la page, sinon la capture « Après »");
@@ -626,11 +644,16 @@ else if (import.meta.main) {
   // banc de mesure seulement (eval/jeu) : activite.json, {id: [étapes]}, garde ces demandes « en travail » avec leurs étapes, sans session réelle
   const activite = load("activite.json", {});
   Object.assign(live, activite);
-  // une session coupée par la fermeture de l'application ne reprend pas toute seule : Simon la relance d'un clic
-  for (const t of tickets) if (t.status === "travail" && !activite[t.id]) Object.assign(t, { status: "erreur", error: "Interrompu par la fermeture de l'application." });
+  // une session coupée par la fermeture de l'application repart seule une fois ; à la seconde coupure, Simon la relance
+  const reprendre: any[] = [];
+  for (const t of tickets) if (t.status === "travail" && !activite[t.id]) {
+    Object.assign(t, { status: "erreur", error: "Interrompu par la fermeture de l'application." });
+    if (seule(t)) { t.reprises = 1; reprendre.push(t); }
+  }
   saveT();
   await refreshMail();
   Bun.serve({ port: PORT, hostname: "127.0.0.1", fetch: handle, idleTimeout: 240 });
+  for (const t of reprendre) relance(t); // pump() respecte MAX_SESSIONS
   setInterval(intake, 120_000); intake(); pump();
   console.log(`Kaoly Clients sur ${ORIGIN}`);
 }

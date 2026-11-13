@@ -326,7 +326,7 @@ function phrase(t) {
   const enLigne = `<span class="vert">en ligne</span>`;
   const nat = t.kind === "bug" ? "bug corrigé" : t.kind === "question" || !t.changed ? "réponse prête" : "interface modifiée";
   const etat = {
-    valider: `${nat}, pas encore en ligne`,
+    valider: t.revalider ? `${nat}, à revalider` : `${nat}, pas encore en ligne`,
     message: t.error ? (t.shipped ? `${nat}, ${enLigne}, envoi bloqué` : "envoi bloqué") : !t.changed ? "réponse prête" : t.shipped === "auto" ? `${nat}, ${enLigne} sans toi` : t.shipped ? `${nat}, ${enLigne}` : `${nat}, pas encore en ligne`,
     question: "Claude te demande",
     erreur: { "copie du dépôt": "copie bloquée", "envoi du code": "mise en ligne bloquée", "mise en ligne": "mise en ligne bloquée", "envoi au client": "envoi bloqué" }[t.step] ?? "arrêtée",
@@ -719,9 +719,13 @@ async function partir(cle) {
   const r = retenues.get(cle); if (!r) return;
   const j = await post(r.chemin, r.body);
   retenues.delete(cle);
-  if (j) delete drafts[cle];
-  else if (r.texte) textes[cle] = r.texte; // la retouche revient dans la barre à la réouverture de sa demande
-  if (!j) { // pas parti : la ligne reste jusqu'à la prochaine phrase de la barre ou l'ouverture de la demande
+  if (j) {
+    delete drafts[cle];
+    const t = r.body.action === "valider" && S?.tickets.find((x) => x.id === cle); // un conflit : Claude repart intégrer la modification plus récente
+    if (t && ["file", "travail"].includes(t.status)) dire(`Pas encore en ligne · <span data-contenu>${esc(t.title)}</span> · Claude intègre une modification plus récente`, 8000, true);
+  } else {
+    if (r.texte) textes[cle] = r.texte; // la retouche revient dans la barre à la réouverture de sa demande
+    // pas parti : la ligne reste jusqu'à la prochaine phrase de la barre ou l'ouverture de la demande
     const t = S?.tickets.find((x) => x.id === cle);
     if (t) { dire(`<i class="point"></i><span class="fort">Pas parti · <span data-contenu>${esc(t.title)}</span></span><span>· ${esc(humain(derniereErreur))} ·</span><a class="lien" href="#${adrDemande(cle)}">Ouvrir</a>`, 0, true); pasParti = cle; }
   }
