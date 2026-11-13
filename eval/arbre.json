@@ -1,42 +1,223 @@
 {
   "mesure": "bun eval/score.ts --port 4320 --out eval/sorties/base (note automatique sur 40) + juge sur 60 (eval/rubrique.md)",
-  "racine": { "commit": "d4dfc4d", "score": 10.2, "note": "page de départ (b02981d), même mesure" },
+  "racine": {
+    "commit": "d4dfc4d",
+    "score": 10.2,
+    "note": "page de départ (b02981d), même mesure"
+  },
   "directions": [
-    { "nom": "clavier", "commit": "4942222735fb078f9dc76977d32a0e35f648f25a", "score": 91.5, "auto": 39.5, "verdict": "gagnante, fusionnée",
-      "raison": "Une demande à la fois, même squelette, phrase d'état grise, un seul bouton plein avec ⌘↵, envoi retenu 5 s. Défauts relevés : preuve ouverte sur une vidéo figée identique à Avant, v= ignoré, relève dite deux fois en tête de file, fil qui change de côté sans preuve, petite fenêtre qui tranche le fil." },
-    { "nom": "page-continue", "commit": "d4d9fde31e4d87e278b707e3701c140351818853", "score": 90.3, "auto": 39.3, "verdict": "non fusionnée, idées reprises",
-      "raison": "Même logique que clavier. Repris : la panne dite comme un blocage, sans jargon. Écarté : la relève en tête de file et le bouton collé en bas qui change de hauteur." },
-    { "nom": "par-client", "commit": "b67127b7fdec13c5fc48ab99cd5ac729c2b2677e", "score": 89.5, "auto": 39.5, "verdict": "non fusionnée, idées reprises",
-      "raison": "Repris : la preuve qui ouvre sur Après (contour visible) et l'ordre Après · Avant · Vidéo, le registre client qui distingue ce que Claude a en main. Écarté : la suppression du groupe « Claude y travaille » (écart au contrat, brouille la colonne)." },
-    { "nom": "deux-volets", "commit": "e849f6b42c4382f917bf6bfc4b01f7c0f4b298c5", "score": 89.4, "auto": 39.4, "verdict": "non fusionnée, idées reprises",
-      "raison": "Repris : la relève portée par le pied de colonne (même concept que les arrivées), « éteinte » sans phrase en plus, plein écran sans ombre. Écarté : le bouton placé juste sous le message (place variable)." },
-    { "nom": "references", "commit": "f61c036797aeafb9685099f6e739d5506a3139e7", "score": 89.4, "auto": 39.4, "verdict": "non fusionnée, idées reprises",
-      "raison": "Repris : le canal dit une seule fois (sur « À Claire · mail »), une seule durée sur une demande en travail, le message parti en gris pour le distinguer du brouillon. Écarté : plein écran sur fond noir avec les commandes de Chrome." }
+    {
+      "nom": "clavier",
+      "commit": "4942222735fb078f9dc76977d32a0e35f648f25a",
+      "score": 91.5,
+      "auto": 39.5,
+      "verdict": "gagnante, fusionnée",
+      "raison": "Une demande à la fois, même squelette, phrase d'état grise, un seul bouton plein avec ⌘↵, envoi retenu 5 s. Défauts relevés : preuve ouverte sur une vidéo figée identique à Avant, v= ignoré, relève dite deux fois en tête de file, fil qui change de côté sans preuve, petite fenêtre qui tranche le fil."
+    },
+    {
+      "nom": "page-continue",
+      "commit": "d4d9fde31e4d87e278b707e3701c140351818853",
+      "score": 90.3,
+      "auto": 39.3,
+      "verdict": "non fusionnée, idées reprises",
+      "raison": "Même logique que clavier. Repris : la panne dite comme un blocage, sans jargon. Écarté : la relève en tête de file et le bouton collé en bas qui change de hauteur."
+    },
+    {
+      "nom": "par-client",
+      "commit": "b67127b7fdec13c5fc48ab99cd5ac729c2b2677e",
+      "score": 89.5,
+      "auto": 39.5,
+      "verdict": "non fusionnée, idées reprises",
+      "raison": "Repris : la preuve qui ouvre sur Après (contour visible) et l'ordre Après · Avant · Vidéo, le registre client qui distingue ce que Claude a en main. Écarté : la suppression du groupe « Claude y travaille » (écart au contrat, brouille la colonne)."
+    },
+    {
+      "nom": "deux-volets",
+      "commit": "e849f6b42c4382f917bf6bfc4b01f7c0f4b298c5",
+      "score": 89.4,
+      "auto": 39.4,
+      "verdict": "non fusionnée, idées reprises",
+      "raison": "Repris : la relève portée par le pied de colonne (même concept que les arrivées), « éteinte » sans phrase en plus, plein écran sans ombre. Écarté : le bouton placé juste sous le message (place variable)."
+    },
+    {
+      "nom": "references",
+      "commit": "f61c036797aeafb9685099f6e739d5506a3139e7",
+      "score": 89.4,
+      "auto": 39.4,
+      "verdict": "non fusionnée, idées reprises",
+      "raison": "Repris : le canal dit une seule fois (sur « À Claire · mail »), une seule durée sur une demande en travail, le message parti en gris pour le distinguer du brouillon. Écarté : plein écran sur fond noir avec les commandes de Chrome."
+    }
   ],
   "greffes": [
-    { "id": "g1", "commit": "52e04a8", "parent": "clavier", "score_avant": 39.5, "score_apres": 39.5, "verdict": "gardée",
+    {
+      "id": "g1",
+      "commit": "52e04a8",
+      "parent": "clavier",
+      "score_avant": 39.5,
+      "score_apres": 39.5,
+      "verdict": "gardée",
       "quoi": "La preuve s'ouvre sur « Après », ordre Après · Avant · Vidéo, l'adresse &v= choisit l'onglet, plein écran sans ombre.",
-      "raison": "D2 et F4 : la première image montre le changement à valider ; preuve-avant, preuve-apres et preuve-video sont désormais trois captures différentes." },
-    { "id": "g2", "commit": "8107291", "parent": "g1", "score_avant": 39.5, "score_apres": 39.5, "verdict": "gardée",
+      "raison": "D2 et F4 : la première image montre le changement à valider ; preuve-avant, preuve-apres et preuve-video sont désormais trois captures différentes."
+    },
+    {
+      "id": "g2",
+      "commit": "8107291",
+      "parent": "g1",
+      "score_avant": 39.5,
+      "score_apres": 39.5,
+      "verdict": "gardée",
       "quoi": "« Relève éteinte · allumer » n'a qu'une place, le pied de la colonne (pannes de mail, WhatsApp ou tri au même endroit, point rouge) ; la tête de colonne est rendue aux demandes. Le nom du client cède avant le verbe d'état ; « à envoyer » seul ; colonne de 236 px sous 1000 px ; la ligne ouverte défile dans la vue.",
-      "raison": "H2 et F3 : un réglage ne passe plus devant la file, le même concept n'est plus à deux endroits, le verbe d'état n'est plus coupé." },
-    { "id": "g3", "commit": "89d07eb", "parent": "g2", "score_avant": 39.5, "score_apres": 39.6, "verdict": "gardée",
+      "raison": "H2 et F3 : un réglage ne passe plus devant la file, le même concept n'est plus à deux endroits, le verbe d'état n'est plus coupé."
+    },
+    {
+      "id": "g3",
+      "commit": "89d07eb",
+      "parent": "g2",
+      "score_avant": 39.5,
+      "score_apres": 39.6,
+      "verdict": "gardée",
       "quoi": "Même squelette pour tous les états : à gauche ce qu'il y a à regarder (la preuve, la question de Claude, la raison de la panne, ce que Claude fait en ce moment), à droite le fil et le geste, toujours à la même place. « Pas de capture » réduit à une bande en tirets. Phrase d'état : canal dit une fois, une seule durée en travail, « mise en ligne bloquée » au lieu de « arrêtée à : mise en ligne ». Demande du client repliée à 5 lignes (1 en petite fenêtre), filet au-dessus du bouton en petite fenêtre, fil coupé entre deux lignes.",
-      "raison": "R5, F3, S5 : en descendant la file, le fil et le bouton ne sautent plus d'un côté à l'autre ; plus de ligne tranchée au-dessus du bouton." },
-    { "id": "g4", "commit": "c9e5c69", "parent": "g3", "score_avant": 39.6, "score_apres": 39.6, "verdict": "gardée",
+      "raison": "R5, F3, S5 : en descendant la file, le fil et le bouton ne sautent plus d'un côté à l'autre ; plus de ligne tranchée au-dessus du bouton."
+    },
+    {
+      "id": "g4",
+      "commit": "c9e5c69",
+      "parent": "g3",
+      "score_avant": 39.6,
+      "score_apres": 39.6,
+      "verdict": "gardée",
       "quoi": "Registre client : ce qui attend Simon, puis ce que Claude a en main (« Claude · 12 min »), puis le passé. Message parti en gris.",
-      "raison": "Regroupement par concept et D3 : un brouillon (encre, modifiable) ne ressemble plus à un message parti." },
-    { "id": "g5", "commit": "a3c57ad", "parent": "g4", "score_avant": 39.6, "score_apres": 39.7, "verdict": "gardée",
+      "raison": "Regroupement par concept et D3 : un brouillon (encre, modifiable) ne ressemble plus à un message parti."
+    },
+    {
+      "id": "g5",
+      "commit": "a3c57ad",
+      "parent": "g4",
+      "score_avant": 39.6,
+      "score_apres": 39.7,
+      "verdict": "gardée",
       "quoi": "Le rappel ⌘K n'est plus écrit dans la barre (il reste dans l'étiquette d'accessibilité).",
-      "raison": "Un mot fixe de moins sur chaque écran ; ⌘↵ reste sur le bouton, c'est lui qui fait gagner du temps." },
-    { "id": "g6", "commit": "47c00c7", "parent": "g5", "score_avant": 39.7, "score_apres": 39.7, "verdict": "gardée",
+      "raison": "Un mot fixe de moins sur chaque écran ; ⌘↵ reste sur le bouton, c'est lui qui fait gagner du temps."
+    },
+    {
+      "id": "g6",
+      "commit": "47c00c7",
+      "parent": "g5",
+      "score_avant": 39.7,
+      "score_apres": 39.7,
+      "verdict": "gardée",
       "quoi": "Demande repliée qui garde ses retours à la ligne (la liste de Buckwell se lit point par point), objet parti en gris, défilement de la colonne après mise en page, registre resserré en petite fenêtre.",
-      "raison": "Simon compare ce qui a été demandé à ce qu'il voit sans déplier." }
+      "raison": "Simon compare ce qui a été demandé à ce qu'il voit sans déplier."
+    }
   ],
   "ecartees": [
-    { "quoi": "Supprimer le groupe « Claude y travaille » (par-client)", "raison": "écart au contrat et la colonne perd la distinction à toi / pas à toi" },
-    { "quoi": "Fil à gauche et preuve à droite (deux-volets, references)", "raison": "contraire au contrat §4 ; garder le fil à droite partout règle R5 sans changer le regard titre → preuve → bouton" },
-    { "quoi": "Fondu en bas de la zone qui défile", "raison": "c'est un dégradé ; remplacé par une coupe calculée entre deux lignes et un filet" }
+    {
+      "quoi": "Supprimer le groupe « Claude y travaille » (par-client)",
+      "raison": "écart au contrat et la colonne perd la distinction à toi / pas à toi"
+    },
+    {
+      "quoi": "Fil à gauche et preuve à droite (deux-volets, references)",
+      "raison": "contraire au contrat §4 ; garder le fil à droite partout règle R5 sans changer le regard titre → preuve → bouton"
+    },
+    {
+      "quoi": "Fondu en bas de la zone qui défile",
+      "raison": "c'est un dégradé ; remplacé par une coupe calculée entre deux lignes et un filet"
+    }
   ],
-  "final": { "commit": "voir HEAD", "auto": 39.7 }
+  "final": {
+    "commit": "voir HEAD",
+    "auto": 39.7
+  },
+  "cycles": [
+    {
+      "cycle": 2,
+      "depart": "9819ca3",
+      "score_depart": 94.7,
+      "non_retenues": {
+        "c1-pieces-qui-partent": "bonne idée (ce qui part avec le mail se voit), mais touche voixMessage et send() en même temps que deux idées retenues ; au cycle suivant",
+        "c1-envoi-qui-dit-vrai": "touche send() et le bandeau ; à faire après c2-relancer-qui-aboutit pour ne pas réécrire le serveur deux fois",
+        "c1-capture-du-client": "touche le sélecteur de preuve et l'échappement du prénom ; à reprendre après la fusion de c2-demande-place-du-geste",
+        "c1-point-sur-la-capture": "plein écran et puce de la barre : même zone que c2-barre-qui-trouve ; au cycle suivant",
+        "c1-relancer-qui-regle": "redondante avec c1-relancer-qui-aboutit (fondue dedans), partie écran fondue dans c2-demande-place-du-geste",
+        "c1-claude-une-phrase / c1-fil-sans-redite": "fondues dans c2-fil-une-phrase (même fonction voixClaude) ; le placement du Détail va à c2-demande-place-du-geste",
+        "c1-petite-fenetre-message-entier / c1-sans-preuve-a-gauche": "fondues dans c2-demande-place-du-geste : même bloc CSS, à faire dans l'ordre par un seul exécutant"
+      },
+      "idees": [
+        {
+          "id": "c2-demande-place-du-geste",
+          "genre": "design",
+          "parent": "g6",
+          "etat": "en cours",
+          "titre": "Demande : la décision et son bouton se touchent, à toutes les tailles (petite fenêtre lisible, sans preuve à gauche, Détail hors du message)",
+          "reprend": [
+            "c1-petite-fenetre-message-entier",
+            "c1-sans-preuve-a-gauche",
+            "c1-fil-sans-redite (point 2)",
+            "c1-relancer-qui-regle (partie écran)"
+          ],
+          "zone": "index.html seulement : vueDemande à partir de « let scene » (l. 400-428, pas la tête l. 397-399), couper() et une nouvelle couperListe(), l'appel de scrollIntoView dans rendre() (l. 484), le CSS de .preuve, .cadre.vide, .fil, .fil-texte, .actions, details/.detail, #dit, #liste, #releve, et le bloc @media (max-width: 999px) SAUF ses lignes .fiche/.registre/.reg. Ne pas toucher voixClaude, voixClient, voixMessage (on les appelle telles quelles), .objet, vueClient, la barre, server.ts.",
+          "detail": "Faire en deux étapes, chacune commitée et mesurée ; si la seconde fait baisser la note ou casse la petite fenêtre, garder la première seule et le dire.\nÉTAPE 1 — petite fenêtre (sous 1000 px uniquement, la grande ne change pas).\na) Demande avec preuve : une rangée. À gauche la vignette de 200 × 125 avec le sélecteur Après · Avant · Vidéo collé au-dessus ; à droite les voix du client et de Claude, une ligne chacune (repli -webkit-line-clamp:1 déjà en place ; le nom en gris passe en tête de ligne, display:inline, suivi de deux espaces) ; dessous, la réserve sur une ligne en tirets. Le dépli au clic (data-act=deplier) reste.\nb) Sous la rangée, pleine largeur : la voix du message (« À Claire · mail », objet, message EN ENTIER), puis le filet et le bouton. couper() ne doit plus tronquer le message : en petite fenêtre, c'est la rangée du haut qui cède (repli), pas le message.\nc) Budget à 760 × 560 : tête 76, rangée 125, message ≈ 210 (line-height 1.4 en petite fenêtre), bouton 56, barre 54. Pour tenir : #dit:empty { min-height:0; padding:0 } et 8 px entre les blocs.\nd) Sans preuve en petite fenêtre : « Pas de capture » à la place de la vignette, cadre en tirets de 200 px de large, texte centré, padding 12 px.\ne) Colonne : « À toi n » en position:sticky top:0 sur fond var(--fond) en haut de #liste ; #liste en scroll-snap-type:y mandatory avec scroll-snap-align:start sur .groupe, .ligne, .client, et scroll-padding-top égal à la hauteur de l'en-tête collant. Nouvelle fonction couperListe(), sœur de couper(), qui fixe la max-height de #liste pour que son bas tombe entre deux lignes ; appelée après scrollIntoView (l. 484) et dans l'écouteur resize. #releve : margin-top:auto et un filet de 1 px au-dessus.\nContrôle étape 1 : sur petit/demande-valider-interface, -valider-bug, -longue, -ancien, la dernière ligne du message (« Simon ») se lit au-dessus du bouton ; sur petit/demande-travail, -en-cours et client-arion, « À toi 9 » est en haut et aucune ligne coupée au-dessus du pied « Relève éteinte ».\nÉTAPE 2 — sans preuve, au-dessus de 1000 px. Règle : sans capture, la place de gauche (.preuve) reçoit l'objet de la décision et son bouton juste dessous ; le fil de droite garde les autres voix et le Détail.\na) Réponse prête (status message, pas de preuve) : à gauche voixMessage(t,false) (crayon, objet, message), le texte du message en 20 px (même taille que .lead, aucune taille en plus), puis la ligne .actions (« Envoyer à Sophie »). À droite : voixClient puis voixClaude (appelées telles quelles : une autre idée peut rendre voixClaude vide ici, ne pas compenser).\nb) Panne (erreur) : à gauche la raison avec le point rouge (déjà là), puis « Relancer » juste dessous. À droite : client, Claude, Détail.\nc) À valider sans capture : à gauche une ligne en tirets « Pas de capture » de 32 px (padding 12 px), puis le message, « Mettre en ligne et envoyer » et « Sans envoyer ». À droite : client, Claude et sa réserve.\nd) Classée, en attente (file), réglée sans preuve : à gauche la demande du client en entier (voixClient(t,false)). À droite : Claude et, s'il existe, le message parti en gris.\ne) Avec preuve, rien ne change de place : preuve à gauche, fil et bouton à droite.\nf) Détail : il ne s'intercale plus jamais entre un message et son bouton. Le poser après la ligne .actions (dans la colonne qui porte le bouton quand le bouton est à droite, en bas du fil sinon), contenu ouvert limité en hauteur avec défilement interne.\ng) Sous 1000 px, l'ordre reste client, Claude, message, bouton (order sur .preuve et ses enfants dans le @media) : l'étape 1 ne doit pas être défaite. Le plus simple : construire le HTML une fois et ne déplacer que par CSS (grid-template-areas), ou garder deux chemins courts — choisir le moins de code.\nContrôle étape 2 : grand/demande-reponse, -panne, -sans-preuve, -classee, -file n'ont plus les deux tiers gauches vides ; un seul bouton plein, visible sans défiler à 1280 × 860 et à 760 × 560 ; au plus 3 encadrés par vue ; couper() calcule toujours la coupe du fil.",
+          "pourquoi": "Premier « pire défaut » cité par les deux juges (cinq captures avec les deux tiers gauches vides) et seul point F3 perdu par les deux (petite fenêtre qui tranche le message et la colonne). Les deux touchent le même bloc CSS et la même fonction : un seul exécutant, deux étapes. Concept : ce sur quoi Simon agit et le geste qui le fait sont une seule chose, jamais séparés par 600 px ni par un « Détail ».",
+          "consignes_communes": "Commun à toutes : lire server.ts, index.html, docs/contrat.md et eval/LISEZMOI.md avant d'agir. Mesure : bun eval/score.ts --port <4200 à 4299, propre à chaque exécutant> --out eval/sorties/<id> (jamais 4117 ni 4118), note auto à garder ≥ 39,7, piège HTML à 0, rien qui défile en largeur. Ne pas toucher donnees.ts, jeu/, captures.ts, score.ts, rubrique.md. Regarder soi-même les captures grand/ et petit/ des vues touchées avant de conclure. Un commit par étape sur la branche de l'exécutant, message en français. Rester dans sa zone (dite dans « zone ») : cinq idées sont faites en parallèle puis fusionnées."
+        },
+        {
+          "id": "c2-fil-une-phrase",
+          "genre": "fonction",
+          "parent": "g6",
+          "etat": "en cours",
+          "titre": "Le fil ne dit rien deux fois : Claude en une phrase, rien quand sa réponse est le message, compteur et gras inutiles retirés",
+          "reprend": [
+            "c1-claude-une-phrase",
+            "c1-fil-sans-redite (points 1, 3, 4, 5)"
+          ],
+          "zone": "index.html : la fonction voixClaude (l. 359-364), la tête de vueDemande (l. 397-399, le compteur pos/total et la variable pos si elle ne sert plus), la règle CSS .objet (l. 116), le bouton « Relier » de vueArrivees (l. 463). server.ts : seulement les textes de consigne (WORK, l. 180-190 environ, et TRIAGE, l. 369-372). Ne pas toucher le reste de vueDemande, ni le CSS hors .objet, ni les fonctions answer/relancer/pump de server.ts.",
+          "detail": "1) voixClaude : si t.change existe, la voix « Claude » le montre (inchangé). Sinon (anciennes demandes), elle montre seulement la PREMIÈRE phrase de t.summary : couper après le premier « . », « ? », « ! » ou « … » suivi d'une espace, ou au premier retour à la ligne ; sans la classe replie. Le résumé entier reste dans le Détail (déjà fait l. 415), toujours échappé. Contrôle : sur grand/demande-ancien.png, le fil dit « Les rendez-vous annulés sont maintenant grisés et barrés dans l'agenda, en vue semaine comme en vue mois. » et la balise <script…> du résumé n'apparaît plus hors du Détail.\n2) Réponse sans changement de code : quand !t.changed et que la demande a un message (status message, ou fini avec t.draft?.body), la réponse de Claude EST le message : voixClaude ne rend pas de phrase, seulement la réserve si elle existe. Contrôle : grand/demande-reponse.png se lit question de Sophie, message, bouton ; une trentaine de mots en moins.\n3) Tête : retirer le compteur « pos/total » (l. 398) ; la ligne ouverte est déjà surlignée dans la colonne.\n4) .objet : graisse normale (400) et couleur var(--gris). Le seul accent du fil reste la réserve en tirets.\n5) Arrivées : le lien « Relier » à côté d'une boîte déjà reliée (S.mail.ok vrai) dit « Changer » ; sans boîte, il dit toujours « Relier ».\n6) server.ts, pour les vraies demandes : dans WORK_SCHEMA/consigne, change devient « une phrase en français courant pour Simon, sans code, sans balise, sans nom de fichier » (ajouter « sans balise » à la ligne existante l. 184). Dans TRIAGE, demander un titre en mots courants et, si le client cite du code, le décrire au lieu de le recopier. On ne transforme pas les titres dans la page : la sonde du jeu doit rester visible en texte échappé.\nContrôle : bun eval/score.ts, piège HTML à 0 ; le Détail de demande-ancien contient le résumé entier ; les mots fixes baissent sur les vues de demande (valider-bug et ancien vers 15).",
+          "pourquoi": "Simon : « tu as tendance à mettre beaucoup de texte ». Le juge 2 a perdu S4 en citant le <script…> du résumé affiché dans le fil (+1 possible) ; la réponse prête se lit deux fois ; le compteur ne sert à aucune décision. Conforme au contrat §4 (le fil porte change, le summary va dans le Détail).",
+          "consignes_communes": "Commun à toutes : lire server.ts, index.html, docs/contrat.md et eval/LISEZMOI.md avant d'agir. Mesure : bun eval/score.ts --port <4200 à 4299, propre à chaque exécutant> --out eval/sorties/<id> (jamais 4117 ni 4118), note auto à garder ≥ 39,7, piège HTML à 0, rien qui défile en largeur. Ne pas toucher donnees.ts, jeu/, captures.ts, score.ts, rubrique.md. Regarder soi-même les captures grand/ et petit/ des vues touchées avant de conclure. Un commit par étape sur la branche de l'exécutant, message en français. Rester dans sa zone (dite dans « zone ») : cinq idées sont faites en parallèle puis fusionnées."
+        },
+        {
+          "id": "c2-fiche-client-grille",
+          "genre": "design",
+          "parent": "g6",
+          "etat": "en cours",
+          "titre": "Fiche client sur la grille de la demande : registre calé sur le titre, dans l'ordre de la colonne, dépôt rangé dans un Détail",
+          "reprend": [
+            "c1-fiche-client-grille-demande"
+          ],
+          "zone": "index.html : vueClient (l. 432-453) et le CSS de .chiffres, .fiche, .registre, .reg, .reglages, .bascule, .contact, plus les lignes .fiche/.registre/.reg du bloc @media (max-width: 999px) (et seulement elles). Ne rien toucher d'autre, ni server.ts.",
+          "detail": "1) Même grille que la demande : .fiche passe en grid-template-columns: minmax(0,1fr) 332px avec gap 36px (comme .corps). La coupure tombe à 884/920 comme sur une demande.\n2) Registre calé sur le titre : .reg perd sa marge intérieure horizontale (padding 8px 0 ; le survol déborde par margin 0 -8px + padding 8px). La colonne de dates de gauche disparaît : le titre part au bord gauche du volet (x = 288 à 1280 px). À droite, le verbe et l'âge en mono, comme la colonne : « à valider  2 j », « • arrêtée  1 j », « Claude · 12 min », « en attente  4 min ». Une demande passée montre « envoyée 4 nov. » ou « classée 5 nov. » (issue(t) suivi de date(t.sentAt || t.updatedAt)), jamais la date d'arrivée.\n3) Un seul ordre, celui de la colonne : d'abord les demandes du client dans l'ordre de files().toi, puis celles de files().claude, puis le passé du plus récent au plus ancien. 12 px d'espace entre ces trois parts, sans intitulé.\n4) La ligne de chiffres perd « dernier envoi le … » (la date est sur la ligne passée).\n5) Réglages en un seul groupe sans filet interne, dans cet ordre : la bascule « Bugs sans validation », les Contacts, puis un <details><summary>Détail</summary> replié (même style que sur la demande) qui contient le dépôt modifiable (champ data-cfg=repo, avec son étiquette « Dépôt ») et « Retirer le client ». Plus aucun « LaShelb/arion_crm » visible au premier écran.\nContrôle sur grand/client-arion.png et client-garonne.png : les bords gauches tombent sur 288 et 920 seulement, les âges suivent l'ordre de la colonne, la ligne passée porte la date d'envoi ; sur petit/client-*.png rien ne défile en largeur ; client-arion repasse à 25 mots fixes au plus ; les sondes d'échappement restent échappées.",
+          "pourquoi": "Le juge 2 a perdu F1 (décalage de 7 px, dates en désordre, coupure différente de la demande) et le juge 1 a perdu S4 (chemin du dépôt en tête des réglages) : +2 possibles. Concept : la fiche d'un client est la colonne filtrée sur ce client, donc même grille, même ordre, mêmes mots.",
+          "consignes_communes": "Commun à toutes : lire server.ts, index.html, docs/contrat.md et eval/LISEZMOI.md avant d'agir. Mesure : bun eval/score.ts --port <4200 à 4299, propre à chaque exécutant> --out eval/sorties/<id> (jamais 4117 ni 4118), note auto à garder ≥ 39,7, piège HTML à 0, rien qui défile en largeur. Ne pas toucher donnees.ts, jeu/, captures.ts, score.ts, rubrique.md. Regarder soi-même les captures grand/ et petit/ des vues touchées avant de conclure. Un commit par étape sur la branche de l'exécutant, message en français. Rester dans sa zone (dite dans « zone ») : cinq idées sont faites en parallèle puis fusionnées."
+        },
+        {
+          "id": "c2-barre-qui-trouve",
+          "genre": "fonction",
+          "parent": "g6",
+          "etat": "en cours",
+          "titre": "La barre trouve elle-même avant de demander à Claude",
+          "reprend": [
+            "c1-barre-qui-trouve"
+          ],
+          "zone": "index.html : envoyerBarre et les écouteurs de #say (l. 593-617), le HTML de #barre (un nouvel élément #trouve juste au-dessus de #champ), le CSS de #trouve seulement. Ne pas modifier la règle CSS de #dit ni le bloc @media (une autre idée les change) ; ne pas toucher vueDemande, vueClient, server.ts.",
+          "detail": "1) Sans puce (cible nulle dans envoyerBarre), à chaque saisie dans #say, si le texte fait moins de 40 caractères et n'a pas de retour à la ligne : filtrer sur place, sans accents ni majuscules (normalize('NFD') + suppression des diacritiques + toLowerCase), parmi les titres de toutes les demandes (réglées comprises, retenues exclues), les noms des clients et le mot « Arrivées ». Au plus 5 lignes, demandes à toi d'abord, puis Claude, puis clients, puis passé.\n2) Les lignes s'affichent dans #trouve, juste au-dessus du champ ; tant que #trouve a des lignes, #dit est masqué (attribut hidden posé en JS, pas de CSS sur #dit). Dessin de la colonne : le titre (esc, data-contenu), puis en gris « Client · verbe(t) » ou « réglée le 4 nov. » pour une demande finie, l'âge en mono à droite ; un client : son nom et l'âge de sa plus vieille demande à toi. Ni cadre, ni ombre, ni intertitre. Tout texte venu des données est échappé avec esc().\n3) ↓ et ↑ dans #say choisissent une ligne (fond var(--choisi), comme la ligne ouverte) ; clic ou Entrée sur une ligne choisie ouvre #d=, #c= ou #arrivees (via aller()) et vide la barre. Si aucune ligne n'est choisie, Entrée envoie à /api/chat comme aujourd'hui : un mail collé suit le même chemin qu'avant. Échap vide la liste (puis, second Échap, garde le comportement actuel). Avec une puce, rien ne change : c'est une retouche, pas de liste.\n4) Aucune ligne si rien ne correspond (pas de « Aucun résultat »). Aucun mot fixe ajouté à l'écran au repos.\nEnviron 35 lignes. Contrôle par Chrome sans fenêtre et protocole DevTools (script jetable dans le scratchpad, serveur d'essai lancé comme dans eval/captures.ts sur un port 4200-4299 puis arrêté) : taper « garonne », ↓, Entrée ouvre #c=garonne ; « exporter » trouve la demande « Bouton Exporter » ; « ARRIV » trouve Arrivées ; un texte de trois lignes part à /api/chat (faux claude). La note auto ne doit pas bouger (rien n'est tapé pendant les captures) ; faire une capture de la barre avec la liste ouverte pour la fusion.",
+          "pourquoi": "Simon aime « je tape un truc et l'application agit ». Aujourd'hui taper « Garonne » fait attendre une phrase de Claude, qui ne peut ouvrir aucune vue (CHAT_SCHEMA n'a pas d'action pour ouvrir), et une demande réglée ne se retrouve que par la fiche du client. Raycast, Linear, Missive : une barre pour chercher et pour agir, résultats en lignes, tout au clavier. Concept : chercher et demander sont le même geste, au même endroit.",
+          "consignes_communes": "Commun à toutes : lire server.ts, index.html, docs/contrat.md et eval/LISEZMOI.md avant d'agir. Mesure : bun eval/score.ts --port <4200 à 4299, propre à chaque exécutant> --out eval/sorties/<id> (jamais 4117 ni 4118), note auto à garder ≥ 39,7, piège HTML à 0, rien qui défile en largeur. Ne pas toucher donnees.ts, jeu/, captures.ts, score.ts, rubrique.md. Regarder soi-même les captures grand/ et petit/ des vues touchées avant de conclure. Un commit par étape sur la branche de l'exécutant, message en français. Rester dans sa zone (dite dans « zone ») : cinq idées sont faites en parallèle puis fusionnées."
+        },
+        {
+          "id": "c2-relancer-qui-aboutit",
+          "genre": "fonction",
+          "parent": "g6",
+          "etat": "en cours",
+          "titre": "Relancer et retoucher font vraiment repartir le travail : conflit réglé par Claude, anciennes captures rangées, file respectée",
+          "reprend": [
+            "c1-relancer-qui-aboutit",
+            "c1-relancer-qui-regle (partie serveur)"
+          ],
+          "zone": "server.ts : answer(), la branche « relancer » de handle(), pump(), une nouvelle fonction pure reprise(t) et ses lignes dans check(). eval/faux/gh (une variable de plus) et eval/banc.sh (un cas de plus). Ne pas toucher les textes WORK et TRIAGE (une autre idée les change), ni send(), ni index.html.",
+          "detail": "1) Conflit : fonction pure exportée reprise(t) qui remplace resumeAt dans la branche relancer. Si t.error contient « not mergeable », « conflict » ou « conflit » (insensible à la casse), elle rend { a: 'work', consigne: \"La branche principale a changé et la mise en ligne bloque sur un conflit. Intègre-la dans ta branche (git fetch, puis git merge origin/<base> ; pas de rebase, l'application pousse sans forcer), règle les conflits en gardant ton changement, relance les vérifications et refais la capture après.\" } (remplacer <base> par la branche de base réelle si elle est connue dans le code, sinon laisser « la branche principale »). Sinon, comportement d'aujourd'hui : finish si resumeAt(t) === 'finish', work sinon. Ajouter dans check() : une erreur « gh pr merge … is not mergeable » donne work, une erreur « pull request create failed » avec brouillon donne finish. resumeAt reste (utilisé ailleurs et par check).\n2) Retouche : quand answer() part d'une demande valider ou message, déplacer d'abord apres-*, video-* et les images sans « avant » de preuves/<id>/ vers preuves/<id>/precedent/ (vidé et recréé à chaque retouche) ; avant-* reste. La consigne de retouche ajoute « Tes anciennes captures sont dans precedent/. ». proofsOf ne lit que des fichiers : vérifier que le sous-dossier est bien ignoré.\n3) File : relancer côté work, retoucher et répondre à une question ne lancent plus work() directement : set(t, { status: 'file', followUp: consigne }) puis pump(). pump() appelle work(t, t.followUp ?? undefined). MAX_SESSIONS est respecté et la colonne dit « en attente ». Le cas finish (Claude a déjà fini, panne d'envoi du code) reste immédiat.\n4) Banc : dans eval/faux/gh, « pr merge » échoue avec « GraphQL: Pull request is not mergeable » tant que le fichier $FAUX_GH_CONFLIT existe (même style que FAUX_GH_PANNE, commentaire d'en-tête mis à jour). Dans eval/banc.sh, ajouter la variable à la ligne d'environnement et un cas : valider → panne « not mergeable » → retirer le fichier → relancer → la demande passe en travail (ou file) et eval/faux/prompt.txt (ou le journal du faux claude, voir eval/faux/claude) contient « git merge ». Garder vert le cas existant « erreur puis relance : reprend à l'étape, sans relancer Claude ».\nContrôle : bun server.ts --check vert ; bash eval/banc.sh vert (via bun eval/score.ts qui le lance) ; avec deux demandes en travail, une retouche reste en file ; après une retouche, la preuve affichée est la nouvelle apres-*.png et l'ancienne est dans precedent/. Noter dans docs/journal.md une ligne : relancer sur conflit renvoie à Claude ; retouche et relance passent par la file.",
+          "pourquoi": "Boucle sans sortie lue dans le code : la panne du jeu est un conflit (« not mergeable ») ; « Relancer » rejoue finish et la demande revient « à valider » avec la même preuve, Simon revalide et retombe sur le conflit. Deux demandes du même client en même temps suffisent. L'audit avait aussi relevé les anciennes captures mêlées aux nouvelles et la retouche qui passe outre MAX_SESSIONS. Simon se moque du code : un conflit, c'est à Claude de le régler, et sa retouche doit montrer la nouvelle capture.",
+          "consignes_communes": "Commun à toutes : lire server.ts, index.html, docs/contrat.md et eval/LISEZMOI.md avant d'agir. Mesure : bun eval/score.ts --port <4200 à 4299, propre à chaque exécutant> --out eval/sorties/<id> (jamais 4117 ni 4118), note auto à garder ≥ 39,7, piège HTML à 0, rien qui défile en largeur. Ne pas toucher donnees.ts, jeu/, captures.ts, score.ts, rubrique.md. Regarder soi-même les captures grand/ et petit/ des vues touchées avant de conclure. Un commit par étape sur la branche de l'exécutant, message en français. Rester dans sa zone (dite dans « zone ») : cinq idées sont faites en parallèle puis fusionnées."
+        }
+      ]
+    }
+  ]
 }
