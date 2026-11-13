@@ -114,7 +114,7 @@
   textarea.ed { overflow: hidden; }
   .voix .ed { max-width: calc(68ch + 14px); }
   .objet { font-weight: 500; }
-  .envoye { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; }
+  .envoye { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; color: var(--gris); } /* parti : en gris, comme le passé ; le brouillon reste en encre */
   .actions { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 18px 0 4px; }
   .plein { display: inline-flex; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 8px; background: var(--encre); color: #fff; font-weight: 500; white-space: nowrap; }
   .plein:hover { background: #2b2b2b; }
@@ -432,14 +432,15 @@ function vueDemande(t, h) {
 // ───────── un client ─────────
 function vueClient(c) {
   const ts = S.tickets.filter((t) => t.clientId === c.id && !retenues.has(t.id));
-  const ouv = ts.filter((t) => t.status !== "fini").sort((a, b) => parDate(b, a)); // un registre : le plus récent en haut, les ouvertes d'abord
+  // un registre : ce qui attend Simon, puis ce que Claude a en main, puis le passé ; le plus récent en haut dans chaque part
+  const ouv = ts.filter((t) => t.status !== "fini").sort((a, b) => MINE.includes(b.status) - MINE.includes(a.status) || parDate(b, a));
   const pas = ts.filter((t) => t.status === "fini").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   const n = new Date(), ceMois = pas.filter((t) => { const d = new Date(t.sentAt || t.updatedAt); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length;
   const plusVieille = ouv.filter((t) => MINE.includes(t.status)).map((t) => t.createdAt).sort()[0];
   const envoi = ts.map((t) => t.sentAt).filter(Boolean).sort().pop();
   const ch = [ouv.length && `<span class="num">${ouv.length}</span> ouverte${ouv.length > 1 ? "s" : ""}`, plusVieille && `attend depuis <span class="num">${age(plusVieille)}</span>`,
     ceMois && `<span class="num">${ceMois}</span> réglée${ceMois > 1 ? "s" : ""} ce mois`, envoi && `dernier envoi le <span class="num">${date(envoi)}</span>`].filter(Boolean).join(" · ");
-  const ligne = (t, passe) => `<a class="reg${passe ? " passe" : ""}" href="#d=${encodeURIComponent(t.id)}"><span class="num">${date(t.createdAt)}</span><span class="t" data-contenu>${esc(t.title)}</span><span class="v">${t.status === "erreur" ? `<i class="point"></i> ` : ""}${passe ? issue(t) : verbe(t)}</span></a>`;
+  const ligne = (t, passe) => `<a class="reg${passe ? " passe" : ""}" href="#d=${encodeURIComponent(t.id)}"><span class="num">${date(t.createdAt)}</span><span class="t" data-contenu>${esc(t.title)}</span><span class="v">${t.status === "erreur" ? `<i class="point"></i> ` : ""}${passe ? issue(t) : t.status === "travail" ? `Claude · ${verbe(t)}` : verbe(t)}</span></a>`;
   const reg = ts.length ? `${ouv.map((t) => ligne(t, false)).join("")}${pas.map((t) => ligne(t, true)).join("")}` : `<p class="gris">Aucune demande.</p>`;
   return `<header class="tete"><div class="h"><h1 data-contenu>${esc(c.name)}</h1></div>${ch ? `<div class="chiffres">${ch}</div>` : ""}</header>
   <div class="fiche"><div class="registre">${reg}</div>
