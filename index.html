@@ -450,7 +450,9 @@ function fenetre(r, cw, hl, smax, bx) {
   let yl = h - 1; while (yl > T && !rang(yl, L, R)) yl--;
   B = Math.min(B, vers(r, yl + 1 + 12 / ky, 1, L, R, 0)); // la bande de fond sous le dernier contenu est rendue
   if (B - T < 24 / ky) B = Math.floor(Math.min(h, T + hl / s / ky)); // ponytail : aucune ligne entière dans la hauteur libre, on coupe net plutôt que de ne rien montrer
-  if (bx && (L > X0 || R < X1 || T > Y0 || B < Y1)) return null;
+  const mh = Math.min(hl, cw * 0.625) / s / ky; // autour d'une petite boîte : pas plus plat qu'un 16/10, on remonte de bord net en bord net
+  if (bx && B - T < mh) { const T1 = vers(r, T - (mh - (B - T)), -1, L, R, 0); if ((B - T1) * ky * s <= hl) T = T1; }
+  if (bx && (L > X0|| R < X1 || T > Y0 || B < Y1)) return null;
   T = Math.max(0, T - 1); // ponytail : l'image réduite adoucit les glyphes ; une rangée de marge évite de rogner le haut d'un titre
   return { L: L * kx, R: R * kx, T: T * ky, B: B * ky, s };
 }
