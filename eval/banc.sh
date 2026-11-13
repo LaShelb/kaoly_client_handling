@@ -346,6 +346,15 @@ bon.push(chat.includes('"clientId":"buckwell"') && barre.includes("fiche du clie
 await js(`location.hash = "#c=garonne"`); await Bun.sleep(300); await js(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); 0`);
 await js(`document.querySelector("#say").focus(); document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); 0`); await Bun.sleep(300);
 bon.push((await js(`document.querySelector("#puce").hidden`)) ? "" : "Échap ne retire pas la puce du client");
+// sa capture : « Claire » dans le sélecteur, l'image vient de /piece/ sans cadrage, et la capture du client ne part jamais avec le mail
+await js(`location.hash = "#d=valider-interface"`); await Bun.sleep(800);
+bon.push((await js(`[...document.querySelectorAll("#vue .choix button")].some((b) => b.textContent === "Claire")`)) ? "" : "pas de « Claire » dans le sélecteur");
+await js(`document.querySelector('#vue [data-act="sa-capture"]').click(); 0`); await Bun.sleep(600);
+bon.push((await js(`const i = document.querySelector("#vue .cadre img"); !!i && i.getAttribute("src").startsWith("/piece/valider-interface/") && !i.style.transform`)) ? "" : "la capture du client n'est pas servie en /piece/ sans cadrage");
+await js(`window.__p = []; 0`);
+await js(`document.querySelector("#vue .plein").click(); 0`); await Bun.sleep(6000);
+const pj = await js(`window.__p.filter((x) => x.includes('"valider"')).join(" ; ")`);
+bon.push(pj.includes('"valider"') && !pj.includes("liste clients.png") ? "" : "la capture du client part avec le mail : " + pj);
 p.kill(); console.log(bon.filter(Boolean).join(" ; "));
 EOF
   ( sleep 60; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
