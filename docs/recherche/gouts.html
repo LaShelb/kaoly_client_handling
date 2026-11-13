@@ -1,0 +1,370 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Les goûts de Simon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@400;500&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   Gabarit « carnet » — carnet de recherche clair et aéré.
+   Tiré de docs/directions-visuelles/direction-3-carnet.html, généralisé.
+   Titres Inter Tight léger, étiquettes Roboto Mono sur aplat vert,
+   grandes cartes arrondies sans ombre, sommaire fixe à gauche sur grand écran,
+   mode sombre (prefers-color-scheme + data-theme).
+   À recopier tel quel dans le <style> de chaque page (pas de CSS externe),
+   avec la balise de polices.html dans le <head>.
+   ========================================================================== */
+
+/* ---------- 1. Couleurs et polices ---------- */
+:root{
+  --bg:#f7f7f5; --card:#eeeeee; --card2:#e7e8e1; --surface:#ffffff; --fg:#222f30; --muted:#4d5757; --line:#d8dad1; --edge:#ffffff;
+  --wash:#cef79e; --wash-fg:#222f30; --deep:#445e5f; --sage:#c9cbbe;
+  --blue-wash:#cfe8f4; --blue-fg:#1d3a47;
+  --good:#2c7038; --warn:#94600e; --bad:#a3372d; --neutral:#445e5f; --violet:#5b4c8c;
+  --term:#222f30; --term-fg:#f7f7f5;
+  --display:"Inter Tight",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"Roboto Mono",ui-monospace,monospace;
+  /* Alias du modèle de doc d'origine : les schémas et styles en ligne qui
+     appellent var(--accent) ou var(--good-soft) restent justes. */
+  --accent:var(--deep);
+  --accent-soft:var(--card2);
+  --good-soft:color-mix(in srgb,var(--good) 13%,var(--bg));
+  --warn-soft:color-mix(in srgb,var(--warn) 13%,var(--bg));
+  --bad-soft:color-mix(in srgb,var(--bad) 12%,var(--bg));
+  --violet-soft:color-mix(in srgb,var(--violet) 12%,var(--bg));
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0c1111; --card:#151c1c; --card2:#1a2222; --surface:#111818; --fg:#e7e8e1; --muted:#9ea9a8; --line:#283435; --edge:#222c2d;
+  --wash:#2f4a17; --wash-fg:#e3f7c9; --deep:#8fb3b4; --sage:#4d5757;
+  --blue-wash:#173543; --blue-fg:#d6eef9;
+  --good:#9ad48a; --warn:#e3b065; --bad:#f08c7f; --neutral:#9cc0c1; --violet:#b3a6e6;
+  --term:#000000; --term-fg:#e7e8e1; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0c1111; --card:#151c1c; --card2:#1a2222; --surface:#111818; --fg:#e7e8e1; --muted:#9ea9a8; --line:#283435; --edge:#222c2d;
+  --wash:#2f4a17; --wash-fg:#e3f7c9; --deep:#8fb3b4; --sage:#4d5757;
+  --blue-wash:#173543; --blue-fg:#d6eef9;
+  --good:#9ad48a; --warn:#e3b065; --bad:#f08c7f; --neutral:#9cc0c1; --violet:#b3a6e6;
+  --term:#000000; --term-fg:#e7e8e1; color-scheme:dark }
+
+/* ---------- 2. Éléments nus ---------- */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16.5px;line-height:1.65;padding-inline:16px;padding-block:0 96px;overflow-wrap:break-word}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2.3rem,6.4vw,4.4rem);line-height:1.02;letter-spacing:-.035em;margin:.5em 0 .45em;text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:clamp(1.65rem,3.6vw,2.3rem);line-height:1.1;letter-spacing:-.025em;margin:2.8em 0 .6em;text-wrap:balance;scroll-margin-top:72px}
+h3{font-family:var(--display);font-weight:500;font-size:1.15rem;letter-spacing:-.01em;margin:1.5em 0 .4em;scroll-margin-top:72px}
+h4{font-family:var(--display);font-weight:500;font-size:1rem;letter-spacing:-.005em;margin:1.3em 0 .3em}
+p,li{max-width:68ch} p{margin:.7em 0}
+li{margin:.3em 0}
+ul,ol{padding-left:1.3em}
+a{color:var(--fg);text-decoration-color:var(--deep);text-underline-offset:3px}
+a:hover{background:var(--wash);color:var(--wash-fg)}
+strong,b{font-weight:600}
+small{font-size:.85em}
+sup,sub{font-size:.7em;line-height:0}
+mark{background:var(--wash);color:var(--wash-fg);padding:0 4px;border-radius:4px}
+abbr[title]{text-decoration:underline dotted var(--muted);text-underline-offset:3px;cursor:help}
+kbd{font-family:var(--mono);font-size:.8em;border:1px solid var(--line);background:var(--surface);border-radius:5px;padding:0 5px}
+hr{border:0;border-top:1px solid var(--line);margin:48px 0}
+img,video{max-width:100%;height:auto;border-radius:20px}
+dl{margin:.6em 0 1em}
+dt{font-family:var(--display);font-weight:500;letter-spacing:-.01em;margin-top:.8em}
+dd{margin:.15em 0 0;max-width:68ch}
+details{background:var(--card);border:1px solid var(--edge);border-radius:20px;padding:12px 20px;margin:16px 0}
+summary{font-family:var(--display);font-weight:500;cursor:pointer}
+details[open] summary{margin-bottom:.4em}
+button{font-family:var(--mono);font-size:.76rem;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:4px 12px;cursor:pointer}
+button:hover{background:var(--wash);color:var(--wash-fg);border-color:transparent}
+input[type="checkbox"],input[type="radio"]{accent-color:var(--deep)}
+:focus-visible{outline:2px solid var(--deep);outline-offset:2px}
+
+/* ---------- 3. Mise en page : colonne, en-tête, sommaire ---------- */
+.wrap{max-width:780px;margin:0 auto}
+header.hero{padding-block:72px 40px}
+.eyebrow{display:inline-block;font-family:var(--mono);font-size:.74rem;letter-spacing:-.01em;background:var(--wash);color:var(--wash-fg);padding:3px 8px;border-radius:4px;line-height:1.5;text-transform:none}
+.lead{font-size:1.2rem;line-height:1.5;color:var(--muted);max-width:56ch}
+.small{font-size:.85rem;color:var(--muted)}
+.muted{color:var(--muted)}
+.q{font-family:var(--display);font-weight:500;font-size:1.3rem;letter-spacing:-.015em}
+ul.tight li,ol.tight li{margin:.35em 0}
+
+/* Sommaire : bandeau collant qui défile à l'horizontale sur petit écran… */
+nav.toc{position:sticky;top:0;background:var(--bg);padding:10px 16px;margin:0 -16px;z-index:5;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav.toc ul,nav.toc ol{list-style:none;margin:0 auto;padding:0;display:flex;gap:6px;white-space:nowrap;max-width:780px}
+nav.toc li{margin:0;max-width:none}
+nav.toc a{display:block;font-family:var(--mono);font-size:.74rem;text-decoration:none;color:var(--muted);padding:3px 9px;border-radius:20px;border:1px solid var(--line)}
+nav.toc a:hover{background:var(--wash);color:var(--wash-fg);border-color:transparent}
+/* …colonne fixe à gauche sur grand écran (seulement si la page a un sommaire). */
+@media (min-width:1200px){
+  .wrap:has(nav.toc){max-width:1100px;padding-left:280px}
+  nav.toc{position:fixed;top:72px;left:calc(50% - 550px);width:220px;margin:0;padding:0;background:none;border:0;overflow:visible;max-height:calc(100vh - 96px);overflow-y:auto}
+  nav.toc::before{content:"Sommaire";display:block;font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-bottom:12px}
+  nav.toc ul,nav.toc ol{flex-direction:column;gap:2px;white-space:normal}
+  nav.toc a{border:0;padding:4px 10px;margin-left:-10px;font-size:.78rem}
+}
+
+/* ---------- 4. Encadrés et cartes ---------- */
+.verdict{background:var(--card2);border:1px solid var(--edge);border-radius:32px;padding:32px 36px 24px;margin:12px 0 32px}
+.verdict h2{margin-top:0;font-size:1.9rem}
+.verdict>:last-child{margin-bottom:0}
+
+.callout{border:1px solid var(--edge);background:var(--card);padding:18px 22px;border-radius:24px;margin:22px 0}
+.callout p:first-child{margin-top:0}.callout p:last-child{margin-bottom:0}
+.callout>ul:last-child,.callout>ol:last-child{margin-bottom:0}
+.callout.good{background:var(--wash);color:var(--wash-fg);border-color:transparent}
+.callout.good a{color:var(--wash-fg)}
+.callout.good code{background:color-mix(in srgb,var(--wash-fg) 9%,transparent)}
+.callout.warn{background:var(--surface);border:1px solid var(--line);padding:22px 26px}
+.callout.bad{background:color-mix(in srgb,var(--bad) 7%,var(--surface));border:1px solid color-mix(in srgb,var(--bad) 30%,var(--line))}
+/* « À confirmer » : toujours en pointillé, y compris « callout warn unsure ». */
+.callout.unsure,.callout.warn.unsure{border:1.5px dashed var(--warn);background:transparent}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:22px 0}
+.grid2>div{background:var(--surface);border:1px solid var(--line);padding:18px 20px;border-radius:24px;min-width:0}
+.grid2 h3{margin-top:0;font-family:var(--mono);font-weight:400;font-size:.74rem;letter-spacing:-.01em;color:var(--muted)}
+.grid2 ul{padding-left:1.1em}
+.grid2>div>:last-child{margin-bottom:0}
+
+.card{background:var(--card);border:1px solid var(--edge);border-radius:24px;padding:18px 22px;margin:18px 0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:22px 0}
+.tile{background:var(--surface);border:1px solid var(--line);padding:18px 20px;border-radius:24px;min-width:0}
+.tile .n{font-family:var(--display);font-weight:400;font-size:2rem;line-height:1.05;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.tile .l{font-size:.85rem;color:var(--muted);margin-top:6px}
+
+.kpi{font-family:var(--display);font-weight:400;font-size:2.9rem;line-height:1;letter-spacing:-.04em;margin:.15em 0 .15em;font-variant-numeric:tabular-nums}
+
+/* Semaine d'un plan : date à gauche, contenu à droite. */
+.week{display:grid;grid-template-columns:130px 1fr;gap:4px 20px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:20px 24px;margin:14px 0}
+.week>:not(.when){grid-column:2;min-width:0}
+.week .when{font-family:var(--mono);font-size:.74rem;line-height:1.5;color:var(--muted)}
+.week h3{margin:0 0 .3em}
+.week ul{margin:.2em 0;padding-left:1.1em}
+.week .num{font-family:var(--mono);font-size:.76rem;line-height:1.5;color:var(--wash-fg);background:var(--wash);border-radius:12px;padding:8px 12px;margin-top:.8em}
+
+/* Étapes numérotées. */
+.step{display:grid;grid-template-columns:44px 1fr;gap:16px;margin:20px 0;align-items:start}
+.step>.w{font-family:var(--mono);font-size:.8rem;width:36px;height:36px;border-radius:50%;background:var(--wash);color:var(--wash-fg);display:grid;place-items:center}
+.step>:not(.w){min-width:0}
+.step h3{margin:0 0 .3em}
+
+/* Cases à cocher : liste simple ou étiquettes cliquables. */
+ul.chk{list-style:none;padding:0}
+ul.chk li{padding-left:28px;position:relative;margin:.45em 0;max-width:none}
+ul.chk li::before{content:"";position:absolute;left:0;top:.35em;width:14px;height:14px;border:1.5px solid var(--sage);border-radius:4px}
+label.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);max-width:none}
+label.chk input{margin-top:5px;accent-color:var(--deep)}
+label.chk:has(input:checked) span{color:var(--muted);text-decoration:line-through}
+.prog{height:8px;background:var(--card2);border-radius:20px;overflow:hidden;margin:8px 0 4px}
+.prog>div{height:100%;background:var(--deep);width:0%;border-radius:20px}
+
+blockquote{margin:24px 0;background:var(--card);border:1px solid var(--edge);border-radius:24px;padding:18px 24px;font-family:var(--display);font-weight:400;font-size:1.12rem;line-height:1.5;letter-spacing:-.01em}
+blockquote p{margin:.3em 0}
+blockquote cite{display:block;font-family:var(--mono);font-size:.72rem;letter-spacing:-.01em;color:var(--muted);font-style:normal;margin-top:8px}
+
+/* ---------- 5. Étiquettes, code, figures, tableaux ---------- */
+.pill{display:inline-block;font-family:var(--mono);font-size:.7rem;padding:1px 9px;border-radius:20px;white-space:nowrap;vertical-align:1px;margin-right:2px}
+.pill.good{background:color-mix(in srgb,var(--good) 13%,transparent);color:var(--good)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 13%,transparent);color:var(--warn)}
+.pill.bad{background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad)}
+.pill.neutral{background:var(--card2);color:var(--neutral)}
+.pill.violet{background:color-mix(in srgb,var(--violet) 12%,transparent);color:var(--violet)}
+.pill.muted{background:var(--card2);color:var(--muted)}
+.pill.unsure{background:transparent;border:1px dashed var(--warn);color:var(--warn)}
+.tag{display:inline-block;font-family:var(--mono);font-size:.7rem;padding:1px 9px;border-radius:20px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+small.hyp{color:var(--warn);font-family:var(--mono);font-size:.72rem}
+
+code{font-family:var(--mono);font-size:.84em;background:var(--card2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+pre{font-family:var(--mono);font-size:.8rem;background:var(--term);color:var(--term-fg);border-radius:20px;padding:18px 22px;overflow-x:auto;line-height:1.65;max-width:100%}
+pre code{background:none;padding:0;font-size:inherit;color:inherit;overflow-wrap:normal}
+
+figure{margin:32px 0;background:var(--card);border:1px solid var(--edge);border-radius:28px;padding:26px 24px 18px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:560px;overflow:visible} /* Roboto Mono est plus large que l'ancienne police : les étiquettes en bord de schéma débordent dans la marge du cadre au lieu d'être coupées */
+figure img{display:block;margin:0 auto}
+figcaption{font-size:.84rem;color:var(--muted);margin-top:14px;max-width:none}
+
+.tablewrap{overflow-x:auto;margin:20px 0}
+table{border-collapse:collapse;width:100%;font-size:.86rem;line-height:1.5}
+caption{caption-side:top;text-align:left;font-family:var(--mono);font-size:.72rem;color:var(--muted);padding-bottom:8px}
+th,td{text-align:left;vertical-align:top;padding:11px 14px 11px 0;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:.7rem;color:var(--muted);font-weight:400;letter-spacing:-.01em;text-transform:none}
+th.num{text-align:right}
+td.num{text-align:right;font-family:var(--mono);font-size:.8rem;white-space:nowrap}
+td strong{font-weight:600}
+.sources{font-size:.86rem}
+.sources li{margin:.3em 0;max-width:none;word-break:break-word}
+.url{display:block;font-family:var(--mono);font-size:.72rem;color:var(--muted);overflow-wrap:anywhere;margin-top:2px}
+
+/* ---------- 6. À confirmer (générique) ---------- */
+.unsure{border-style:dashed!important;border-color:var(--warn)!important}
+td.unsure{border:1px dashed var(--warn);background:color-mix(in srgb,var(--warn) 6%,transparent);padding-left:10px}
+tr.unsure>td{border-bottom:1px dashed var(--warn);background:color-mix(in srgb,var(--warn) 5%,transparent)}
+
+/* ---------- 7. Schémas SVG ---------- */
+.t{font-family:var(--body);font-size:11.5px;letter-spacing:-.01em;fill:var(--fg)}
+.ts{font-family:var(--body);font-size:11px;fill:var(--muted)}
+.tb{font-family:var(--display);font-weight:500;font-size:14px;fill:var(--fg)}
+.tm{font-family:var(--mono);font-size:10px;fill:var(--muted);paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
+.lbl,.k14{font-family:var(--body);font-size:14px;fill:var(--fg)}
+.chart-text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+.chart-muted{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+.chart-grid{stroke:var(--line);stroke-width:1}
+.box{fill:var(--surface);stroke:var(--sage);stroke-width:1;rx:10}
+.box.hi{stroke:var(--fg);stroke-width:1.3}
+.box.src{fill:var(--blue-wash);stroke:transparent}
+.box.src + .tb,.box.src + .tb + .tm,.box.src + .tb + .t{fill:var(--blue-fg)}
+.box.src + .tb + .tm{stroke:var(--blue-wash)}
+.box.unsure{stroke:var(--warn);stroke-dasharray:5 4;stroke-width:1.3}
+.box.no{fill:var(--bg);stroke:var(--line);stroke-dasharray:3 3}
+/* Boîtes colorées des anciens schémas, ramenées à la palette carnet. */
+.boxa{fill:var(--card2);stroke:var(--deep);stroke-width:1;rx:10}
+.boxg{fill:var(--wash);stroke:transparent;rx:10}
+.boxv{fill:color-mix(in srgb,var(--violet) 12%,var(--surface));stroke:var(--violet);stroke-width:1;rx:10}
+.boxw{fill:color-mix(in srgb,var(--warn) 10%,var(--surface));stroke:var(--warn);stroke-width:1;rx:10}
+.boxu{fill:var(--surface);stroke:var(--warn);stroke-width:1.3;stroke-dasharray:5 4;rx:10}
+.boxp{fill:var(--blue-wash);stroke:transparent;rx:10}
+.arrow{stroke:var(--deep);stroke-width:1.2;fill:none;marker-end:url(#ar)}
+.arrow.hi{stroke:var(--fg);stroke-width:1.6;marker-end:url(#arhi)}
+.ln{stroke:var(--muted);stroke-width:1.2;fill:none}
+.lna{stroke:var(--deep);stroke-width:1.6;fill:none}
+.lnv{stroke:var(--violet);stroke-width:1.4;fill:none}
+.bar{fill:var(--deep);rx:9} .bar.rej{fill:var(--bad)} .bar.base{fill:var(--sage)}
+
+/* ---------- 8. Petits écrans (390 px compris) ---------- */
+@media (max-width:640px){
+  .week{grid-template-columns:1fr}
+  .week>:not(.when){grid-column:1}
+}
+@media (max-width:560px){
+  header.hero{padding-top:48px}
+  .verdict{padding:22px 18px 16px;border-radius:24px}
+  figure{padding:18px 14px 12px;border-radius:20px}
+  .callout{padding:16px 16px}
+  .callout.warn{padding:18px 18px}
+  .grid2>div,.tile,.week{border-radius:20px}
+  .week{padding:16px 16px}
+  pre{border-radius:16px;padding:14px 16px}
+  /* Les tableaux défilent dans leur cadre ; .tablewrap.narrow les laisse se replier. */
+  .tablewrap table{min-width:600px}
+  .tablewrap.narrow table{min-width:0}
+  table:not(.tablewrap table){display:block;overflow-x:auto}
+}
+
+/* ---------- propre à cette page ---------- */
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:7px;border:1px solid var(--line)}
+</style></head><body>
+<div class="wrap">
+
+<header class="hero">
+<div class="eyebrow">Kaoly Clients · recherche · 13 novembre 2026</div>
+<h1>Les goûts de Simon</h1>
+<p class="lead">Tiré de ses références (taste_perso), de Kaoly Observability et du gabarit carnet. Chaque règle dit où elle a été vue et comment la vérifier.</p>
+</header>
+
+<nav class="toc" aria-label="Sommaire"><ul>
+<li><a href="#bref">En bref</a></li><li><a href="#regles">Les règles</a></li><li><a href="#blocs">Peu de blocs</a></li><li><a href="#rejets">Ce qu'il rejette</a></li><li><a href="#registres">Deux registres</a></li><li><a href="#clients">Pour Kaoly Clients</a></li><li><a href="#sources">Sources</a></li>
+</ul></nav>
+
+<section class="verdict" id="bref">
+<h2>En bref</h2>
+<p class="q">Papier clair, encre presque noire, une seule couleur vive. Des filets fins plutôt que des cartes. La hiérarchie vient de la taille et du gris, pas du gras ni des encadrés. Peu de mots.</p>
+</section>
+
+<h2 id="regles">Les règles</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Règle</th><th>Vu où</th><th>Se vérifie par</th></tr></thead>
+<tbody>
+<tr><td><strong>Fond clair.</strong> Le sombre n'est qu'une option.</td><td>Les 8 sites gardés dans taste_perso ont un corps de page clair (blanc cassé, sauge, crème) ; Alven : « jamais de dark mode » ; Observability : #fafafa.</td><td>Fond de page entre #f5f5f5 et #fafafa.</td></tr>
+<tr><td><strong>Une seule couleur vive, avec un sens.</strong></td><td>Observability : « indigo pour ce qui est réel » (#615fff). Spade : vert d'encre ; Alven : terracotta ; Marble : un point rouge. Carnet : vert anis sur les seules étiquettes.</td><td>Hors vert et rouge d'état, une seule teinte saturée à l'écran.</td></tr>
+<tr><td><strong>Hiérarchie par la taille et le gris.</strong></td><td>CTGT grise des mots dans son titre ; Alven : titre « jamais bold » ; carnet : h1 en 400 ; Observability : sous-ligne grise sous chaque nom (<code>.sub</code>).</td><td>Un niveau de plus, c'est plus grand ou plus noir, pas un encadré de plus.</td></tr>
+<tr><td><strong>Chiffres en chasse fixe.</strong></td><td>Observability : <code>.num</code> en mono, <code>tabular-nums</code>, -0,03em. Spade : annotations en monospace. Carnet : <code>td.num</code> en Roboto Mono.</td><td>Montants, dates courtes et compteurs en mono, alignés à droite.</td></tr>
+<tr><td><strong>Des filets, pas des cartes.</strong></td><td>Alven : « filets fins, pas de cards à ombre ». Prompting Company : tableaux à filets « façon registre ». CTGT : grille à bordures partagées. Observability : « tableaux partout où il y avait des listes ».</td><td>Dans un bloc, les éléments sont des lignes séparées par un filet de 1 px (rgba(0,0,0,.07)).</td></tr>
+<tr><td><strong>Un sujet, un bloc.</strong></td><td>Trésorerie d'Observability : scénarios, courbe et plan dans la même carte, la courbe calée sur les colonnes du tableau.</td><td>Deux ou trois blocs par écran (schéma plus bas).</td></tr>
+<tr><td><strong>Chiffres clés sur une ligne.</strong></td><td>Observability, <code>.hero</code> : 4 ou 5 chiffres dans une seule carte, le premier en 38 px, chacun avec un libellé de 2 ou 3 mots et une ligne de contexte.</td><td>Pas de tuile séparée par chiffre.</td></tr>
+<tr><td><strong>Presque pas d'ombre.</strong></td><td>Observability : anneau de 4 px à 2,5 %. Carnet : « cartes arrondies sans ombre ». Spade, CTGT : jamais d'ombre.</td><td>Ombre visible seulement sur ce qui flotte : barre de commande, recherche ⌘K.</td></tr>
+<tr><td><strong>L'incertain en pointillé.</strong></td><td>Observability : « hachuré ou en pointillé », étiquette « à vérifier » en tirets. Carnet : <code>.unsure</code> ambre. Ses consignes globales.</td><td>Tout « à vérifier » ou hypothèse a un bord en tirets, pas seulement une couleur.</td></tr>
+<tr><td><strong>Pas de cadre au repos.</strong></td><td>Observability : une valeur modifiable n'a pas de bord, fond gris au survol (<code>.ed</code>) ; la croix de suppression n'apparaît qu'au survol de la ligne.</td><td>Aucun champ encadré tant qu'on n'y touche pas.</td></tr>
+<tr><td><strong>Libellés courts, en français parlé.</strong></td><td>Observability : « En banque », « Mois devant nous », « À encaisser », « rien en attente », « sans rien de nouveau ».</td><td>Libellé de trois mots au plus, contexte en une ligne, aucun paragraphe d'aide à l'écran.</td></tr>
+<tr><td><strong>On tape, l'application agit.</strong></td><td>Observability : barre en bas, ⌘K, exemples cliquables qui disparaissent après la première réponse ; ce que Claude a fait est listé avec ✓ et « Annuler ces changements ».</td><td>La barre reste visible ; chaque action de Claude se lit et se défait.</td></tr>
+</tbody></table></div>
+
+<h2 id="blocs">Peu de blocs</h2>
+<figure>
+<svg viewBox="0 0 720 300" role="img" aria-labelledby="b1t"><title id="b1t">Trésorerie en deux blocs, AWS en huit</title>
+<text class="tb" x="20" y="24">Trésorerie · 2 blocs</text>
+<rect x="20" y="40" width="320" height="240" rx="12" fill="var(--bg)" stroke="var(--line)"/>
+<rect class="box" x="36" y="56" width="288" height="46"/>
+<rect x="50" y="66" width="30" height="4" rx="2" fill="var(--sage)"/><rect x="50" y="76" width="58" height="14" rx="3" fill="var(--fg)"/>
+<rect x="130" y="66" width="30" height="4" rx="2" fill="var(--sage)"/><rect x="130" y="78" width="44" height="8" rx="2" fill="var(--fg)"/>
+<rect x="198" y="66" width="30" height="4" rx="2" fill="var(--sage)"/><rect x="198" y="78" width="44" height="8" rx="2" fill="var(--fg)"/>
+<rect x="266" y="66" width="30" height="4" rx="2" fill="var(--sage)"/><rect x="266" y="78" width="40" height="8" rx="2" fill="var(--fg)"/>
+<rect class="box" x="36" y="114" width="288" height="152"/>
+<rect x="50" y="124" width="52" height="13" rx="6" fill="none" stroke="var(--fg)"/><rect x="108" y="124" width="52" height="13" rx="6" fill="none" stroke="var(--line)"/><rect x="166" y="124" width="52" height="13" rx="6" fill="none" stroke="var(--line)"/>
+<path class="lna" d="M50,186 L90,180 L130,184 L170,170"/><path class="lna" stroke-dasharray="4 4" d="M170,170 L210,174 L250,160 L290,150 L310,146"/>
+<line x1="50" x2="310" y1="204" y2="204" stroke="var(--line)"/><line x1="50" x2="310" y1="220" y2="220" stroke="var(--line)"/><line x1="50" x2="310" y1="236" y2="236" stroke="var(--line)"/><line x1="50" x2="310" y1="252" y2="252" stroke="var(--fg)"/>
+<text class="tm" x="50" y="216">courbe et plan dans le même bloc</text>
+
+<text class="tb" x="380" y="24">AWS · 8 blocs</text>
+<rect x="380" y="40" width="320" height="240" rx="12" fill="var(--bg)" stroke="var(--line)"/>
+<rect class="box" x="396" y="50" width="288" height="16"/>
+<rect x="396" y="72" width="288" height="16" rx="8" fill="var(--bad-soft)"/>
+<rect class="box" x="396" y="94" width="288" height="30"/>
+<rect class="box" x="396" y="130" width="288" height="46"/>
+<rect x="410" y="152" width="8" height="18" fill="var(--deep)"/><rect x="424" y="146" width="8" height="24" fill="var(--deep)"/><rect x="438" y="156" width="8" height="14" fill="var(--deep)"/><rect x="452" y="140" width="8" height="30" fill="var(--bad)"/><rect x="466" y="150" width="8" height="20" fill="var(--deep)"/>
+<rect class="box" x="396" y="182" width="140" height="36"/><rect class="box" x="544" y="182" width="140" height="36"/>
+<rect class="box" x="396" y="224" width="288" height="22"/>
+<rect class="box" x="396" y="252" width="288" height="22"/>
+</svg>
+<figcaption>Deux écrans d'Observability. À gauche, les chiffres clés puis un seul bloc où courbe et plan se lisent ensemble. À droite, une carte par chose : la tendance que Simon reproche (« tu fais tout le temps des nouvelles cartes »).</figcaption>
+</figure>
+
+<h2 id="rejets">Ce qu'il rejette</h2>
+<ul class="tight">
+<li><strong>Les dégradés</strong>, surtout violets : interdits dans 5 des 8 fiches de taste_perso et dans sa liste « jamais : purple gradients, Inter, 3D SaaS blobs ».</li>
+<li><strong>Le style « IA » sombre à forme 3D</strong> : <code>fine.png</code> et <code>futureoffinance.png</code> ont été capturés le 13 août, jamais ajoutés à la bibliothèque. <span class="pill unsure">rejet présumé</span></li>
+<li><strong>Les icônes plates en couleur</strong> : interdites dans 4 fiches (CTGT, Alven, Altitude, Vestris). Observability n'a que des icônes au trait, d'une couleur.</li>
+<li><strong>Les ombres de carte</strong> : interdites dans 4 fiches (Spade, Prompting Company, CTGT, Alven).</li>
+<li><strong>La bordure épaisse sur un seul côté</strong> : relevée deux fois comme défaut dans BILAN.html.</li>
+<li><strong>Manrope et IBM Plex</strong>, l'ancien style de getkao.fr : abandonnés pour le carnet.</li>
+<li><strong>Les majuscules</strong> : Alven, « jamais en majuscules » ; carnet, étiquettes en <code>text-transform:none</code>.</li>
+<li><strong>Le texte et les cartes en trop</strong>, ses mots de cette nuit. Et l'anglais traduit mot à mot.</li>
+</ul>
+
+<h2 id="registres">Deux registres</h2>
+<p>L'application et les notes ne s'habillent pas pareil. Ne pas mélanger.</p>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>Application (Observability)</th><th>Notes et rapports (carnet)</th></tr></thead>
+<tbody>
+<tr><td>Fond, blocs</td><td><span class="sw" style="background:#fafafa"></span>#fafafa, blocs blancs</td><td><span class="sw" style="background:#f7f7f5"></span>#f7f7f5, blocs #eeeeee</td></tr>
+<tr><td>Encre, gris</td><td><span class="sw" style="background:#171717"></span>#171717, #8a8a8a</td><td><span class="sw" style="background:#222f30"></span>#222f30, #4d5757</td></tr>
+<tr><td>Couleur vive</td><td><span class="sw" style="background:#615fff"></span>indigo #615fff, pour le réel</td><td><span class="sw" style="background:#cef79e"></span>vert anis #cef79e, pour les étiquettes</td></tr>
+<tr><td>Polices</td><td>SF Pro et mono du système</td><td>Inter Tight, Inter, Roboto Mono</td></tr>
+<tr><td>Titre de page</td><td>30 px, graisse 700</td><td>2,3 à 4,4 rem, graisse 400</td></tr>
+<tr><td>Arrondis</td><td>14 px blocs, 9 px boutons, 6 px étiquettes</td><td>24 à 32 px</td></tr>
+<tr><td>Ombre</td><td>anneau de 4 px à 2,5 %</td><td>aucune</td></tr>
+</tbody></table></div>
+
+<div class="callout unsure">
+<p><strong>À confirmer</strong></p>
+<ul class="tight">
+<li>Graisse des titres : 700 dans Observability, 400 dans le carnet et chez CTGT, Alven, Suda et Prompting Company (Spade monte à 560).</li>
+<li>Inter : refusé pour les sites (taste_perso), gardé pour le texte du carnet. L'application, en police système, n'est pas concernée.</li>
+<li>Le rejet des deux captures sombres n'est écrit nulle part.</li>
+</ul>
+<p>Pas bloquant : aucun de ces points ne change la structure des écrans, et la graisse se tranche sur deux captures côte à côte.</p>
+</div>
+
+<h2 id="clients">Pour Kaoly Clients</h2>
+<p>Écarts relevés dans <code>index.html</code> au commit 7da7a1d.</p>
+<ul class="tight">
+<li><strong>Un ticket porte jusqu'à quatre étiquettes</strong>, plus l'origine et un lien, sur une seule ligne. Dans « À toi », l'étiquette d'état répète le titre de la vue.</li>
+<li><strong>Une phrase sous chaque titre</strong> (« Ce qui attend une décision de ta part. Le reste tourne sans toi. ») et une aide de 40 mots sous la boîte mail.</li>
+<li><strong>Une carte par client</strong>, plus une pour la boîte mail, là où un tableau d'une ligne par client suffit : nom, dépôt, contacts, mise en production seule.</li>
+<li><strong>Quatre tailles de police</strong> (12, 14, 18 et 30 px) : à garder. Observability en a 14, de 11 à 38 px.</li>
+<li><strong>Le ticket à valider est le bon bloc unique</strong> : résumé, captures, demande et décision vont ensemble. Les captures avant le texte ; la PR discrète (« je me fous du code »).</li>
+</ul>
+
+<h2 id="sources">Sources</h2>
+<ul class="sources">
+<li><code>~/Desktop/code/taste_perso</code> : CLAUDE.md, data.json (8 fiches), screenshots/ (10 captures, dont 2 sans fiche).</li>
+<li><code>~/Desktop/code/kaoly_observability/index.html</code> : direction aux lignes 7 à 9, styles jusqu'à la ligne 196, écrans des lignes 312 à 495.</li>
+<li><code>~/Desktop/code/wasta/docs/gabarit-carnet</code> : carnet.css, GUIDE.html, BILAN.html.</li>
+<li><code>kaoly_client_handling/index.html</code>, commit 7da7a1d, et les consignes globales de Simon.</li>
+</ul>
+
+</div>
+</body></html>
