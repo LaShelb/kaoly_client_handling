@@ -139,7 +139,13 @@
   .reg .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .reg .v { font-size: 12px; color: var(--gris); white-space: nowrap; }
   .reg.passe { color: var(--gris); }
-  .reglages .bloc { padding: 10px 0 12px; border-top: 1px solid var(--filet); }
+  .reglages .bloc { padding: 0 0 16px; }
+  .reglages details { margin-top: 0; }
+  .reglages .detail { gap: 12px; width: 100%; max-height: none; }
+  .reglages .detail .bloc { padding: 0; }
+  .reglages [data-cfg=repo]:placeholder-shown:not(:focus) { border: 1px dashed rgba(0,0,0,.28); } /* pas de dépôt : le champ est en tirets, comme « Pas de capture » */
+  .reglages .plus { color: var(--gris); padding: 3px; margin-left: -3px; border-radius: 4px; }
+  .reglages .plus:hover { color: var(--encre); background: var(--survol); }
   .contact { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
   .contact span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .croix { color: var(--gris); opacity: 0; padding: 3px; border-radius: 4px; }
@@ -150,8 +156,7 @@
   .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left .15s; }
   .switch:checked { background: var(--encre); }
   .switch:checked::after { left: 14px; }
-  .reglages .retirer { margin-top: 12px; opacity: 0; }
-  .reglages:hover .retirer, .reglages .retirer:focus-visible { opacity: 1; }
+  .reglages .retirer { margin-top: 4px; }
   .arr { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 16px; align-items: center; max-width: 720px; padding: 12px 0; border-top: 1px solid var(--filet); }
   .arr .val { display: flex; align-items: center; gap: 8px; color: var(--gris); min-width: 0; overflow-wrap: anywhere; }
   .arr .val i { width: 6px; height: 6px; border-radius: 50%; background: var(--gris); flex: none; }
@@ -189,20 +194,48 @@
   /* ── sous 1000 px : la colonne se resserre, la preuve passe au-dessus du fil, le bouton reste visible ── */
   @media (max-width: 999px) {
     #col { width: 236px; }
+    /* la colonne : « À toi » reste collé en haut, la liste s'arrête sur une ligne entière (couper) */
+    #liste { padding-top: 0; scroll-padding: 36px 0 12px; }
+    .groupe.toi { position: sticky; top: 0; z-index: 1; height: 36px; padding: 10px 10px 6px; line-height: 20px; background: var(--fond); }
+    #releve { margin-top: auto; }
     #vue { padding: 16px 20px 0; }
     #barre { padding: 0 20px 12px; }
-    .tete { margin-bottom: 14px; }
-    .corps { display: flex; flex-direction: column; gap: 12px; }
-    .preuve { flex: none; gap: 6px; }
+    #dit:empty { min-height: 0; padding: 0; }
+    .tete { margin-bottom: 10px; }
+    .corps { display: flex; flex-direction: column; gap: 10px; }
+    .preuve { flex: none; gap: 6px; align-self: stretch; }
     .preuve:empty { display: none; }
-    .preuve .cadre { width: auto; height: 22vh; max-width: 100%; align-self: flex-start; }
-    .preuve .cadre.vide { width: 100%; height: 40px; }
-    .replie { -webkit-line-clamp: 1; }
-    .actions { border-top: 1px solid var(--filet); margin-top: 2px; }
-    .fil { flex: 1; max-height: none; width: 100%; }
-    .actions { padding-top: 12px; }
-    .fiche { display: block; overflow-y: auto; }
-    .registre { max-height: none; margin-bottom: 16px; }
+    /* la preuve prend la hauteur qui reste, toute la largeur, entre 80 et 200 px ; le message, lui, ne cède jamais */
+    .preuve:has(.cadre:not(.vide)) { flex: 1 1 0; min-height: 140px; max-height: 228px; }
+    #vue.tasse .preuve:has(.cadre:not(.vide)) { min-height: 108px; }
+    .preuve .cadre { flex: 1; width: 100%; height: auto; aspect-ratio: auto; min-height: 112px; max-height: 200px; }
+    #vue.tasse .preuve .cadre { min-height: 80px; }
+    .preuve .cadre img, .preuve .cadre video { object-fit: cover; object-position: top; }
+    .preuve .cadre.vide { flex: none; min-height: 0; max-height: none; height: 36px; padding: 0 12px; text-align: center; }
+    .fil { flex: 0 1 auto; max-height: none; width: 100%; }
+    .actions { border-top: 1px solid var(--filet); margin-top: 2px; padding-top: 12px; }
+    details { margin-top: 6px; }
+    /* le client et Claude tiennent sur une ligne chacun : le nom en gris, puis le texte coupé par « … » ; un clic déplie */
+    .voix + .voix { margin-top: 6px; }
+    .fil .voix:not(:has(textarea, .envoye, .deplie)) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; }
+    .fil .voix:not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { display: inline; margin: 0; white-space: nowrap; }
+    .fil .voix:not(:has(textarea, .envoye, .deplie)) .qui::after { content: "\a0\a0"; }
+    .fil .voix:not(:has(textarea, .envoye, .deplie)) .reserve { margin: 0; white-space: normal; } /* la réserve ne se coupe jamais */
+    /* la phrase de Claude se lit entière ; elle ne tient sur une ligne qu'en dernier recours (couperTout) */
+    .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)), .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: normal; }
+    #vue.une .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)), #vue.une .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: nowrap; }
+    .voix:not(:focus-within) .objet { display: none; }
+    #vue.serre .fil-texte > .voix:first-child:not(:has(textarea, .envoye, .deplie)) { display: none; } /* ça ne tient pas, même la preuve à 80 px : la ligne du client s'efface */
+    /* les réglages passent au-dessus du registre, sur une ligne : la bascule, « Détail » ; les contacts et le reste sont dans le Détail */
+    .fiche { display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow-y: auto; }
+    .reglages { order: -1; position: relative; margin-bottom: 12px; }
+    .reglages .bloc { padding: 0; }
+    .reglages .bascule { justify-content: flex-start; padding-right: 60px; }
+    .reglages summary { position: absolute; top: 0; right: 0; line-height: 16px; } /* ponytail : « Détail » reste à droite de la bascule, ouvert ou non ; son contenu passe dessous */
+    .reglages:not(:has(details[open])) .contacts { display: none; }
+    .reglages .contacts { padding-top: 10px; }
+    .reglages .detail { margin-top: 10px; }
+    .registre { flex: none; max-height: none; margin-bottom: 16px; }
     .reg { padding: 6px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -236,7 +269,7 @@ const drafts = {};          // brouillons modifiés par Simon, par demande, gard
 const retenues = new Map(); // actions retenues 5 s dans la page : clé → { timer, chemin, body, retour }
 const deplies = new Set();  // demandes du client dépliées
 const choix = {};           // preuve affichée, par demande
-let destEdit = null, mailForm = false, mailAide = false, puceOff = null, propositions = [], rendus = {}, dernierCur = "", effacer = null;
+let ajout = null, detailOuvert = false, destEdit = null, mailForm = false, mailAide = false, puceOff = null, propositions = [], rendus = {}, dernierCur = "", effacer = null;
 
 // ───────── petites règles d'affichage ─────────
 const minutes = (iso) => Math.max(1, Math.floor((Date.now() - Date.parse(iso)) / 60000));
@@ -458,11 +491,12 @@ function vueClient(c) {
   return `<header class="tete"><div class="h"><h1 data-contenu>${esc(c.name)}</h1></div>${ch ? `<div class="chiffres">${ch}</div>` : ""}</header>
   <div class="fiche"><div class="registre">${reg}</div>
   <aside class="reglages" data-client="${esc(c.id)}">
-    <div class="bloc"><div class="qui">Dépôt</div><input class="ed" data-cfg="repo" value="${esc(c.repo)}" placeholder="propriétaire/nom" aria-label="Dépôt"></div>
-    <div class="bloc"><div class="qui">Contacts</div>${c.contacts.map((k) => `<div class="contact"><span data-contenu>${esc(k)}</span><button class="croix" data-act="retirer-contact" data-k="${esc(k)}" aria-label="Retirer">${SVG_CROIX}</button></div>`).join("")}
-      <input class="ed" data-cfg="contact" placeholder="mail, @domaine, numéro, groupe" aria-label="Nouveau contact"></div>
     <label class="bloc bascule"><span>Bugs sans validation</span><input type="checkbox" class="switch" data-cfg="autoProd"${c.autoProd ? " checked" : ""}></label>
-    <button class="lien retirer" data-act="retirer-client">Retirer le client</button>
+    <div class="bloc contacts">${c.contacts.map((k) => `<div class="contact"><span data-contenu>${esc(k)}</span><button class="croix" data-act="retirer-contact" data-k="${esc(k)}" aria-label="Retirer">${SVG_CROIX}</button></div>`).join("")}
+      ${ajout === c.id ? `<input class="ed" data-cfg="contact" placeholder="mail, @domaine, numéro, groupe" aria-label="Nouveau contact">` : `<button class="plus" data-act="ajouter-contact" aria-label="Ajouter un contact">${SVG_PLUS}</button>`}</div>
+    <details${!c.repo || detailOuvert ? " open" : ""}><summary>Détail</summary><div class="detail">
+      <div class="bloc"><div class="qui">Dépôt</div><input class="ed" data-cfg="repo" value="${esc(c.repo)}" placeholder="propriétaire/nom" aria-label="Dépôt"></div>
+      <button class="lien retirer" data-act="retirer-client">Retirer le client</button></div></details>
   </aside></div>`;
 }
 
@@ -496,7 +530,7 @@ function rendre() {
   else if ("arrivees" in h) { cur = "arrivees"; html = vueArrivees(); }
   html ??= `<div class="vide-etat">Rien ne t'attend.</div>`;
 
-  if (pose("#liste", colonne(cur)) && cur !== dernierCur) requestAnimationFrame(() => $("#liste .on")?.scrollIntoView({ block: "nearest" })); // la ligne ouverte reste visible, même en petite fenêtre
+  pose("#liste", colonne(cur));
   // les arrivées n'ont qu'une place : le pied de la colonne (éteinte, en panne ou à l'heure)
   const al = alertes()[0];
   pose("#releve", al ? `<i class="${al.rouge ? "rouge" : "non"}"></i><span>${al.t}</span>${al.geste === "allumer" ? `<button data-act="allumer">allumer</button>` : ""}`
@@ -506,7 +540,8 @@ function rendre() {
 
   // une saisie en cours dans le volet n'est jamais effacée par le rafraîchissement
   const a = document.activeElement, saisie = a && $("#vue").contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== "checkbox";
-  if (!saisie || cur !== dernierCur) { if (pose("#vue", html)) { $("#vue").querySelectorAll("textarea.ed").forEach(taille); couper(); } }
+  if (!saisie || cur !== dernierCur) { if (pose("#vue", html)) { $("#vue").querySelectorAll("textarea.ed").forEach(taille); } }
+  couperTout(cur !== dernierCur);
 
   // la preuve en plein écran
   const o = t ? preuves(t) : [], plein = t && "plein" in h && o.length;
@@ -522,21 +557,43 @@ function rendre() {
   if (cur !== dernierCur) { if (dernierCur && !cur.startsWith("d:" + puceOff)) puceOff = null; if (t?.status === "question" && !plein) say.focus(); }
   dernierCur = cur;
 }
-// La zone du fil qui défile s'arrête entre deux lignes, jamais au milieu d'une (petite fenêtre surtout).
-function couper() {
-  const f = $("#vue .fil-texte"); if (!f) return;
-  f.style.maxHeight = "";
-  if (f.scrollHeight <= f.clientHeight + 1) return;
-  const haut = f.getBoundingClientRect().top, bas = haut + f.clientHeight, rg = document.createRange(), w = document.createTreeWalker(f, NodeFilter.SHOW_TEXT);
+// Tout élément qui défile (fil, colonne, fiche client) s'arrête entre deux lignes, jamais au milieu d'une. `air` : marge gardée en dessous.
+function couper(el, air = 0) {
+  if (!el) return;
+  el.style.maxHeight = ""; // la hauteur du pied et du reste est relue à chaque appel
+  if (el.scrollHeight <= el.clientHeight + 1) return;
+  const haut = el.getBoundingClientRect().top, bas = haut + el.clientHeight - air, rg = document.createRange(), w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
   let lim = bas;
   for (let n; (n = w.nextNode());) { rg.selectNodeContents(n); for (const b of rg.getClientRects()) if (b.top < bas && b.bottom > bas + 1) lim = Math.min(lim, b.top); }
-  for (const el of f.querySelectorAll("textarea, input")) { // le texte d'un champ n'est pas dans le DOM : on compte ses lignes
-    const b = el.getBoundingClientRect(), lh = parseFloat(getComputedStyle(el).lineHeight) || 19.5, d = b.top + 3;
-    if (b.top < bas && b.bottom > bas + 1) lim = Math.min(lim, d + Math.max(0, Math.floor((bas - d) / lh)) * lh);
+  for (const x of el.querySelectorAll(".ligne")) { const b = x.getBoundingClientRect(); if (b.top < bas && b.bottom > bas + 1) lim = Math.min(lim, b.top); } // une ligne de la colonne a deux textes : on la garde entière
+  for (const x of el.querySelectorAll("textarea, input")) { // le texte d'un champ n'est pas dans le DOM : on compte ses lignes
+    const b = x.getBoundingClientRect(), lh = parseFloat(getComputedStyle(x).lineHeight) || 19.5, d = b.top + 3;
+    if (b.top < bas && b.bottom > bas + 1) lim = Math.min(lim, x.type === "checkbox" ? b.top : d + Math.max(0, Math.floor((bas - d) / lh)) * lh);
   }
-  if (lim < bas - 1) f.style.maxHeight = `${Math.max(0, lim - haut)}px`;
+  if (lim < el.getBoundingClientRect().bottom - 1) el.style.maxHeight = `${Math.max(0, lim - haut)}px`;
 }
-addEventListener("resize", couper);
+const petit = () => matchMedia("(max-width: 999px)").matches;
+// ponytail : la coupure est calculée au rendu et au redimensionnement, pas à chaque défilement à la molette
+function couperTout(suivre) {
+  const v = $("#vue"), f = $(".fil-texte", v), fi = $(".fiche", v), l = $("#liste"), on = $(".on", l);
+  if (f) f.style.maxHeight = "";
+  v.classList.remove("tasse", "serre", "une");
+  // quand la place manque, on cède dans cet ordre : la preuve à 80 px, la ligne du client, la phrase de Claude sur une ligne. La réserve et le message ne cèdent jamais.
+  if (petit() && f) for (const k of ["tasse", "serre", "une"]) { if (f.scrollHeight <= f.clientHeight + 1) break; v.classList.add(k); }
+  couper(f);
+  if (fi) fi.style.maxHeight = "";
+  l.style.maxHeight = "";
+  if (suivre) on?.scrollIntoView({ block: "nearest" }); // la ligne ouverte reste visible, même en petite fenêtre
+  if (!petit()) return;
+  couper(fi);
+  for (let i = 0; i < 2; i++) {
+    if (suivre && on) on.scrollIntoView({ block: "nearest" });
+    const hb = l.getBoundingClientRect().top + 36; // une ligne à moitié sous « À toi » collé en haut : on la fait passer dessous
+    for (const x of l.querySelectorAll(".ligne")) { const b = x.getBoundingClientRect(); if (b.top < hb - 1 && b.bottom > hb) { l.scrollTop += b.bottom - hb; break; } }
+    couper(l, 8);
+  }
+}
+addEventListener("resize", () => couperTout(false));
 function pose(sel, html) { if (rendus[sel] === html) return false; rendus[sel] = html; $(sel).innerHTML = html; return true; }
 function taille(el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight + 2}px`; }
 function tailleBarre() { say.style.height = "22px"; say.style.height = `${Math.min(160, Math.max(22, say.scrollHeight))}px`; }
@@ -737,6 +794,7 @@ document.addEventListener("click", async (e) => {
   if (act === "aide") { mailAide = !mailAide; return forcer(); }
   if (act === "mail") { const j = await post("/api/config", { mail: { user: $("#mailUser").value, password: $("#mailPass").value } }); if (j) { mailForm = false; dire("✓ Boîte reliée"); } return forcer(); }
   const box = el.closest("[data-client]"), c = box && S.clients.find((x) => x.id === box.dataset.client);
+  if (act === "ajouter-contact" && c) { ajout = c.id; forcer(); $('#vue [data-cfg="contact"]')?.focus(); return; }
   if (act === "retirer-contact" && c) { await post("/api/config", { client: { id: c.id, contacts: c.contacts.filter((k) => k !== el.dataset.k) } }); return forcer(); }
   if (act === "retirer-client" && c) {
     const nx = files().toi[0];
@@ -763,8 +821,12 @@ document.addEventListener("keydown", (e) => {
     el.value = ""; el.blur();
     post("/api/config", { client: { id: c.id, contacts: [...c.contacts, v] } }).then(forcer);
   }
+  if (el.dataset?.cfg === "contact" && e.key === "Escape") { ajout = null; forcer(); }
   if (el.dataset?.cfg === "repo" && e.key === "Enter") el.blur();
 });
+// ponytail : le champ d'un nouveau contact se referme dès qu'il perd le focus sans texte ; l'état ouvert du Détail est gardé d'un rendu à l'autre
+document.addEventListener("focusout", (e) => { if (e.target.dataset?.cfg === "contact") setTimeout(() => { if (ajout && !e.target.value.trim()) { ajout = null; forcer(); } }, 0); });
+document.addEventListener("toggle", (e) => { if (e.target.parentElement?.classList.contains("reglages")) detailOuvert = e.target.open; }, true);
 document.addEventListener("change", (e) => {
   const el = e.target, k = el.dataset.cfg; if (!k) return;
   if (k === "auto") return post("/api/config", { auto: el.checked }).then(forcer);
