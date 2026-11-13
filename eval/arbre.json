@@ -124,8 +124,12 @@
     }
   ],
   "final": {
-    "commit": "voir HEAD",
-    "auto": 39.7
+    "commit": "voir HEAD (code de 54b9799)",
+    "auto": 39.7,
+    "juge": 54,
+    "score": 93.7,
+    "mesure": "timeout 400 bun eval/score.ts --port 4364 --out eval/sorties/final : 39,7, banc et --check verts, aucun éliminatoire ; captures identiques au pixel à eval/sorties/reprise-fil",
+    "note": "juge = moyenne des deux juges de la reprise sur le tronc avec le fil (52 et 56)"
   },
   "cycles": [
     {
@@ -753,7 +757,8 @@
           "score": 91.7,
           "auto": 39.7,
           "verdict": "refusée",
-          "raison": "Design : total 91,7, sous 97,7 + 1,5 ; et son banc était cassé (essai de la barre)."
+          "raison": "Design : total 91,7, sous 97,7 + 1,5 ; et son banc était cassé (essai de la barre).",
+          "reprise": "fusionnée au jugement apparié (54b9799), voir « reprise »"
         },
         {
           "id": "c5-preuve-taille-lisible",
@@ -775,7 +780,8 @@
           "score": 91.7,
           "auto": 39.7,
           "verdict": "refusée",
-          "raison": "Design : total 91,7, sous 97,7 + 1,5 ; la règle de cadrage unique reste à reprendre si le juge la voit mieux."
+          "raison": "Design : total 91,7, sous 97,7 + 1,5 ; la règle de cadrage unique reste à reprendre si le juge la voit mieux.",
+          "reprise": "refusée au jugement apparié, voir « reprise »"
         },
         {
           "id": "c5-un-mot-par-etat",
@@ -795,7 +801,8 @@
           "score": 89.7,
           "auto": 39.7,
           "verdict": "refusée",
-          "raison": "Design : total 89,7, sous 97,7 + 1,5 ; gain de cohérence des mots non vu par la note."
+          "raison": "Design : total 89,7, sous 97,7 + 1,5 ; gain de cohérence des mots non vu par la note.",
+          "reprise": "refusée au jugement apparié, voir « reprise »"
         },
         {
           "id": "c5-ta-parole",
@@ -852,5 +859,88 @@
         "note": "juge non relancé à la fusion ; les trois idées de design n'atteignaient pas le seuil (99,2), aucune capture de design à comparer."
       }
     }
-  ]
+  ],
+  "reprise": {
+    "quand": "2026-11-13, après le cycle 6",
+    "pourquoi": "Les trois idées de design du cycle 6 avaient été refusées face à 97,7, note du tronc donnée par un autre juge (cycle 5). Le juge du cycle 6 note plus sévèrement (tronc à 89,7) : le seuil 97,7 + 1,5 ne voulait plus rien dire.",
+    "methode": "Comparaison appariée : chaque idée reprise sur le tronc, puis deux juges notent AVANT et APRÈS avec la même grille (eval/rubrique.md), sur les mêmes 25 vues aux deux tailles. Une idée entre si les deux juges la disent meilleure ; sinon le commit de fusion est annulé (revert).",
+    "ordre": [
+      "c5-fil-a-une-place",
+      "c5-preuve-taille-lisible",
+      "c5-un-mot-par-etat"
+    ],
+    "idees": [
+      {
+        "id": "c5-fil-a-une-place",
+        "verdict": "fusionnée",
+        "commit": "54b9799ea0416074c8f1f675cedfb4bcc0a349b8",
+        "commit_idee": "c48342ee997af5ea73d6aa121934f0a86b3e2676",
+        "sorties": "eval/sorties/reprise-fil",
+        "juges": [
+          {
+            "avant": 52,
+            "apres": 52,
+            "mieux": true
+          },
+          {
+            "avant": 54,
+            "apres": 56,
+            "mieux": true
+          }
+        ],
+        "raison": "Un seul fil dans l'ordre client, Claude, message ; le message du client entier et sans politesses ; en petite fenêtre la ligne du client revient. Le second juge passe R5 à oui. À reprendre : « Détail » change de place, nom de la voix tantôt au-dessus tantôt devant en 760 px, liste numérotée aplatie et code cité visible sur longue."
+      },
+      {
+        "id": "c5-preuve-taille-lisible",
+        "verdict": "refusée au jugement apparié",
+        "commit": "3432c7f9cdd7ddc9e5ac468f124f87c246527040",
+        "revert": "b0fbe10abfd4a10b98bf5a5573efddc16ba16d0a",
+        "commit_idee": "f1c58c4c9580bac0cd10b4c0971918885f8f1514",
+        "sorties": "eval/sorties/reprise-preuve",
+        "juges": [
+          {
+            "avant": 52,
+            "apres": 50,
+            "mieux": false
+          },
+          {
+            "avant": 54,
+            "apres": 54,
+            "mieux": false
+          }
+        ],
+        "raison": "Preuve plus lisible en grand, mais ce qui a changé sort du cadre : champ « AV-2024-0 » d'arion-passee coupé ou perdu, longue sans aucun chiffre en petit, grand vide sur ancien. Premier juge : F3 passe à non."
+      },
+      {
+        "id": "c5-un-mot-par-etat",
+        "verdict": "refusée au jugement apparié",
+        "commit": "67832199a7d7172eafeeb098f59278f2842920c8",
+        "revert": "02f4ef7a2de1a72ce35118f0ee8b16509a566eb2",
+        "commit_idee": "8e0a2a62d887bf766794249e7a0e7f00ed24c699",
+        "sorties": "eval/sorties/reprise-mot",
+        "juges": [
+          {
+            "avant": 56,
+            "apres": 54,
+            "mieux": false
+          },
+          {
+            "avant": 54,
+            "apres": 54,
+            "mieux": false
+          }
+        ],
+        "raison": "La phrase reprend bien le mot de la colonne et la panne n'est plus dite deux fois, mais elle perd le canal là où aucune ligne « À X · canal » ne le rappelle et les âges quittent la chasse fixe (« 1h » à côté de « 1 h ») ; premier juge : B3 passe à non."
+      }
+    ],
+    "tronc_apres": {
+      "commit": "02f4ef7a2de1a72ce35118f0ee8b16509a566eb2",
+      "meme_code_que": "54b9799",
+      "juge": 54,
+      "note_juge": "moyenne des deux juges sur APRÈS du fil (52 et 56) ; les deux autres jugements du même tronc donnent 52/54 et 56/54, même moyenne",
+      "aussi": "e2f6bf9 : une demande déjà relue par Simon (passée par valider ou message) ne repart plus seule en ligne, même si le client passe en « Bugs sans validation »"
+    },
+    "bruit": "Le même tronc reçoit 52, 54 ou 56 selon le juge et le passage : un écart de 2 à 4 points entre deux notes isolées reste du bruit, seule la comparaison appariée tranche.",
+    "baisse_97_7": "97,7 (cycle 5) et 89,7 / 90,7 (cycle 6, relecture) viennent de deux juges différents ; la note automatique reste 39,7 et les « non » du nouveau juge (R5, S3, S4) portent sur des choses déjà présentes en 99d7468. Non prouvé : les captures de 99d7468 n'ont pas été rejugées par le nouveau juge."
+  }
 }

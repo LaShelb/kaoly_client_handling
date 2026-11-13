@@ -262,7 +262,7 @@ tr.unsure>td:first-child{padding-left:10px}
 <header class="hero">
 <div class="eyebrow">Kaoly Clients · nuit du 12 au 13 novembre 2026 · branche nuit-2026-11-13</div>
 <h1>Point d'étape de la nuit</h1>
-<p class="lead">L'application tient sur une fenêtre : ce qui t'attend à gauche, une demande à droite, la preuve sous les yeux, un geste pour valider. Note finale 90,7 sur 100, page de départ à 10,2 sur 40.</p>
+<p class="lead">L'application tient sur une fenêtre : ce qui t'attend à gauche, une demande à droite, la preuve sous les yeux, un geste pour valider. Note finale 93,7 sur 100, page de départ à 10,2 sur 40.</p>
 </header>
 
 <nav class="toc" aria-label="Sommaire"><ul>
@@ -272,9 +272,10 @@ tr.unsure>td:first-child{padding-left:10px}
 <h2 id="change">Ce qui change pour toi</h2>
 <ol class="cinq">
 <li><strong>Une fenêtre, une demande à la fois.</strong> À gauche « À toi » avec son compte, puis ce que Claude a en main, puis tes clients. Plus de cartes empilées ni d'étiquettes de couleur.</li>
+<li><strong>Le fil se lit pareil partout.</strong> Le client, puis Claude, puis ton message, toujours dans cet ordre ; sans image, le fil prend la place de la preuve. Le message du client est entier, sans « Bonjour » ni signature.</li>
 <li><strong>Valider tient en un geste.</strong> La preuve (Après, Avant, Vidéo, capture du client), la phrase de Claude, le message au client et « Mettre en ligne et envoyer » (<kbd>⌘↵</kbd>) sur le même écran ; 5 s pour annuler.</li>
 <li><strong>La barre agit.</strong> « ok », « envoie », « classe » font le geste de la demande ouverte ; une question de Claude se règle d'un clic ou de <kbd>⌘1</kbd>.</li>
-<li><strong>Ce qui se règle seul ne te dérange plus.</strong> Un conflit à la mise en ligne repart sans toi ; tu n'es appelé qu'à la seconde panne.</li>
+<li><strong>Ce qui se règle seul ne te dérange plus.</strong> Un conflit à la mise en ligne repart sans toi ; tu n'es appelé qu'à la seconde panne. Ce que tu as déjà relu ne repart jamais seul en ligne.</li>
 <li><strong>Fermer la fenêtre ne coupe plus rien.</strong> La relève et Claude continuent, le Dock garde le compte (après un nouveau build).</li>
 </ol>
 
@@ -286,6 +287,8 @@ tr.unsure>td:first-child{padding-left:10px}
 <figure class="shot"><img src="captures/client.png" alt="Fiche du client Arion : registre des demandes et réglages" width="1000" height="672" loading="lazy">
 <figcaption>Un client : ce qui t'attend, ce que Claude a en main, le passé en gris, ses réglages à côté.</figcaption></figure>
 </div>
+<figure class="shot"><img src="captures/classee.png" alt="Demande classée : Julien puis Claude, à la place de la preuve" width="1000" height="672" loading="lazy">
+<figcaption>Sans image, le fil prend la place de la preuve : Julien, puis Claude, comme partout.</figcaption></figure>
 
 <h2 id="essayer">L'ouvrir et l'essayer</h2>
 <p><strong>Sans risque, sur le jeu d'essai</strong> (faux Claude, faux GitHub, mail vers ton propre Mac, relève éteinte) :</p>
@@ -303,12 +306,12 @@ bun server.ts</pre>
 <div class="tablewrap narrow"><table>
 <thead><tr><th>Question</th><th>Ma recommandation</th></tr></thead>
 <tbody>
-<tr><td><strong>Le fil à une seule place.</strong> Sur certaines demandes, le message du client passe en grand à gauche, là où tu attends la preuve (capture plus bas). Deux essais refusés cette nuit.</td><td>Gauche = ce que tu regardes (preuve, « Pas de capture », question, panne) ; droite = le fil entier, toujours dans le même ordre. Premier chantier.</td></tr>
 <tr><td><strong>Un mot d'accord envoie.</strong> « ok » ou « envoie » dans la barre valent le bouton plein d'une demande à valider ou à envoyer, avec les mêmes 5 s pour annuler.</td><td>Garder. Repli prêt en une ligne si tu préfères le seul bouton.</td></tr>
 <tr><td><strong>Ce qui part avec le mail.</strong> Par défaut, seule la capture « Après » est jointe ; tu peux la retirer d'un clic.</td><td>Garder : le client voit le résultat, pas l'ancien écran.</td></tr>
-<tr><td><strong>Une retouche qui partirait seule.</strong> Cas rare : tu demandes une retouche sur une demande à valider, puis tu actives « Bugs sans validation » pour ce client ; si c'est un bug, la retouche part en ligne sans toi. Le message au client attend toujours ton clic.</td><td>Corriger : ce que tu as retouché revient à toi. Petit changement.</td></tr>
 <tr><td><strong>La puce de la barre.</strong> Avec une demande ouverte, ce que tu tapes va à cette demande. Coller le mail d'un autre client sans retirer la puce le transmettrait comme retouche.</td><td>Garder ; la puce est visible et <kbd>Échap</kbd> la retire. À revoir si ça t'arrive.</td></tr>
 <tr class="unsure"><td><strong>Le badge du Dock fenêtre fermée.</strong> Écrit, compilé, pas encore vu : <code>build.sh</code> n'a pas été lancé cette nuit.</td><td>Lancer le build ce matin, fermer la fenêtre, regarder si le compte bouge.</td></tr>
+<tr><td><strong>Rejuger les idées refusées.</strong> Trois idées avaient été refusées face à la note d'un autre juge.</td><td><span class="pill good">fait</span> Rejugées avant et après par les mêmes juges : le fil à une seule place entre, les deux autres restent dehors.</td></tr>
+<tr><td><strong>Une retouche qui partirait seule.</strong> Tu demandes une retouche sur une demande à valider, puis tu actives « Bugs sans validation » pour ce client.</td><td><span class="pill good">fait</span> Une demande que tu as déjà relue ne repart plus seule en ligne (<code>e2f6bf9</code>). Le message au client attend toujours ton clic.</td></tr>
 </tbody></table></div>
 
 <h2 id="archi">Ce qui va ensemble, et pourquoi</h2>
@@ -332,8 +335,8 @@ bun server.ts</pre>
 <text class="tb" x="236" y="108">Ce que tu regardes</text>
 <text class="t" x="236" y="132">la preuve : Après · Avant · Vidéo</text>
 <text class="t" x="236" y="152">ou « Pas de capture »</text>
-<text class="t" x="236" y="172">ou la question de Claude</text>
-<text class="t" x="236" y="192">ou la raison de la panne</text>
+<text class="t" x="236" y="172">sans image, le fil vient ici</text>
+<text class="t" x="236" y="192">(question, panne, travail)</text>
 <text class="tb" x="545" y="96">Le fil</text>
 <text class="t" x="545" y="120">Claire · sa demande</text>
 <text class="t" x="545" y="142">Claude · ce qui a changé</text>
@@ -360,33 +363,40 @@ bun server.ts</pre>
 <h2 id="mesure">La mesure</h2>
 <div class="tiles">
 <div class="tile"><div class="n">10,2<small> / 40</small></div><div class="l">page de départ, note automatique seule</div></div>
-<div class="tile"><div class="n">97,7</div><div class="l">le plus haut, au cycle 4</div></div>
-<div class="tile"><div class="n">90,7<small> / 100</small></div><div class="l">final : 39,7 automatique + 51 du juge</div></div>
+<div class="tile"><div class="n">97,7</div><div class="l">au cycle 4, avec le premier juge</div></div>
+<div class="tile"><div class="n">93,7<small> / 100</small></div><div class="l">final : 39,7 automatique + 54 du juge</div></div>
 </div>
 <figure>
-<svg viewBox="0 0 760 270" role="img" aria-labelledby="m1t"><title id="m1t">Note sur 100 par cycle, de 94,7 au cycle 0 à 90,7 à la fin</title>
+<svg viewBox="0 0 760 270" role="img" aria-labelledby="m1t"><title id="m1t">Note sur 100 par cycle, de 94,7 au cycle 0 à 93,7 à la fin ; le juge change après le cycle 4</title>
 <line class="chart-grid" x1="60" y1="30" x2="730" y2="30"/><line class="chart-grid" x1="60" y1="90" x2="730" y2="90"/><line class="chart-grid" x1="60" y1="150" x2="730" y2="150"/><line class="chart-grid" x1="60" y1="210" x2="730" y2="210"/>
 <text class="chart-muted" x="50" y="34" text-anchor="end">100</text><text class="chart-muted" x="50" y="94" text-anchor="end">95</text><text class="chart-muted" x="50" y="154" text-anchor="end">90</text><text class="chart-muted" x="50" y="214" text-anchor="end">85</text>
-<polyline class="chart-line" points="90,93.6 190,81.6 290,93.6 390,81.6 490,57.6 590,153.6 690,141.6"/>
-<circle class="chart-dot" cx="90" cy="93.6" r="4.5"/><circle class="chart-dot" cx="190" cy="81.6" r="4.5"/><circle class="chart-dot" cx="290" cy="93.6" r="4.5"/><circle class="chart-dot" cx="390" cy="81.6" r="4.5"/><circle class="chart-dot" cx="490" cy="57.6" r="4.5"/><circle class="chart-dot" cx="590" cy="153.6" r="4.5"/><circle class="chart-dot fin" cx="690" cy="141.6" r="4.5"/>
-<text class="chart-text" x="90" y="80" text-anchor="middle">94,7</text><text class="chart-text" x="190" y="68" text-anchor="middle">95,7</text><text class="chart-text" x="290" y="80" text-anchor="middle">94,7</text><text class="chart-text" x="390" y="68" text-anchor="middle">95,7</text><text class="chart-text" x="490" y="44" text-anchor="middle">97,7</text><text class="chart-text" x="590" y="174" text-anchor="middle">89,7</text><text class="chart-text" x="690" y="128" text-anchor="middle">90,7</text>
-<text class="chart-muted" x="90" y="236" text-anchor="middle">0</text><text class="chart-muted" x="190" y="236" text-anchor="middle">1</text><text class="chart-muted" x="290" y="236" text-anchor="middle">2</text><text class="chart-muted" x="390" y="236" text-anchor="middle">3</text><text class="chart-muted" x="490" y="236" text-anchor="middle">4</text><text class="chart-muted" x="590" y="236" text-anchor="middle">5</text><text class="chart-muted" x="690" y="236" text-anchor="middle">final</text>
-<text class="chart-muted" x="90" y="254" text-anchor="middle">direction</text><text class="chart-muted" x="190" y="254" text-anchor="middle">fil, barre</text><text class="chart-muted" x="290" y="254" text-anchor="middle">envoi</text><text class="chart-muted" x="390" y="254" text-anchor="middle">petit, pannes</text><text class="chart-muted" x="490" y="254" text-anchor="middle">preuve, Dock</text><text class="chart-muted" x="590" y="254" text-anchor="middle">ta parole</text><text class="chart-muted" x="690" y="254" text-anchor="middle">relecture</text>
+<line class="chart-grid" x1="486" y1="18" x2="486" y2="214" stroke-dasharray="4 4"/><text class="chart-muted" x="492" y="22">autre juge</text>
+<polyline class="chart-line" points="90,93.6 178,81.6 266,93.6 354,81.6 442,57.6"/>
+<polyline class="chart-line" stroke-dasharray="3 5" points="442,57.6 530,153.6"/>
+<polyline class="chart-line" points="530,153.6 618,141.6 706,105.6"/>
+<circle class="chart-dot" cx="90" cy="93.6" r="4.5"/><circle class="chart-dot" cx="178" cy="81.6" r="4.5"/><circle class="chart-dot" cx="266" cy="93.6" r="4.5"/><circle class="chart-dot" cx="354" cy="81.6" r="4.5"/><circle class="chart-dot" cx="442" cy="57.6" r="4.5"/><circle class="chart-dot" cx="530" cy="153.6" r="4.5"/><circle class="chart-dot" cx="618" cy="141.6" r="4.5"/><circle class="chart-dot fin" cx="706" cy="105.6" r="4.5"/>
+<text class="chart-text" x="90" y="80.6" text-anchor="middle">94,7</text><text class="chart-text" x="178" y="68.6" text-anchor="middle">95,7</text><text class="chart-text" x="266" y="80.6" text-anchor="middle">94,7</text><text class="chart-text" x="354" y="68.6" text-anchor="middle">95,7</text><text class="chart-text" x="442" y="44.6" text-anchor="middle">97,7</text><text class="chart-text" x="530" y="174.6" text-anchor="middle">89,7</text><text class="chart-text" x="618" y="128.6" text-anchor="middle">90,7</text><text class="chart-text" x="706" y="92.6" text-anchor="middle">93,7</text>
+<text class="chart-muted" x="90" y="236" text-anchor="middle">0</text><text class="chart-muted" x="178" y="236" text-anchor="middle">1</text><text class="chart-muted" x="266" y="236" text-anchor="middle">2</text><text class="chart-muted" x="354" y="236" text-anchor="middle">3</text><text class="chart-muted" x="442" y="236" text-anchor="middle">4</text><text class="chart-muted" x="530" y="236" text-anchor="middle">5</text><text class="chart-muted" x="618" y="236" text-anchor="middle">fin</text><text class="chart-muted" x="706" y="236" text-anchor="middle">reprise</text>
+<text class="chart-muted" x="90" y="254" text-anchor="middle">direction</text><text class="chart-muted" x="178" y="254" text-anchor="middle">fil, barre</text><text class="chart-muted" x="266" y="254" text-anchor="middle">envoi</text><text class="chart-muted" x="354" y="254" text-anchor="middle">petit, pannes</text><text class="chart-muted" x="442" y="254" text-anchor="middle">preuve, Dock</text><text class="chart-muted" x="530" y="254" text-anchor="middle">ta parole</text><text class="chart-muted" x="618" y="254" text-anchor="middle">relecture</text><text class="chart-muted" x="706" y="254" text-anchor="middle">un seul fil</text>
 </svg>
-<figcaption>Note sur 100 du tronc après chaque cycle. L'échelle commence à 85 : tout se joue sur les 60 points du juge, la note automatique est à 39,7 depuis le cycle 0.</figcaption>
+<figcaption>Note sur 100 du tronc après chaque cycle. L'échelle commence à 85 : tout se joue sur les 60 points du juge, la note automatique est à 39,7 depuis le cycle 0. Après le cycle 4, le juge change (trait en pointillé).</figcaption>
 </figure>
 <div class="tablewrap narrow"><table>
 <thead><tr><th>Part</th><th>Ce qu'elle mesure</th><th class="num">Final</th></tr></thead>
 <tbody>
 <tr><td>Automatique</td><td>Dans la page, à 1280 × 860 : mots que l'interface écrit elle-même, nombre d'encadrés, tailles et graisses, contraste, petite fenêtre 760 × 560, gestes au clavier, rien d'envoyé avant 5 s. Note 0 si un essai échoue ou si un texte de client devient du code.</td><td class="num">39,7 / 40</td></tr>
-<tr><td>Juge</td><td>30 questions oui ou non sur les captures, à ta place : hiérarchie, regroupement, sobriété du texte, décision en un geste, lecture d'un client, finition.</td><td class="num">51 / 60</td></tr>
+<tr><td>Juge</td><td>30 questions oui ou non sur les captures, à ta place : hiérarchie, regroupement, sobriété du texte, décision en un geste, lecture d'un client, finition. Moyenne de deux juges (52 et 56).</td><td class="num">54 / 60</td></tr>
 </tbody></table></div>
+<p><strong>La baisse de 97,7 à 90,7 vient du changement de juge, pas d'un recul de l'écran.</strong> 97,7 est le dernier passage du premier juge ; 89,7 puis 90,7 sont les premiers du second, plus sévère. Entre les deux, la note automatique reste à 39,7, le banc reste vert, et les « non » du second juge visent des choses déjà là au cycle 4 : la place du fil, « Bugs sans validation », un titre du jeu d'essai qui contient du code.</p>
+<div class="callout unsure">
+<p><strong>À confirmer : le second juge n'a pas noté les captures du cycle 4.</strong> C'est la seule preuve directe qui manque.</p>
+<p>Pas bloquant : plus aucune décision ne compare deux juges. Chaque idée est notée avant et après par les mêmes deux juges, sur les mêmes vues ; c'est ainsi que le fil à une seule place est entré.</p>
+</div>
 <div class="callout unsure">
 <p><strong>À confirmer : ce que la note ne dit pas.</strong></p>
 <ul>
 <li>La part automatique plafonne depuis le cycle 0 : elle garantit que rien n'est cassé, elle ne départage plus.</li>
-<li>Le juge est un modèle qui lit des captures ; une question vaut 2 points, donc un écart de 2 à 4 points reste du bruit.</li>
-<li>Au dernier cycle, toutes les idées ont eu entre 89,7 et 93,7 et le tronc 89,7 : ce juge-là note plus sévèrement. Deux idées de design refusées (91,7) ont été comparées au 97,7 d'un passage précédent ; face au tronc rejugé, elles auraient passé le seuil.</li>
+<li>Le juge est un modèle qui lit des captures. Le même écran reçoit 52, 54 ou 56 selon le passage : entre deux notes prises à part, un écart de 2 à 4 points reste du bruit.</li>
 <li>Le juge n'a pas noté la page de départ : on n'a d'elle que la part automatique (10,2 / 40).</li>
 <li>Tout est mesuré sur un jeu d'essai de 15 demandes et trois clients, pas sur tes vraies données.</li>
 </ul>
@@ -396,7 +406,7 @@ bun server.ts</pre>
 <figcaption>Pour mémoire, la page de départ : cartes empilées, quatre étiquettes de couleur par demande, un menu par états.</figcaption></figure>
 
 <h2 id="arbre">L'arbre des idées</h2>
-<p>Cinq directions écrites en parallèle, une gardée, puis cinq cycles de cinq idées. Une idée de design n'entre que si elle gagne 1,5 point sur le tronc ; une idée de fonction entre si le banc reste vert et que l'écran ne recule pas.</p>
+<p>Cinq directions écrites en parallèle, une gardée, puis cinq cycles de cinq idées. Une idée de design entrait si elle gagnait 1,5 point sur le tronc ; depuis le changement de juge, deux juges la notent avant et après sur les mêmes vues, et elle entre si les deux la disent meilleure ; une idée de fonction entre si le banc reste vert et que l'écran ne recule pas.</p>
 <figure>
 <svg viewBox="0 0 760 250" role="img" aria-labelledby="t1t"><title id="t1t">Arbre : départ, cinq directions, greffes, puis cinq cycles</title>
 <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
@@ -415,9 +425,9 @@ bun server.ts</pre>
 <rect class="box" x="470" y="62" width="80" height="38"/><text class="tb" x="482" y="86">c2 2/5</text>
 <rect class="box" x="470" y="110" width="80" height="38"/><text class="tb" x="482" y="134">c3 5/5</text>
 <rect class="box" x="470" y="158" width="80" height="38"/><text class="tb" x="482" y="182">c4 3/5</text>
-<rect class="box" x="470" y="206" width="80" height="38"/><text class="tb" x="482" y="230">c5 2/5</text>
+<rect class="box" x="470" y="206" width="80" height="38"/><text class="tb" x="482" y="230">c5 3/5</text>
 <path class="arrow" d="M430,33 L468,33"/><path class="arrow" d="M510,52 L510,60"/><path class="arrow" d="M510,100 L510,108"/><path class="arrow" d="M510,148 L510,156"/><path class="arrow" d="M510,196 L510,204"/>
-<rect class="box hi" x="590" y="200" width="160" height="50"/><text class="tb" x="602" y="222">Final 90,7</text><text class="tm" x="602" y="240">16 gardées, 14 non</text>
+<rect class="box hi" x="590" y="200" width="160" height="50"/><text class="tb" x="602" y="222">Final 93,7</text><text class="tm" x="602" y="240">17 gardées, 13 non</text>
 <path class="arrow" d="M550,225 L588,225"/>
 <text class="tm" x="600" y="60">cN x/5 : idées</text><text class="tm" x="600" y="74">fusionnées</text>
 </svg>
@@ -448,11 +458,11 @@ bun server.ts</pre>
 <tr><td>4</td><td>À gauche seulement ce que tu tranches</td><td class="num">95,7</td><td class="v"><span class="pill bad">refusée</span></td></tr>
 <tr><td>5</td><td>La capture du client dans le cadre de la preuve</td><td class="num">93,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
 <tr><td>5</td><td>Ta parole reste dans le fil, question en un clic</td><td class="num">91,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
-<tr class="unsure"><td>5</td><td>Un seul fil, à une seule place</td><td class="num">91,7</td><td class="v"><span class="pill unsure">à rejuger</span></td></tr>
-<tr class="unsure"><td>5</td><td>Une seule règle de taille pour la preuve</td><td class="num">91,7</td><td class="v"><span class="pill unsure">à rejuger</span></td></tr>
-<tr class="unsure"><td>5</td><td>Un état, un mot, dans la phrase d'état</td><td class="num">89,7</td><td class="v"><span class="pill unsure">à rejuger</span></td></tr>
+<tr><td>5</td><td>Un seul fil, à une seule place</td><td class="num">52→52 · 54→56</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>5</td><td>Une seule règle de taille pour la preuve</td><td class="num">52→50 · 54→54</td><td class="v"><span class="pill bad">refusée</span></td></tr>
+<tr><td>5</td><td>Un état, un mot, dans la phrase d'état</td><td class="num">56→54 · 54→54</td><td class="v"><span class="pill bad">refusée</span></td></tr>
 </tbody></table></div>
-<p class="small">Les trois dernières ont été refusées face à 97,7 ; elles traitent exactement les trois défauts restants. Les branches refusées sont supprimées ; leurs commits sont notés dans <code>eval/arbre.json</code> et git les garde encore quelques semaines.</p>
+<p class="small">Les trois dernières, d'abord refusées face au 97,7 de l'autre juge, ont été rejugées sur le tronc : note des deux juges sur 60, avant → après, mêmes vues. Le fil entre. La règle de taille de la preuve sort : ce que Claude a changé quitte parfois le cadre. Le mot par état sort : la phrase perd le canal et les âges ne s'écrivent plus comme dans la colonne. Les branches refusées sont supprimées ; leurs commits sont notés dans <code>eval/arbre.json</code> et git les garde encore quelques semaines.</p>
 
 <h2 id="pas-reel">Ce qui n'a pas tourné en vrai</h2>
 <div class="callout unsure">
@@ -475,20 +485,19 @@ bun server.ts</pre>
 <tr><td>Réaliser une idée dans sa copie de travail</td><td>Sonnet</td></tr>
 <tr><td>Lancer les mesures, captures, corrections cadrées</td><td>Haiku</td></tr>
 <tr><td>Proposer et choisir les idées entre deux cycles</td><td>Opus et Fable</td></tr>
-<tr><td>Juger les captures à ta place</td><td>Fable</td></tr>
+<tr><td>Juger les captures à ta place</td><td>Fable, puis Opus après le cycle 4</td></tr>
 <tr class="unsure"><td colspan="2">Répartition prévue par la règle de la boucle ; le décompte réel par modèle est à lire dans l'usage de ton abonnement.</td></tr>
 </tbody></table></div>
-<p>Le forfait Fable est presque épuisé : la suite tourne au plus sur Opus 5.5, juge compris (ce rapport aussi). Changer de juge change l'échelle des notes : on rejuge le tronc et les idées sur les mêmes captures avant de comparer.</p>
+<p>Le forfait Fable est presque épuisé : la suite tourne au plus sur Opus 5.5, juge compris (ce rapport aussi). Changer de juge change l'échelle des notes : on ne compare plus que des notes avant et après données par les mêmes juges, sur les mêmes captures.</p>
 
 <h2 id="suite">La suite</h2>
-<figure class="shot"><img src="captures/classee.png" alt="Demande classée : le message de Julien en grand à gauche, Claude seul à droite" width="1000" height="672" loading="lazy">
-<figcaption>Le défaut principal : sur une demande classée, le message du client prend la place de la preuve, Claude reste seul à droite.</figcaption></figure>
 <ol>
-<li><strong>Le fil à une seule place</strong>, toujours à droite, dans le même ordre ; à gauche seulement ce que tu regardes. Rejuger d'abord « Un seul fil, à une seule place » face au tronc.</li>
-<li><strong>Petite fenêtre :</strong> ne jamais couper la demande du client ; la preuve garde au moins 200 px, entière et réduite.</li>
-<li><strong>La phrase d'état dans un seul ordre :</strong> client · nature · en ligne ou pas · prénom par canal · âge.</li>
-<li><strong>Petites finitions :</strong> un verbe d'état sur chaque ligne de « Claude y travaille » ; un titre en mots quand le client colle du code ; « Rien ne t'attend » seulement si la file est vide, « Demande introuvable » pour une adresse morte.</li>
-<li>Corriger la retouche qui pourrait partir seule.</li>
+<li><strong>Finir le fil :</strong> « Détail » toujours au même endroit ; en petite fenêtre, le nom de qui parle toujours au-dessus de son texte ; la liste numérotée du client gardée.</li>
+<li><strong>Petite fenêtre :</strong> le texte du client finit encore par « … » sur les demandes à valider ; la preuve garde au moins 200 px, entière et réduite.</li>
+<li><strong>Du code dans un texte de client :</strong> un titre en mots, le code cité rangé dans Détail ; « Bugs sans validation » dit en français.</li>
+<li><strong>Une seule règle de taille pour la preuve</strong>, à reprendre sans jamais sortir du cadre ce que Claude a changé.</li>
+<li><strong>Un état, un mot</strong>, à reprendre en gardant le canal et les âges écrits comme dans la colonne.</li>
+<li><strong>Petites finitions :</strong> un verbe d'état sur chaque ligne de « Claude y travaille » ; « Rien ne t'attend » seulement si la file est vide, « Demande introuvable » pour une adresse morte.</li>
 <li>Build, puis premier essai réel sur un client de test.</li>
 <li>Plus tard, comme tu l'as dit : suivi d'usage et avancement des déploiements.</li>
 </ol>
