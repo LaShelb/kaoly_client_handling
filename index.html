@@ -794,7 +794,7 @@ function trouver() {
       return `<a class="{on}client" href="#c=${encodeURIComponent(c.id)}" data-h="c=${encodeURIComponent(c.id)}"><span data-contenu>${esc(c.name)}</span>${a ? `<span class="num gris">${age(a)}</span>` : ""}</a>`; });
     const arr = ok("Arrivées") ? [`<a class="{on}client" href="#arrivees" data-h="arrivees"><span>Arrivées</span></a>`] : [];
     // l'ordre : ce qui est à toi, Claude, les clients, le passé
-    trouvees = [...toi.filter((x) => ok(x.title)).map((x) => ligne(x, true)), ...claude.filter((x) => ok(x.title)).map((x) => ligne(x, false)), ...cl, ...arr,
+    trouvees = [...gestes(t, q), ...toi.filter((x) => ok(x.title)).map((x) => ligne(x, true)), ...claude.filter((x) => ok(x.title)).map((x) => ligne(x, false)), ...cl, ...arr,
       ...reste.filter((x) => ok(x.title)).map((x) => ligne(x, false))].slice(0, 5);
     // la dernière ligne envoie la barre ; la première ligne trouvée est choisie d'avance, Entrée l'ouvre
     if (trouvees.length) { trouvees.push(`<a class="{on}envoi" data-envoi><span>${puce ? "Envoyer en retouche" : "Demander à Claude"}</span><span class="num">⌘↵</span></a>`); pris = 0; }
@@ -802,16 +802,26 @@ function trouver() {
   $("#trouve").innerHTML = trouvees.map((h, i) => h.replace("{on}", i === pris ? "on " : "")).join("");
   $("#dit").hidden = trouvees.length > 0;
 }
+// Les gestes de la demande ouverte, avec les mots de l'écran : un début de mot du libellé les propose.
+// ponytail : « ok » et ses semblables ne valent que pour le bouton plein d'une demande à valider ou à envoyer ; un geste part toujours par agir() et ses 5 s
+function gestes(t, q) {
+  if (!t || retenues.has(t.id) || q.length < 3 && !/^(ok|oui)$/.test(q)) return [];
+  const d = brouillon(t), eteint = t.status !== "erreur" && (!d.to || d.to.startsWith("@")), accord = ["valider", "message"].includes(t.status) && /^(ok|oui|valide|envoie|c'est bon|parfait)$/.test(q.replace(/’/g, "'"));
+  const tous = [["principal", ["valider", "message", "erreur"].includes(t.status) && !eteint && libellePrincipal(t), accord], ["seulement", t.status === "valider" && "Sans envoyer"], ["classer", t.status !== "fini" && "Classer"]];
+  return tous.filter(([, l, a]) => l && (a || q.length > 2 && nu(l).split(/[\s']+/).some((m) => m.startsWith(q))))
+    .map(([g, l]) => `<a class="{on}envoi" data-geste="${g}"><span data-contenu>${esc(l)}</span><span class="num">↵</span></a>`);
+}
 function choisir(pas) {
   pris = pris < 0 ? (pas > 0 ? 0 : trouvees.length - 1) : (pris + pas + trouvees.length) % trouvees.length;
   [...$("#trouve").children].forEach((el, i) => el.classList.toggle("on", i === pris));
 }
 function envoyer() { envoyerBarre(); trouver(); } // envoyerBarre vide la barre tout de suite : la liste suit
+function geste(el) { const t = courante(); say.value = ""; tailleBarre(); trouver(); if (t) agir(t, el.dataset.geste); }
 function ouvrirTrouve(el) { say.value = ""; tailleBarre(); trouver(); aller(el.dataset.h); }
-$("#trouve").addEventListener("click", (e) => { const a = e.target.closest("[data-h]"); if (a) { e.preventDefault(); ouvrirTrouve(a); } else if (e.target.closest("[data-envoi]")) envoyer(); });
+$("#trouve").addEventListener("click", (e) => { const a = e.target.closest("[data-h]"); if (a) { e.preventDefault(); ouvrirTrouve(a); } else if (e.target.closest("[data-geste]")) geste(e.target.closest("[data-geste]")); else if (e.target.closest("[data-envoi]")) envoyer(); });
 $("#trouve").addEventListener("mousedown", (e) => e.preventDefault()); // la barre garde le focus
 say.addEventListener("input", trouver);
-const entree = () => { const el = pris >= 0 && $("#trouve").children[pris]; if (!el) envoyer(); else if (el.dataset.envoi !== undefined) envoyer(); else ouvrirTrouve(el); };
+const entree = () => { const el = pris >= 0 && $("#trouve").children[pris]; if (!el) envoyer(); else if (el.dataset.geste) geste(el); else if (el.dataset.envoi !== undefined) envoyer(); else ouvrirTrouve(el); };
 $("#champ").addEventListener("submit", (e) => { e.preventDefault(); entree(); });
 say.addEventListener("keydown", (e) => {
   // ⌘↵ dans la barre envoie la barre, jamais le bouton de la demande ; barre vide, il remonte et garde son sens
@@ -845,7 +855,7 @@ document.addEventListener("keydown", (e) => {
   const a = document.activeElement, saisie = a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== "checkbox" || a.isContentEditable);
   const enPlein = document.body.classList.contains("en-plein");
   if (e.metaKey && e.key.toLowerCase() === "k") { e.preventDefault(); say.focus(); return; }
-  if (e.metaKey && !e.shiftKey && e.key.toLowerCase() === "z" && !saisie) { const k = [...retenues.keys()].pop(); if (k) { e.preventDefault(); annuler(k); } return; }
+  if (e.metaKey && !e.shiftKey && e.key.toLowerCase() === "z" && (!saisie || a === say && !say.value)) { const k = [...retenues.keys()].pop(); if (k) { e.preventDefault(); annuler(k); } return; }
   if (e.metaKey && e.key === "Enter") { const b = $("#vue .plein:not([disabled])"); if (b) { e.preventDefault(); b.click(); } return; }
   if (e.key === "Escape") {
     if (enPlein) plein(false);

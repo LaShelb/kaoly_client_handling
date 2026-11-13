@@ -319,10 +319,24 @@ const ligne = await taper("exporter");
 bon.push(ligne.endsWith("Envoyer en retouche⌘↵") && (await js(`document.querySelector("#trouve .on")?.textContent`)).includes("Bouton Exporter") ? "" : "dernière ligne ou première ligne choisie absente : " + ligne);
 await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); 0`);
 bon.push((await js(`document.querySelectorAll("#trouve a").length`)) === 0 && (await js(`document.querySelector("#puce").hidden`)) === false ? "" : "Échap ne ferme pas d'abord la liste");
+// la barre fait le geste de la demande ouverte (à valider) : « ok » = bouton plein, ⌘Z avant 5 s n'envoie rien
+bon.push((await js(`document.querySelector("#vue .plein")?.textContent`)).includes("Mettre en ligne et envoyer") ? "" : "ancien n'est pas à valider");
+const geste = await taper("ok");
+bon.push(geste.startsWith("Mettre en ligne et envoyer") && (await js(`document.querySelector("#trouve .on")?.textContent`)).startsWith("Mettre en ligne et envoyer") ? "" : "« ok » ne propose pas le bouton plein : " + geste);
+await touche("Enter");
+await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "z", metaKey: true, bubbles: true, cancelable: true })); 0`); await Bun.sleep(6000);
+bon.push((await js("window.__p.length")) === 0 && (await js("location.hash")) === "#d=ancien" ? "" : "« ok » puis ⌘Z : " + (await js("window.__p.join(' ; ')")));
 await taper("plus gros");
 await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true, cancelable: true })); 0`); await Bun.sleep(6000); // la retouche attend 5 s
 const envoyes = await js("window.__p.join(' ; ')");
 bon.push(envoyes.includes('"retouche"') && !envoyes.includes('"valider"') && !envoyes.includes('"envoyer"') ? "" : "⌘↵ dans la barre : " + envoyes);
+// « cla » + Entrée classe la demande : un seul POST « fermer » après 5 s, aucune retouche
+await js(`location.hash = "#d=ancien"`); await Bun.sleep(600);
+const n0 = await js("window.__p.length"), cla = await taper("cla");
+bon.push(cla.startsWith("Classer") && (await js(`document.querySelector("#trouve .on")?.textContent`)).startsWith("Classer") ? "" : "« cla » ne propose pas Classer : " + cla);
+await touche("Enter"); await Bun.sleep(6000);
+const fermes = await js(`window.__p.slice(${n0}).join(' ; ')`);
+bon.push(fermes.split('"fermer"').length === 2 && !fermes.includes('"retouche"') ? "" : "« cla » + Entrée : " + fermes);
 p.kill(); console.log(bon.filter(Boolean).join(" ; "));
 EOF
   ( sleep 60; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
