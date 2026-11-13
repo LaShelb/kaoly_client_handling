@@ -139,7 +139,13 @@
   .reg .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .reg .v { font-size: 12px; color: var(--gris); white-space: nowrap; }
   .reg.passe { color: var(--gris); }
-  .reglages .bloc { padding: 10px 0 12px; border-top: 1px solid var(--filet); }
+  .reglages .bloc { padding: 0 0 16px; }
+  .reglages details { margin-top: 0; }
+  .reglages .detail { gap: 12px; width: 100%; max-height: none; }
+  .reglages .detail .bloc { padding: 0; }
+  .reglages [data-cfg=repo]:placeholder-shown:not(:focus) { border: 1px dashed rgba(0,0,0,.28); } /* pas de dépôt : le champ est en tirets, comme « Pas de capture » */
+  .reglages .plus { color: var(--gris); padding: 3px; margin-left: -3px; border-radius: 4px; }
+  .reglages .plus:hover { color: var(--encre); background: var(--survol); }
   .contact { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
   .contact span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .croix { color: var(--gris); opacity: 0; padding: 3px; border-radius: 4px; }
@@ -150,8 +156,7 @@
   .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left .15s; }
   .switch:checked { background: var(--encre); }
   .switch:checked::after { left: 14px; }
-  .reglages .retirer { margin-top: 12px; opacity: 0; }
-  .reglages:hover .retirer, .reglages .retirer:focus-visible { opacity: 1; }
+  .reglages .retirer { margin-top: 4px; }
   .arr { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 16px; align-items: center; max-width: 720px; padding: 12px 0; border-top: 1px solid var(--filet); }
   .arr .val { display: flex; align-items: center; gap: 8px; color: var(--gris); min-width: 0; overflow-wrap: anywhere; }
   .arr .val i { width: 6px; height: 6px; border-radius: 50%; background: var(--gris); flex: none; }
@@ -201,8 +206,10 @@
     .preuve { flex: none; gap: 6px; align-self: stretch; }
     .preuve:empty { display: none; }
     /* la preuve prend la hauteur qui reste, toute la largeur, entre 80 et 200 px ; le message, lui, ne cède jamais */
-    .preuve:has(.cadre:not(.vide)) { flex: 1 1 0; min-height: 108px; max-height: 228px; }
-    .preuve .cadre { flex: 1; width: 100%; height: auto; aspect-ratio: auto; min-height: 80px; max-height: 200px; }
+    .preuve:has(.cadre:not(.vide)) { flex: 1 1 0; min-height: 140px; max-height: 228px; }
+    #vue.tasse .preuve:has(.cadre:not(.vide)) { min-height: 108px; }
+    .preuve .cadre { flex: 1; width: 100%; height: auto; aspect-ratio: auto; min-height: 112px; max-height: 200px; }
+    #vue.tasse .preuve .cadre { min-height: 80px; }
     .preuve .cadre img, .preuve .cadre video { object-fit: cover; object-position: top; }
     .preuve .cadre.vide { flex: none; min-height: 0; max-height: none; height: 36px; padding: 0 12px; text-align: center; }
     .fil { flex: 0 1 auto; max-height: none; width: 100%; }
@@ -213,11 +220,23 @@
     .fil .voix:not(:has(textarea, .envoye, .deplie)) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; }
     .fil .voix:not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { display: inline; margin: 0; white-space: nowrap; }
     .fil .voix:not(:has(textarea, .envoye, .deplie)) .qui::after { content: "\a0\a0"; }
-    .fil .voix:not(:has(textarea, .envoye, .deplie)) .reserve { margin: 0; overflow: hidden; text-overflow: ellipsis; }
+    .fil .voix:not(:has(textarea, .envoye, .deplie)) .reserve { margin: 0; white-space: normal; } /* la réserve ne se coupe jamais */
+    /* la phrase de Claude se lit entière ; elle ne tient sur une ligne qu'en dernier recours (couperTout) */
+    .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)), .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: normal; }
+    #vue.une .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)), #vue.une .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: nowrap; }
     .voix:not(:focus-within) .objet { display: none; }
     #vue.serre .fil-texte > .voix:first-child:not(:has(textarea, .envoye, .deplie)) { display: none; } /* ça ne tient pas, même la preuve à 80 px : la ligne du client s'efface */
-    .fiche { display: block; overflow-y: auto; }
-    .registre { max-height: none; margin-bottom: 16px; }
+    /* les réglages passent au-dessus du registre, sur une ligne : la bascule, « Détail » ; les contacts et le reste sont dans le Détail */
+    .fiche { display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow-y: auto; }
+    .reglages { order: -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; margin-bottom: 12px; }
+    .reglages .bloc { padding: 0; }
+    .reglages .bascule { justify-content: flex-start; }
+    .reglages details { display: contents; }
+    .reglages summary { order: 1; margin-left: auto; }
+    .reglages .contacts { order: 2; flex-basis: 100%; padding-top: 10px; }
+    .reglages:not(:has(details[open])) :is(.contacts, .detail) { display: none; }
+    .reglages .detail { order: 3; flex-basis: 100%; margin-top: 10px; }
+    .registre { flex: none; max-height: none; margin-bottom: 16px; }
     .reg { padding: 6px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -251,7 +270,7 @@ const drafts = {};          // brouillons modifiés par Simon, par demande, gard
 const retenues = new Map(); // actions retenues 5 s dans la page : clé → { timer, chemin, body, retour }
 const deplies = new Set();  // demandes du client dépliées
 const choix = {};           // preuve affichée, par demande
-let destEdit = null, mailForm = false, mailAide = false, puceOff = null, propositions = [], rendus = {}, dernierCur = "", effacer = null;
+let ajout = null, detailOuvert = false, destEdit = null, mailForm = false, mailAide = false, puceOff = null, propositions = [], rendus = {}, dernierCur = "", effacer = null;
 
 // ───────── petites règles d'affichage ─────────
 const minutes = (iso) => Math.max(1, Math.floor((Date.now() - Date.parse(iso)) / 60000));
@@ -473,11 +492,12 @@ function vueClient(c) {
   return `<header class="tete"><div class="h"><h1 data-contenu>${esc(c.name)}</h1></div>${ch ? `<div class="chiffres">${ch}</div>` : ""}</header>
   <div class="fiche"><div class="registre">${reg}</div>
   <aside class="reglages" data-client="${esc(c.id)}">
-    <div class="bloc"><div class="qui">Dépôt</div><input class="ed" data-cfg="repo" value="${esc(c.repo)}" placeholder="propriétaire/nom" aria-label="Dépôt"></div>
-    <div class="bloc"><div class="qui">Contacts</div>${c.contacts.map((k) => `<div class="contact"><span data-contenu>${esc(k)}</span><button class="croix" data-act="retirer-contact" data-k="${esc(k)}" aria-label="Retirer">${SVG_CROIX}</button></div>`).join("")}
-      <input class="ed" data-cfg="contact" placeholder="mail, @domaine, numéro, groupe" aria-label="Nouveau contact"></div>
     <label class="bloc bascule"><span>Bugs sans validation</span><input type="checkbox" class="switch" data-cfg="autoProd"${c.autoProd ? " checked" : ""}></label>
-    <button class="lien retirer" data-act="retirer-client">Retirer le client</button>
+    <div class="bloc contacts">${c.contacts.map((k) => `<div class="contact"><span data-contenu>${esc(k)}</span><button class="croix" data-act="retirer-contact" data-k="${esc(k)}" aria-label="Retirer">${SVG_CROIX}</button></div>`).join("")}
+      ${ajout === c.id ? `<input class="ed" data-cfg="contact" placeholder="mail, @domaine, numéro, groupe" aria-label="Nouveau contact">` : `<button class="plus" data-act="ajouter-contact" aria-label="Ajouter un contact">${SVG_PLUS}</button>`}</div>
+    <details${!c.repo || detailOuvert ? " open" : ""}><summary>Détail</summary><div class="detail">
+      <div class="bloc"><div class="qui">Dépôt</div><input class="ed" data-cfg="repo" value="${esc(c.repo)}" placeholder="propriétaire/nom" aria-label="Dépôt"></div>
+      <button class="lien retirer" data-act="retirer-client">Retirer le client</button></div></details>
   </aside></div>`;
 }
 
@@ -558,8 +578,9 @@ const petit = () => matchMedia("(max-width: 999px)").matches;
 function couperTout(suivre) {
   const v = $("#vue"), f = $(".fil-texte", v), fi = $(".fiche", v), l = $("#liste"), on = $(".on", l);
   if (f) f.style.maxHeight = "";
-  v.classList.remove("serre");
-  if (petit() && f && f.scrollHeight > f.clientHeight + 1) v.classList.add("serre"); // la preuve est déjà à 80 px : la ligne du client s'efface
+  v.classList.remove("tasse", "serre", "une");
+  // quand la place manque, on cède dans cet ordre : la preuve à 80 px, la ligne du client, la phrase de Claude sur une ligne. La réserve et le message ne cèdent jamais.
+  if (petit() && f) for (const k of ["tasse", "serre", "une"]) { if (f.scrollHeight <= f.clientHeight + 1) break; v.classList.add(k); }
   couper(f);
   if (fi) fi.style.maxHeight = "";
   l.style.maxHeight = "";
@@ -774,6 +795,7 @@ document.addEventListener("click", async (e) => {
   if (act === "aide") { mailAide = !mailAide; return forcer(); }
   if (act === "mail") { const j = await post("/api/config", { mail: { user: $("#mailUser").value, password: $("#mailPass").value } }); if (j) { mailForm = false; dire("✓ Boîte reliée"); } return forcer(); }
   const box = el.closest("[data-client]"), c = box && S.clients.find((x) => x.id === box.dataset.client);
+  if (act === "ajouter-contact" && c) { ajout = c.id; forcer(); $('#vue [data-cfg="contact"]')?.focus(); return; }
   if (act === "retirer-contact" && c) { await post("/api/config", { client: { id: c.id, contacts: c.contacts.filter((k) => k !== el.dataset.k) } }); return forcer(); }
   if (act === "retirer-client" && c) {
     const nx = files().toi[0];
@@ -800,8 +822,12 @@ document.addEventListener("keydown", (e) => {
     el.value = ""; el.blur();
     post("/api/config", { client: { id: c.id, contacts: [...c.contacts, v] } }).then(forcer);
   }
+  if (el.dataset?.cfg === "contact" && e.key === "Escape") { ajout = null; forcer(); }
   if (el.dataset?.cfg === "repo" && e.key === "Enter") el.blur();
 });
+// ponytail : le champ d'un nouveau contact se referme dès qu'il perd le focus sans texte ; l'état ouvert du Détail est gardé d'un rendu à l'autre
+document.addEventListener("focusout", (e) => { if (e.target.dataset?.cfg === "contact") setTimeout(() => { if (ajout && !e.target.value.trim()) { ajout = null; forcer(); } }, 0); });
+document.addEventListener("toggle", (e) => { if (e.target.parentElement?.classList.contains("reglages")) detailOuvert = e.target.open; }, true);
 document.addEventListener("change", (e) => {
   const el = e.target, k = el.dataset.cfg; if (!k) return;
   if (k === "auto") return post("/api/config", { auto: el.checked }).then(forcer);
