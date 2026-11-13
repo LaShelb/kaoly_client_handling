@@ -304,7 +304,7 @@ bon.push(ligne.endsWith("Envoyer en retouche⌘↵") && (await js(`document.quer
 await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); 0`);
 bon.push((await js(`document.querySelectorAll("#trouve a").length`)) === 0 && (await js(`document.querySelector("#puce").hidden`)) === false ? "" : "Échap ne ferme pas d'abord la liste");
 await taper("plus gros");
-await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true, cancelable: true })); 0`); await Bun.sleep(800);
+await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true, cancelable: true })); 0`); await Bun.sleep(6000); // la retouche attend 5 s
 const envoyes = await js("window.__p.join(' ; ')");
 bon.push(envoyes.includes('"retouche"') && !envoyes.includes('"valider"') && !envoyes.includes('"envoyer"') ? "" : "⌘↵ dans la barre : " + envoyes);
 p.kill(); console.log(bon.filter(Boolean).join(" ; "));
