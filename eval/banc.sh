@@ -33,8 +33,11 @@ cat > "$D/config.json" <<EOF
             {"id":"garonne","name":"Garonne","repo":"LaShelb/garonne","contacts":["Marc"],"autoProd":false}]}
 EOF
 mkdir -p "$D/pieces/1" && echo '<script>alert(1)</script>' > "$D/pieces/1/page.html"
+mkdir -p "$D/pieces/2" "$D/preuves/capture" && cp "$ICI/eval/jeu/preuves/valider-interface/avant-export.png" "$D/pieces/2/liste clients.png" && cp "$ICI/eval/jeu/preuves/valider-interface/"*.png "$D/preuves/capture/"
 cat > "$D/tickets.json" <<EOF
-[{"id":"ancien","status":"valider","source":{"channel":"mail","from":"claire@arion.fr","name":"Claire"},"files":["$D/pieces/1/page.html"],"createdAt":"2026-11-10T09:00:00.000Z","updatedAt":"2026-11-10T09:30:00.000Z",
+[{"id":"capture","status":"message","source":{"channel":"mail","from":"claire@arion.fr","name":"Claire"},"files":["$D/pieces/2/liste clients.png","$D/pieces/1/page.html"],"createdAt":"2026-11-01T09:00:00.000Z","updatedAt":"2026-11-01T09:30:00.000Z",
+  "clientId":"arion","title":"Export avec capture","request":"Voir ma capture.","kind":"visible","summary":"Bouton ajouté.","draft":{"to":"claire@arion.fr","subject":"Export","body":"Bonjour"},"changed":true},
+ {"id":"ancien","status":"valider","source":{"channel":"mail","from":"claire@arion.fr","name":"Claire"},"files":["$D/pieces/1/page.html"],"createdAt":"2026-11-10T09:00:00.000Z","updatedAt":"2026-11-10T09:30:00.000Z",
   "clientId":"arion","title":"Bouton Exporter","request":"Ajouter un bouton.","kind":"visible","summary":"Bouton ajouté. Il est en haut à droite.","draft":{"to":"claire@arion.fr","subject":"Export","body":"Bonjour"},"changed":true,"pr":"https://github.com/x/y/pull/9"},
  {"id":"coupee","status":"travail","source":{"channel":"toi"},"files":[],"createdAt":"2026-11-11T09:00:00.000Z","updatedAt":"2026-11-11T09:00:00.000Z",
   "clientId":"arion","title":"Lien cassé","request":"Le lien du pied de page est cassé.","kind":"bug"},
@@ -346,9 +349,18 @@ bon.push(chat.includes('"clientId":"buckwell"') && barre.includes("fiche du clie
 await js(`location.hash = "#c=garonne"`); await Bun.sleep(300); await js(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); 0`);
 await js(`document.querySelector("#say").focus(); document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); 0`); await Bun.sleep(300);
 bon.push((await js(`document.querySelector("#puce").hidden`)) ? "" : "Échap ne retire pas la puce du client");
+// sa capture : « Claire » dans le sélecteur, l'image vient de /piece/ sans cadrage, et la capture du client ne part jamais avec le mail
+await js(`location.hash = "#d=capture"`); await Bun.sleep(800);
+bon.push((await js(`[...document.querySelectorAll("#vue .choix button")].some((b) => b.textContent === "Claire")`)) ? "" : "pas de « Claire » dans le sélecteur");
+await js(`document.querySelector('#vue [data-act="sa-capture"]').click(); 0`); await Bun.sleep(600);
+bon.push((await js(`const i = document.querySelector("#vue .cadre img"); !!i && i.getAttribute("src").startsWith("/piece/capture/") && !i.style.transform`)) ? "" : "la capture du client n'est pas servie en /piece/ sans cadrage");
+await js(`window.__p = []; 0`);
+await js(`document.querySelector("#vue .plein").click(); 0`); await Bun.sleep(6000);
+const pj = await js(`window.__p.filter((x) => x.includes('"envoyer"')).join(" ; ")`);
+bon.push(pj.includes('"envoyer"') && !pj.includes("liste clients.png") ? "" : "la capture du client part avec le mail : " + pj);
 p.kill(); console.log(bon.filter(Boolean).join(" ; "));
 EOF
-  ( sleep 60; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
+  ( sleep 170; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
   R=$(bun "$T/trouve.ts" "$CHROME" "$U" "$T/chrome2" "$L" 2>&1) || echec "essai de la barre : $R"
   kill $W 2>/dev/null
   [ -z "$R" ] || echec "la barre qui trouve : $R"

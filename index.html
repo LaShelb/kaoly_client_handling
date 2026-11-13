@@ -369,10 +369,17 @@ function preuves(t) {
   }
   return o.concat(vid.map((f, i) => ({ cle: `video${i || ""}`, nom: `Vidéo${vid.length > 1 ? ` ${i + 1}` : ""}`, f, video: true })));
 }
+// la capture envoyée par le client se regarde dans le même cadre, nommée par son prénom ; ce n'est pas une preuve (avecPreuve, paire, joint ne la voient pas)
+const imagesClient = (t) => (t.files ?? []).filter((f) => /\.(png|jpe?g|gif|webp)$/i.test(f));
+function capturesClient(t) {
+  const l = imagesClient(t);
+  return l.map((f, i) => ({ cle: `client${i || ""}`, nom: `${auteur(t) ?? "Client"}${l.length > 1 ? ` ${i + 1}` : ""}`, f: f.split("/").pop(), piece: true }));
+}
+const vues = (t) => preuves(t).concat(capturesClient(t));
 const choisie = (t, o) => { const h = adresse(), v = h.d === t.id ? h.v : null; return o.find((x) => x.cle === v) ?? o.find((x) => x.cle === choix[t.id]) ?? o[0]; };
 const media = (t, x, grand) => {
-  const u = `/preuve/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`;
-  return x.video ? `<video src="${u}" muted loop playsinline autoplay preload="auto"></video>` : `<img src="${u}" alt="${x.nom}">`;
+  const u = `/${x.piece ? "piece" : "preuve"}/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`;
+  return x.video ? `<video src="${u}" muted loop playsinline autoplay preload="auto"></video>` : `<img src="${u}" alt="${esc(x.nom)}">`;
 };
 // ───────── la preuve cadrée : Avant et Après comparés, on montre ce qui a changé à taille lisible ─────────
 const ecarts = new Map(); // « avant|apres » → boîte en fractions, ou null (en attente : absent)
@@ -433,7 +440,7 @@ function fenetre(r, cw, hl, smax) {
 }
 function cadrer() {
   const el = $("#vue .cadre img, #vue .cadre video"), cadre = el?.parentElement, h = adresse(); if (!el || "plein" in h) return;
-  const t = S?.tickets.find((x) => x.id === h.d), x = t && choisie(t, preuves(t));
+  const t = S?.tickets.find((x) => x.id === h.d), x = t && choisie(t, vues(t));
   const [a, b] = t ? paire(t) : [], r = x && /^(avant|apres|video)$/.test(x.cle) && a && b ? ecarts.get(`${t.id}/${a.f}|${b.f}`) : null;
   const rien = () => { el.style.cssText = ""; cadre.style.cssText = ""; cadre.closest(".preuve").classList.remove("fen"); };
   if (r === undefined) ecart(t).then(cadrer); // demande réglée : hors de la file, calculée à l'ouverture
@@ -453,7 +460,7 @@ function cadrer() {
   el.style.cssText = `width:${W}px;height:auto;max-width:none;object-fit:fill;transform:translate(${-f.L * s}px,${-f.T * s}px)`;
   if ((f.R - f.L) * s < cw - 1) { el.style.clipPath = `inset(0 ${W - f.R * s}px 0 0)`; cadre.style.background = `rgb(${r.f.map(Math.round)})`; } // l'image ne remplit pas la largeur : le fond de la capture complète
 }
-const selecteur = (o, x) => (o.length > 1 ? `<div class="choix">${o.map((y) => `<button class="${y === x ? "on" : ""}" data-act="voir" data-cle="${y.cle}">${y.nom}</button>`).join("")}</div>` : "");
+const selecteur = (o, x) => (o.length > 1 ? `<div class="choix">${o.map((y) => `<button class="${y === x ? "on" : ""}" data-act="voir" data-cle="${y.cle}"${y.piece ? " data-contenu" : ""}>${esc(y.nom)}</button>`).join("")}</div>` : "");
 
 // ───────── l'adresse ─────────
 function adresse() {
@@ -503,10 +510,14 @@ function colonne(cur) {
 const voix = (qui, corps, cls = "") => `<div class="voix ${cls}"><div class="qui">${qui}</div>${corps}</div>`;
 const texteClient = (t, ouvert) => ouvert ? String(t.request ?? "").trim().replace(/\n\s*\n+/g, "\n") : String(t.request ?? "").replace(/^\s*(bonjour|bonsoir|hello|salut|coucou|hi)\b[^\n]{0,40}\n+/i, "").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
 // `lead` : la demande prend la place de gauche (pas de capture), en 20 px ; en gris quand elle n'attend plus rien de Simon
+function trombone(t) {
+  const n = imagesClient(t).length;
+  return n ? ` <span class="joint">· ${SVG_CLIP}<button class="piece" data-act="sa-capture">${n > 1 ? `${n} captures` : "capture"}</button></span>` : "";
+}
 function voixClient(t, serre, lead) {
   const a = auteur(t), ouvert = !serre || deplies.has(t.id), attend = ["valider", "message"].includes(t.status), gris = ["file", "fini"].includes(t.status);
   // replié : on saute la formule d'appel pour que les deux lignes disent la demande
-  return voix(a ? `<span data-contenu>${esc(a)}</span>` : "Toi", `<div class="${lead ? `lead${gris ? " gris" : ""}` : "dit"} ${ouvert ? "deplie" : `replie${attend && !lead ? " court" : ""}`}"${serre ? ` data-act="deplier"` : ""} data-contenu>${esc(texteClient(t, ouvert))}</div>`, lead ? "" : "du-client");
+  return voix((a ? `<span data-contenu>${esc(a)}</span>` : "Toi") + trombone(t), `<div class="${lead ? `lead${gris ? " gris" : ""}` : "dit"} ${ouvert ? "deplie" : `replie${attend && !lead ? " court" : ""}`}"${serre ? ` data-act="deplier"` : ""} data-contenu>${esc(texteClient(t, ouvert))}</div>`, lead ? "" : "du-client");
 }
 function voixClaude(t) {
   if (["travail", "question"].includes(t.status)) return ""; // sa phrase est déjà à gauche
@@ -530,7 +541,7 @@ function nomDest(t, to) {
 }
 // ce qui part avec le mail : le trombone et les noms du sélecteur ; un clic retire, les retirées reviennent au survol
 function joint(t, d, lecture) {
-  const o = preuves(t), p = d.pieces;
+  const o = preuves(t).filter((x) => !x.piece), p = d.pieces;
   if (!o.length || !p) return "";
   if (lecture) { const on = o.filter((x) => p.includes(x.f)); return on.length ? `<span class="joint">· ${SVG_CLIP}${on.map((x) => `<span>${x.nom}</span>`).join("")}</span>` : ""; }
   return `<span class="joint">· ${SVG_CLIP}${o.map((x) => `<button class="piece${p.includes(x.f) ? "" : " off"}" data-act="joindre" data-f="${esc(x.f)}">${x.nom}</button>`).join("")}</span>`;
@@ -560,7 +571,7 @@ function libellePrincipal(t) {
   return estGroupe(t) && to === t.source?.from ? "Envoyer au groupe" : nom && !/[@+\d]/.test(nom) ? `Envoyer à ${nom}` : "Envoyer";
 }
 function vueDemande(t, h) {
-  const { toi } = files(), o = preuves(t);
+  const { toi } = files(), o = preuves(t), v = vues(t);
   const avecPreuve = t.status === "valider" ? t.changed || o.length > 0 : ["message", "fini"].includes(t.status) && o.length > 0;
   const tete = `<header class="tete"><div class="h"><h1 data-contenu>${esc(t.title)}</h1>
     ${t.status !== "fini" ? `<button class="lien classer" data-act="classer">Classer</button>` : ""}</div>
@@ -569,8 +580,8 @@ function vueDemande(t, h) {
   // Le fil reste toujours à droite, à la même place, quel que soit l'état.
   let scene = "";
   if (avecPreuve) {
-    const x = choisie(t, o);
-    scene = o.length ? `${selecteur(o, x)}<figure class="cadre" data-act="plein">${media(t, x)}</figure>` : `<div class="cadre vide">Pas de capture</div>`;
+    const x = choisie(t, v);
+    scene = o.length ? `${selecteur(v, x)}<figure class="cadre" data-act="plein">${media(t, x)}</figure>` : `<div class="cadre vide">Pas de capture</div>`;
     if (!o.length) scene += voixClient(t, true, true);
   } else if (t.status === "question") scene = voix("Claude", `<p class="lead" data-contenu>${esc(t.question)}</p>`);
   else if (t.status === "erreur") scene = `<p class="lead"><i class="point"></i><span data-contenu>${esc(raison(t))}</span></p>`;
@@ -588,7 +599,7 @@ function vueDemande(t, h) {
   if (t.status === "erreur" && t.error) det.push(`<p data-contenu>${esc(t.error)}</p>`);
   if (/^https:\/\//.test(t.pr ?? "")) det.push(`<a class="lien" href="${esc(t.pr)}" target="_blank" rel="noopener">Code sur GitHub</a>`); // ponytail : lien simple, la fenêtre Swift ne l'ouvre pas encore ailleurs
   if (t.live?.length) det.push(`<p class="num" data-contenu>${t.live.map(esc).join("<br>")}</p>`);
-  for (const f of t.files ?? []) { const n = f.split("/").pop(); det.push(`<a class="lien" href="/piece/${encodeURIComponent(t.id)}/${encodeURIComponent(n)}" target="_blank" data-contenu>${esc(n)}</a>`); }
+  for (const f of (t.files ?? []).filter((f) => !imagesClient(t).includes(f))) { const n = f.split("/").pop(); det.push(`<a class="lien" href="/piece/${encodeURIComponent(t.id)}/${encodeURIComponent(n)}" target="_blank" data-contenu>${esc(n)}</a>`); }
   const detail = det.length ? `<details${t.status === "erreur" ? "" : ""}><summary>Détail</summary><div class="detail">${det.join("")}</div></details>` : "";
   let actions = "";
   if (["valider", "message", "erreur"].includes(t.status)) {
@@ -674,7 +685,7 @@ function rendre() {
   couperTout(cur !== dernierCur); cadrer();
 
   // la preuve en plein écran
-  const o = t ? preuves(t) : [], plein = t && "plein" in h && o.length;
+  const o = t ? vues(t) : [], plein = t && "plein" in h && o.length;
   document.body.classList.toggle("en-plein", !!plein);
   if (plein) { const x = choisie(t, o); pose("#plein", `<div class="haut"><span data-contenu>${esc(t.title)}</span>${selecteur(o, x)}</div><figure class="cadre" data-act="fermer-plein">${media(t, x, true)}</figure>`); }
   else pose("#plein", "");
@@ -886,14 +897,14 @@ function voisin(pas) {
 }
 function basculer(pas, cle) {
   const t = courante(); if (!t) return;
-  const o = preuves(t); if (o.length < 2 && !cle) return;
+  const o = vues(t); if (o.length < 2 && !cle) return;
   const x = choisie(t, o), n = cle ? o.find((y) => y.cle === cle) : o[(o.indexOf(x) + pas + o.length) % o.length];
   choix[t.id] = n.cle;
   const h = adresse();
   aller(adrDemande(t.id, { v: n.cle, plein: "plein" in h || null }), true);
 }
 function plein(ouvrir) {
-  const t = courante(); if (!t || !preuves(t).length) return;
+  const t = courante(); if (!t || !vues(t).length) return;
   const h = adresse();
   aller(adrDemande(t.id, { v: h.v, plein: ouvrir || null }), true);
 }
@@ -924,6 +935,7 @@ document.addEventListener("click", async (e) => {
   if (el.closest("a")) e.preventDefault();
   if (act === "principal" || act === "seulement" || act === "classer") { if (t && !el.disabled) agir(t, act); return; }
   if (act === "voir") { e.stopPropagation(); return basculer(0, el.dataset.cle); }
+  if (act === "sa-capture") { e.stopPropagation(); return $("#vue .cadre:not(.vide)") ? basculer(0, "client") : aller(adrDemande(t.id, { v: "client", plein: true })); }
   if (act === "plein") return plein(true);
   if (act === "fermer-plein") return plein(false);
   if (act === "deplier") { if (getSelection().toString()) return; deplies.has(t.id) ? deplies.delete(t.id) : deplies.add(t.id); return forcer(); }
