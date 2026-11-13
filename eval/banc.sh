@@ -25,7 +25,7 @@ git -C "$T/depot" add . && git $G -C "$T/depot" commit -qm départ
 git -C "$T/depot" remote add origin "$T/origine.git"
 git -C "$T/depot" push -q -u origin main && git -C "$T/depot" remote set-head origin main || echec "faux dépôt"
 
-# ── données : deux clients sur le même dépôt (la file par dépôt sert), une demande à l'ancien format, une coupée en plein travail ──
+# ── données : deux clients sur le même dépôt (la file par dépôt sert), une demande à l'ancien format, deux coupées en plein travail (la seconde l'a déjà été une fois) ──
 cat > "$D/config.json" <<EOF
 {"auto":false,"mail":{"user":"simon@kaoly.fr","imap":"127.0.0.1","smtp":"127.0.0.1"},"waLast":0,
  "clients":[{"id":"arion","name":"Arion","repo":"$T/depot","contacts":["@arion.fr","claire@arion.fr"],"autoProd":false},
@@ -37,7 +37,9 @@ cat > "$D/tickets.json" <<EOF
 [{"id":"ancien","status":"valider","source":{"channel":"mail","from":"claire@arion.fr","name":"Claire"},"files":["$D/pieces/1/page.html"],"createdAt":"2026-11-10T09:00:00.000Z","updatedAt":"2026-11-10T09:30:00.000Z",
   "clientId":"arion","title":"Bouton Exporter","request":"Ajouter un bouton.","kind":"visible","summary":"Bouton ajouté. Il est en haut à droite.","draft":{"to":"claire@arion.fr","subject":"Export","body":"Bonjour"},"changed":true,"pr":"https://github.com/x/y/pull/9"},
  {"id":"coupee","status":"travail","source":{"channel":"toi"},"files":[],"createdAt":"2026-11-11T09:00:00.000Z","updatedAt":"2026-11-11T09:00:00.000Z",
-  "clientId":"arion","title":"Lien cassé","request":"Le lien du pied de page est cassé.","kind":"bug"}]
+  "clientId":"arion","title":"Lien cassé","request":"Le lien du pied de page est cassé.","kind":"bug"},
+ {"id":"coupee2","status":"travail","reprises":1,"source":{"channel":"toi"},"files":[],"createdAt":"2026-11-11T10:00:00.000Z","updatedAt":"2026-11-11T10:00:00.000Z",
+  "clientId":"arion","title":"Lien cassé encore","request":"Le lien est encore cassé.","kind":"bug"}]
 EOF
 
 # ── fausse base WhatsApp : un inconnu, puis un contact de Buckwell ──
@@ -77,7 +79,10 @@ code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
 
 # ── anciennes données ──
 vaut "$(champ ancien .status)/$(champ ancien '.proofs|length')" "valider/0" "demande à l'ancien format lisible"
-vaut "$(champ coupee .status)" "erreur" "une demande coupée en plein travail revient en erreur"
+attendre coupee valider # reprise seule au démarrage ; les journaux repartent de zéro après elle
+: > "$L/claude.log"; : > "$L/gh.log"; : > "$L/open.log"
+vaut "$(champ coupee .status)/$(champ coupee .reprises)" "valider/1" "une demande coupée en plein travail repart seule, une fois"
+vaut "$(champ coupee2 .status)" "erreur" "coupée une seconde fois : elle reste en erreur, pour Simon"
 [ -n "$JETON" ] && [ "$JETON" != "__JETON__" ] || echec "jeton absent de la page"
 ok "anciennes données lues, jeton injecté"
 
@@ -154,19 +159,24 @@ attendre "$E" valider
 vaut "$(travaux)/$(commits "$E")/$(champ "$E" .pr)" "$n/1/https://github.com/x/y/pull/1" "relance sans Claude, un seul commit"
 ok "erreur puis relance"
 
-# ── conflit à la mise en ligne : « Relancer » renvoie Claude fusionner la branche principale ──
+# ── conflit à la mise en ligne : Claude repart seul intégrer la branche principale, une fois ; rien ne part au client ──
 touch "$T/gh-conflit"
 post /api/chat '{"text":"[VISIBLE] le menu"}' > /dev/null
 V=$(dernier); attendre "$V" valider
-vaut "$(ticket "$V" valider)" 400 "mise en ligne bloquée par un conflit"
-vaut "$(champ "$V" .status)" erreur "conflit : demande en erreur"
-champ "$V" .error | grep -q "not mergeable" || echec "conflit non signalé : $(champ "$V" .error)"
-rm "$T/gh-conflit"; n=$(travaux)
-vaut "$(ticket "$V" relancer)" 200 "relancer après conflit"
+n=$(travaux); o=$(wc -l < "$L/open.log")
+vaut "$(ticket "$V" valider --argjson send true --arg to claire@arion.fr --arg subject Menu --arg body "Brouillon relu par Simon")" 200 "conflit : Claude repart seul"
 attendre "$V" valider
-vaut "$(travaux)" "$((n+1))" "conflit : Claude relancé"
+vaut "$(travaux)/$(champ "$V" .revalider)" "$((n+1))/true" "conflit : Claude relancé sans clic, à revalider"
 grep -q "git merge" "$L/prompt.txt" || echec "la consigne de fusion n'est pas donnée à Claude"
-ok "conflit : Claude relancé avec la consigne de fusion"
+vaut "$(wc -l < "$L/open.log")/$(champ "$V" '.sentAt // ""')/$(champ "$V" .draft.body)" "$o//Brouillon relu par Simon" "rien n'est parti au client, brouillon relu gardé"
+vaut "$(ticket "$V" valider --argjson send true --arg to claire@arion.fr --arg subject Menu --arg body "Brouillon relu par Simon")" 400 "conflit toujours là : seconde panne"
+vaut "$(champ "$V" .status)" erreur "seconde panne : demande en erreur, pour Simon"
+champ "$V" .error | grep -q "not mergeable" || echec "conflit non signalé : $(champ "$V" .error)"
+rm "$T/gh-conflit"
+vaut "$(ticket "$V" relancer)" 200 "relancer après la seconde panne"
+attendre "$V" valider
+vaut "$(travaux)" "$((n+2))" "relancer : Claude relancé une fois de plus"
+ok "conflit : réglé seul une fois, puis à Simon"
 
 # ── retouche, puis Claude tombe : « Relancer » lui redonne la remarque de Simon ──
 touch "$T/claude-panne"
