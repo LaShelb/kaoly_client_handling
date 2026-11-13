@@ -512,7 +512,7 @@ const texteClient = (t, ouvert) => ouvert ? String(t.request ?? "").trim().repla
 // `lead` : la demande prend la place de gauche (pas de capture), en 20 px ; en gris quand elle n'attend plus rien de Simon
 function trombone(t) {
   const n = imagesClient(t).length;
-  return n ? ` · ${SVG_CLIP}<button class="piece" data-act="sa-capture">${n > 1 ? `${n} captures` : "capture"}</button>` : "";
+  return n ? ` <span class="joint">· ${SVG_CLIP}<button class="piece" data-act="sa-capture">${n > 1 ? `${n} captures` : "capture"}</button></span>` : "";
 }
 function voixClient(t, serre, lead) {
   const a = auteur(t), ouvert = !serre || deplies.has(t.id), attend = ["valider", "message"].includes(t.status), gris = ["file", "fini"].includes(t.status);
