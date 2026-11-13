@@ -53,16 +53,18 @@
   .loin .t { color: var(--gris); }
   .l1 .num { color: var(--gris); }
   .l2 { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 17px; color: var(--gris); white-space: nowrap; overflow: hidden; }
-  .l2 .v { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .l2 .v { flex: 1; min-width: 0; display: flex; white-space: pre; }
+  .l2 .v > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .l2 .num { margin-left: auto; }
-  .alerte .l1 .t { font-weight: 500; }
-  .alerte button { font-size: 12px; color: var(--gris); }
-  .alerte button:hover { color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
   .client { display: flex; align-items: baseline; gap: 10px; padding: 4px 10px; border-radius: 7px; }
   .client span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #releve { display: flex; align-items: center; gap: 8px; margin: 4px 8px 10px; padding: 6px 10px; border-radius: 7px; font-size: 12px; color: var(--gris); }
   #releve i { width: 6px; height: 6px; border-radius: 50%; background: var(--gris); flex: none; }
   #releve i.rouge { background: var(--rouge); }
+  #releve i.non { background: none; box-shadow: inset 0 0 0 1px var(--gris); }
+  #releve span { flex: 1; }
+  #releve button { font-size: 12px; color: var(--encre); }
+  #releve button:hover { text-decoration: underline; text-underline-offset: 3px; }
 
   /* ── le volet ── */
   #volet { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; }
@@ -184,7 +186,7 @@
 
   /* ── sous 1000 px : la colonne se resserre, la preuve passe au-dessus du fil, le bouton reste visible ── */
   @media (max-width: 999px) {
-    #col { width: 220px; }
+    #col { width: 236px; }
     #vue { padding: 16px 20px 0; }
     #barre { padding: 0 20px 12px; }
     .tete { margin-bottom: 14px; }
@@ -254,7 +256,7 @@ function alertes() {
 }
 function verbe(t) {
   return { valider: "à valider", question: "Claude demande", erreur: "arrêtée", file: "en attente" }[t.status]
-    ?? (t.status === "message" ? (t.shipped ? "en ligne · à envoyer" : "à envoyer") : t.status === "travail" ? `<span class="num">${age(t.startedAt || t.updatedAt)}</span>` : "");
+    ?? (t.status === "message" ? "à envoyer" : t.status === "travail" ? `<span class="num">${age(t.startedAt || t.updatedAt)}</span>` : "");
 }
 function issue(t) { return t.dropped ? "classée" : t.shipped === "auto" ? "en ligne sans toi puis envoyée" : t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"; }
 
@@ -333,13 +335,12 @@ function colonne(cur) {
   const ligne = (t, moi) => { const tr = t.status === "travail";
     return `<a class="ligne ${moi ? "moi" : "loin"}${cur === `d:${t.id}` ? " on" : ""}" href="#d=${encodeURIComponent(t.id)}">
     <span class="l1"><span class="t" data-contenu>${esc(t.title)}</span></span>
-    <span class="l2">${t.status === "erreur" ? `<i class="point"></i>` : ""}<span class="v"><span data-contenu>${esc(t.client)}</span>${tr ? "" : ` · ${verbe(t)}`}</span><span class="num">${tr ? age(t.startedAt || t.updatedAt) : age(t.createdAt)}</span></span></a>`; };
-  const al = alertes().map((a) => `<a class="ligne alerte${cur === "arrivees" ? " on" : ""}" href="#arrivees"><span class="l1">${a.rouge ? `<i class="point"></i>` : ""}<span class="t">${a.t}</span><button data-act="${a.geste === "allumer" ? "allumer" : "arrivees"}">${a.geste}</button></span></a>`).join("");
+    <span class="l2">${t.status === "erreur" ? `<i class="point"></i>` : ""}<span class="v"><span data-contenu>${esc(t.client)}</span>${tr ? "" : `<span> · ${verbe(t)}</span>`}</span><span class="num">${tr ? age(t.startedAt || t.updatedAt) : age(t.createdAt)}</span></span></a>`; };
   const attente = (c) => toi.filter((t) => t.clientId === c.id).map((t) => t.createdAt).sort()[0];
   const clients = S.clients.filter((c) => !retenues.has(`c:${c.id}`)).map((c) => ({ c, a: attente(c) }))
     .sort((x, y) => (x.a && y.a ? x.a.localeCompare(y.a) : x.a ? -1 : y.a ? 1 : x.c.name.localeCompare(y.c.name)))
     .map(({ c, a }) => `<a class="client${cur === `c:${c.id}` ? " on" : ""}" href="#c=${encodeURIComponent(c.id)}"><span data-contenu>${esc(c.name)}</span>${a ? `<span class="num gris">${age(a)}</span>` : ""}</a>`).join("");
-  return `<div class="groupe toi">À toi<span class="num">${toi.length}</span></div>${al}${toi.map((t) => ligne(t, true)).join("")}
+  return `<div class="groupe toi">À toi<span class="num">${toi.length}</span></div>${toi.map((t) => ligne(t, true)).join("")}
     ${claude.length ? `<div class="groupe">Claude y travaille<span class="num">${claude.length}</span></div>${claude.map((t) => ligne(t, false)).join("")}` : ""}
     <div class="filet"></div><div class="groupe">Clients<button class="plus" data-act="nouveau" aria-label="Nouveau client">${SVG_PLUS}</button></div>${clients}`;
 }
@@ -452,7 +453,7 @@ function vueArrivees() {
   const n = S.notes ?? {}, ouvrir = mailForm || !S.mail.ok || n.mail;
   const pt = (cls) => `<i class="${cls}"></i>`;
   return `<header class="tete"><div class="h"><h1>Arrivées</h1></div></header><div>
-    <div class="arr"><span>Relève</span><span class="val">${S.auto ? `toutes les 2 min${S.lastPoll ? ` · dernière il y a <span class="num">${age(S.lastPoll)}</span>` : ""}` : "éteinte, rien n'est lu"}</span>
+    <div class="arr"><span>Relève</span><span class="val">${S.auto ? `toutes les 2 min${S.lastPoll ? ` · dernière il y a <span class="num">${age(S.lastPoll)}</span>` : ""}` : "éteinte"}</span>
       <input type="checkbox" class="switch" data-cfg="auto"${S.auto ? " checked" : ""} aria-label="Relève"></div>
     <div class="arr"><span>Mail</span><span class="val">${pt(n.mail ? "rouge" : S.mail.ok ? "" : "non")}<span data-contenu>${esc(n.mail || (S.mail.ok ? S.mail.user : "pas reliée"))}</span></span>
       ${ouvrir ? "" : `<button class="lien" data-act="relier">Relier</button>`}
@@ -476,9 +477,11 @@ function rendre() {
   else if ("arrivees" in h) { cur = "arrivees"; html = vueArrivees(); }
   html ??= `<div class="vide-etat">Rien ne t'attend.</div>`;
 
-  pose("#liste", colonne(cur));
-  const panne = alertes().some((a) => a.rouge);
-  pose("#releve", `<i class="${panne ? "rouge" : ""}"></i>${!S.auto ? "Relève éteinte" : S.lastPoll ? `Relève · il y a <span class="num">${age(S.lastPoll)}</span>` : "Relève allumée"}`);
+  if (pose("#liste", colonne(cur)) && cur !== dernierCur) $("#liste .on")?.scrollIntoView({ block: "nearest" }); // la ligne ouverte reste visible, même en petite fenêtre
+  // les arrivées n'ont qu'une place : le pied de la colonne (éteinte, en panne ou à l'heure)
+  const al = alertes()[0];
+  pose("#releve", al ? `<i class="${al.rouge ? "rouge" : "non"}"></i><span>${al.t}</span>${al.geste === "allumer" ? `<button data-act="allumer">allumer</button>` : ""}`
+    : `<i></i>${S.lastPoll ? `Relève · il y a <span class="num">${age(S.lastPoll)}</span>` : "Relève allumée"}`);
   $("#releve").classList.toggle("on", cur === "arrivees");
   document.title = toi.length ? `Kaoly Clients (${toi.length})` : "Kaoly Clients";
 
