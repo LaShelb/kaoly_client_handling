@@ -544,7 +544,8 @@ async function handle(req: Request) {
   // preuves et pièces jointes : seulement les fichiers qui appartiennent à la demande, jamais un chemin fourni par la page
   const file = pathname.match(/^\/(preuve|piece)\/([\w-]+)\/([^/]+)$/);
   if (req.method === "GET" && file) {
-    const t = tickets.find((x) => x.id === file[2]), name = decodeURIComponent(file[3]);
+    let name = ""; try { name = decodeURIComponent(file[3]); } catch {} // un « % » mal formé : introuvable, pas une erreur 500
+    const t = tickets.find((x) => x.id === file[2]);
     const path = !t ? null : file[1] === "preuve" ? (proofsOf(t).includes(name) ? `${DIR}/preuves/${t.id}/${name}` : null)
       : (t.files ?? []).find((f: string) => basename(f) === name);
     // bac à sable : une pièce jointe HTML ou SVG ouverte ne s'exécute pas avec les droits de la page (jeton, envoi)
@@ -586,7 +587,7 @@ async function handle(req: Request) {
         }
         else if (body.action === "relancer") {
           if (t.status !== "erreur") throw new Error("Cette demande n'est pas arrêtée.");
-          set(t, { reprises: null, revalider: null });
+          set(t, { reprises: null }); // revalider reste : le message déjà relu par Simon n'est pas réécrit par Claude
           relance(t);
         }
         else if (body.action === "fermer") { running.get(t.id)?.kill(); set(t, { status: "fini", dropped: !t.shipped, ...(t.shipped && !t.sentAt ? { unsent: true } : {}) }); cleanup(t); }

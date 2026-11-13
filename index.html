@@ -112,7 +112,7 @@
   .lead .point { width: 8px; height: 8px; margin: 0 10px 3px 0; vertical-align: middle; }
   .nom { color: var(--gris); border-radius: 4px; }
   .nom:hover { color: var(--encre); background: var(--survol); }
-  .qui-ed { display: flex; align-items: center; gap: 4px; }
+  .qui-ed { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; } /* trois pièces jointes ou plus : à la ligne, pas hors de la colonne */
   .crayon { margin-left: 2px; color: var(--gris); padding: 3px; border-radius: 4px; }
   .crayon:hover { color: var(--encre); background: var(--survol); }
   .incertain {text-decoration: underline dashed; text-underline-offset: 3px; }
@@ -122,7 +122,7 @@
   .ed::placeholder { color: var(--gris); }
   textarea.ed { overflow: hidden; }
   .voix .ed { max-width: calc(68ch + 14px); }
-  .joint { display: inline-flex; align-items: center; gap: 6px; color: var(--gris); }
+  .joint { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0 6px; color: var(--gris); }
   .piece { color: inherit; padding: 0 3px; border-radius: 4px; }
   button.piece:hover { color: var(--encre); background: var(--survol); }
   .piece.off { display: none; text-decoration: line-through; }
@@ -211,11 +211,9 @@
   #plein .haut span { flex: 1; min-width: 0; color: var(--gris); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #plein .cadre { width: min(100%, calc((100vh - 96px) * 1.6)); cursor: zoom-out; }
 
-  /* la demande du client à gauche (sans capture) : sous 1000 px, 2 lignes ; si le fil ne commence plus par le client, rien ne s'efface */
-  @media (max-width: 999px) { .preuve .lead.replie { -webkit-line-clamp: 2; } #vue.serre .fil-texte > .voix:first-child:not(.du-client) { display: block; } }
-
   /* ── sous 1000 px : la colonne se resserre, la preuve passe au-dessus du fil, le bouton reste visible ── */
   @media (max-width: 999px) {
+    .preuve .lead.replie { -webkit-line-clamp: 2; } /* la demande du client à gauche (sans capture) : 2 lignes */
     #col { width: 236px; }
     /* la colonne : « À toi » reste collé en haut, la liste s'arrête sur une ligne entière (couper) */
     #liste { padding-top: 0; scroll-padding: 36px 0 12px; }
@@ -248,7 +246,7 @@
     /* la phrase de Claude se lit entière ; elle ne tient sur une ligne qu'en dernier recours (couperTout) */
     .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)), .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: normal; }
     #vue.une .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)), #vue.une .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: nowrap; }
-    #vue.serre .fil-texte > .voix:first-child:not(:has(textarea, .envoye, .deplie)) { display: none; } /* ça ne tient pas, même la preuve à 80 px : la ligne du client s'efface */
+    #vue.serre .fil-texte > .voix.du-client:first-child:not(:has(textarea, .envoye, .deplie)) { display: none; } /* ça ne tient pas, même la preuve à 80 px : la ligne du client s'efface, jamais une autre voix */
     /* les réglages passent au-dessus du registre, sur une ligne : la bascule, « Détail » ; les contacts et le reste sont dans le Détail */
     .fiche { display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow-y: auto; }
     .reglages { order: -1; position: relative; margin-bottom: 12px; }
@@ -294,7 +292,7 @@ const retenues = new Map(); // actions retenues 5 s dans la page : clé → { ti
 const textes = {};          // retouche qui n'est pas partie, gardée par demande jusqu'à la réouverture
 const deplies = new Set();  // demandes du client dépliées
 const choix = {};           // preuve affichée, par demande
-let ajout = null, detailOuvert = false, destEdit = null, mailForm = false, mailAide = false, puceOff = null, propositions = [], rendus = {}, dernierCur = "", effacer = null;
+let ajout = null, detailOuvert = false, destEdit = null, mailForm = false, mailAide = false, puceOff = null, propositions = [], rendus = {}, dernierCur = "", effacer = null, pasParti = null;
 
 // ───────── petites règles d'affichage ─────────
 const minutes = (iso) => Math.max(1, Math.floor((Date.now() - Date.parse(iso)) / 60000));
@@ -316,9 +314,9 @@ function files(avecRetenues) { // les demandes retenues 5 s ne comptent pas, mai
   return { toi, claude };
 }
 function alertes() {
-  if (!S.auto) return [{ t: "Relève éteinte", geste: "allumer" }];
-  return [["mail", "Mail en panne", "relier"], ["whatsapp", "WhatsApp en panne", "voir"], ["tri", "Tri en panne", "voir"]]
-    .filter(([k]) => S.notes?.[k]).map(([, t, geste]) => ({ t, geste, rouge: true }));
+  if (!S.auto) return [{ t: "Relève éteinte", allumer: true }];
+  return [["mail", "Mail en panne"], ["whatsapp", "WhatsApp en panne"], ["tri", "Tri en panne"]]
+    .filter(([k]) => S.notes?.[k]).map(([, t]) => ({ t, rouge: true }));
 }
 function verbe(t) {
   if (t.status === "message" && t.error) return "arrêtée";
@@ -381,7 +379,7 @@ function capturesClient(t) {
 }
 const vues = (t) => preuves(t).concat(capturesClient(t));
 const choisie = (t, o) => { const h = adresse(), v = h.d === t.id ? h.v : null; return o.find((x) => x.cle === v) ?? o.find((x) => x.cle === choix[t.id]) ?? o[0]; };
-const media = (t, x, grand) => {
+const media = (t, x) => {
   const u = `/${x.piece ? "piece" : "preuve"}/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`;
   return x.video ? `<video src="${u}" muted loop playsinline autoplay preload="auto"></video>` : `<img src="${u}" alt="${esc(x.nom)}">`;
 };
@@ -486,8 +484,8 @@ const cle = () => { const h = adresse(); return h.d != null ? `d:${h.d}` : h.c !
 const piecesDefaut = (t) => (t.proofs ?? []).filter((f) => /\.(png|jpe?g|gif)$/i.test(f) && !/avant/i.test(f));
 function brouillon(t) { return drafts[t.id] ?? { to: t.draft?.to ?? "", subject: t.draft?.subject ?? "", body: t.draft?.body ?? "", pieces: t.draft?.pieces ?? piecesDefaut(t) }; }
 function suivante(id) {
-  const { toi } = files(), i = toi.findIndex((t) => t.id === id), reste = toi.filter((t) => t.id !== id);
-  return (i >= 0 ? toi.slice(i + 1).find((t) => t.id !== id) : null) ?? reste[0] ?? null;
+  const { toi } = files(), i = toi.findIndex((t) => t.id === id);
+  return (i >= 0 ? toi[i + 1] : null) ?? toi.find((t) => t.id !== id) ?? null;
 }
 
 // ───────── la colonne ─────────
@@ -545,7 +543,7 @@ function nomDest(t, to) {
 }
 // ce qui part avec le mail : le trombone et les noms du sélecteur ; un clic retire, les retirées reviennent au survol
 function joint(t, d, lecture) {
-  const o = preuves(t).filter((x) => !x.piece), p = d.pieces;
+  const o = preuves(t), p = d.pieces;
   if (!o.length || !p) return "";
   if (lecture) { const on = o.filter((x) => p.includes(x.f)); return on.length ? `<span class="joint">· ${SVG_CLIP}${on.map((x) => `<span>${x.nom}</span>`).join("")}</span>` : ""; }
   return `<span class="joint">· ${SVG_CLIP}${o.map((x) => `<button class="piece${p.includes(x.f) ? "" : " off"}" data-act="joindre" data-f="${esc(x.f)}">${x.nom}</button>`).join("")}</span>`;
@@ -577,12 +575,12 @@ function libellePrincipal(t) {
 // ce que Simon a dit à Claude reste dans le fil, entre le client et Claude
 function voixToi(t) {
   if (!t.said?.text) return "";
-  return voix(`Toi · ${age(t.said.at)}`, (t.said.q ? `<div class="gris" data-contenu>${esc(t.said.q)}</div>` : "") + `<div class="dit" data-contenu>${esc(t.said.text)}</div>`, "de-toi");
+  return voix(`Toi · ${age(t.said.at)}`, (t.said.q ? `<div class="gris" data-contenu>${esc(t.said.q)}</div>` : "") + `<div class="dit" data-contenu>${esc(t.said.text)}</div>`);
 }
 // les réponses que Claude propose à sa question : un clic ou ⌘1 à ⌘3
 const options = (t) => t.status === "question" && t.options?.length ? `<div class="options">${t.options.map((o, i) => `<button class="option" data-act="repondre" data-i="${i}" aria-label="⌘${i + 1}"><span class="num">${i + 1}</span><span data-contenu>${esc(o)}</span></button>`).join("")}</div>` : "";
-function vueDemande(t, h) {
-  const { toi } = files(), o = preuves(t), v = vues(t);
+function vueDemande(t) {
+  const o = preuves(t), v = vues(t);
   const avecPreuve = t.status === "valider" ? t.changed || o.length > 0 : ["message", "fini"].includes(t.status) && o.length > 0;
   const tete = `<header class="tete"><div class="h"><h1 data-contenu>${esc(t.title)}</h1>
     ${t.status !== "fini" ? `<button class="lien classer" data-act="classer">Classer</button>` : ""}</div>
@@ -608,10 +606,10 @@ function vueDemande(t, h) {
   const det = [];
   if (t.summary) det.push(`<p class="resume" data-contenu>${esc(t.summary)}</p>`);
   if (t.status === "erreur" && t.error) det.push(`<p data-contenu>${esc(t.error)}</p>`);
-  if (/^https:\/\//.test(t.pr ?? "")) det.push(`<a class="lien" href="${esc(t.pr)}" target="_blank" rel="noopener">Code sur GitHub</a>`); // ponytail : lien simple, la fenêtre Swift ne l'ouvre pas encore ailleurs
+  if (/^https:\/\//.test(t.pr ?? "")) det.push(`<a class="lien" href="${esc(t.pr)}" target="_blank" rel="noopener">Code sur GitHub</a>`); // la fenêtre Swift l'ouvre dans le navigateur
   if (t.live?.length) det.push(`<p class="num" data-contenu>${t.live.map(esc).join("<br>")}</p>`);
   for (const f of (t.files ?? []).filter((f) => !imagesClient(t).includes(f))) { const n = f.split("/").pop(); det.push(`<a class="lien" href="/piece/${encodeURIComponent(t.id)}/${encodeURIComponent(n)}" target="_blank" data-contenu>${esc(n)}</a>`); }
-  const detail = det.length ? `<details${t.status === "erreur" ? "" : ""}><summary>Détail</summary><div class="detail">${det.join("")}</div></details>` : "";
+  const detail = det.length ? `<details><summary>Détail</summary><div class="detail">${det.join("")}</div></details>` : "";
   let actions = "";
   if (["valider", "message", "erreur"].includes(t.status)) {
     const d = brouillon(t), bloque = t.status !== "erreur" && (!d.to || d.to.startsWith("@"));
@@ -677,7 +675,7 @@ function rendre() {
   if (!location.hash.slice(1)) { if (toi[0]) return aller(adrDemande(toi[0].id), true); h.rien = ""; }
   let t = null, c = null, cur = "", html;
   if ("rien" in h) html = null;
-  else if (h.d != null) { t = S.tickets.find((x) => x.id === h.d); cur = `d:${h.d}`; html = t ? vueDemande(t, h) : null; }
+  else if (h.d != null) { t = S.tickets.find((x) => x.id === h.d); cur = `d:${h.d}`; html = t ? vueDemande(t) : null; }
   else if (h.c != null) { c = S.clients.find((x) => x.id === h.c); cur = `c:${h.c}`; html = c ? vueClient(c) : null; }
   else if ("arrivees" in h) { cur = "arrivees"; html = vueArrivees(); }
   html ??= `<div class="vide-etat">Rien ne t'attend.</div>`;
@@ -685,7 +683,7 @@ function rendre() {
   pose("#liste", colonne(cur));
   // les arrivées n'ont qu'une place : le pied de la colonne (éteinte, en panne ou à l'heure)
   const al = alertes()[0];
-  pose("#releve", al ? `<i class="${al.rouge ? "rouge" : "non"}"></i><span>${al.t}</span>${al.geste === "allumer" ? `<button data-act="allumer">allumer</button>` : ""}`
+  pose("#releve", al ? `<i class="${al.rouge ? "rouge" : "non"}"></i><span>${al.t}</span>${al.allumer ? `<button data-act="allumer">allumer</button>` : ""}`
     : `<i></i>${S.lastPoll ? `Relève · il y a <span class="num">${age(S.lastPoll)}</span>` : "Relève allumée"}`);
   $("#releve").classList.toggle("on", cur === "arrivees");
   document.title = toi.length ? `Kaoly Clients (${toi.length})` : "Kaoly Clients";
@@ -698,7 +696,7 @@ function rendre() {
   // la preuve en plein écran
   const o = t ? vues(t) : [], plein = t && "plein" in h && o.length;
   document.body.classList.toggle("en-plein", !!plein);
-  if (plein) { const x = choisie(t, o); pose("#plein", `<div class="haut"><span data-contenu>${esc(t.title)}</span>${selecteur(o, x)}</div><figure class="cadre" data-act="fermer-plein">${media(t, x, true)}</figure>`); }
+  if (plein) { const x = choisie(t, o); pose("#plein", `<div class="haut"><span data-contenu>${esc(t.title)}</span>${selecteur(o, x)}</div><figure class="cadre" data-act="fermer-plein">${media(t, x)}</figure>`); }
   else pose("#plein", "");
 
   // la barre : la puce nomme la demande visée
@@ -782,7 +780,6 @@ function retenir(cle, chemin, body, libelle, retour, apres, texte) {
   retenues.set(cle, r);
   if (apres) aller(apres, true); else rendre();
 }
-let pasParti = null;
 async function partir(cle) {
   const r = retenues.get(cle); if (!r) return;
   const j = await post(r.chemin, r.body);
@@ -963,7 +960,6 @@ document.addEventListener("click", async (e) => {
   if (act === "repondre") return repondre(t, +el.dataset.i);
   if (act === "annuler") return annuler(el.dataset.cle);
   if (act === "allumer") { await post("/api/config", { auto: true }); return rendre(); }
-  if (act === "arrivees") return aller("arrivees");
   if (act === "nouveau") { puceOff = cle(); say.value = "Nouveau client : "; tailleBarre(); rendre(); say.focus(); return; }
   if (act === "appliquer") { const ps = propositions; propositions = []; for (const p of ps) if (!(await post("/api/config", { client: p }))) return; dire("✓ Appliqué"); return rendre(); }
   if (act === "relier") { mailForm = true; return forcer(); }
