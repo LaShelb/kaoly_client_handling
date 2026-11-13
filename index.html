@@ -96,6 +96,7 @@
   .dit { max-width: 68ch; overflow-wrap: anywhere; }
   .replie { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; } /* une liste du client garde ses retours à la ligne */
   .deplie { white-space: pre-wrap; }
+  .replie.court { -webkit-line-clamp: 2; } /* un message attend : la demande du client tient sur 2 lignes, un clic la déplie */
   [data-act="deplier"] { cursor: pointer; }
   .reserve { margin-top: 4px; max-width: 68ch; }
   .reserve span:first-child { text-decoration: underline dashed rgba(0,0,0,.5); text-decoration-thickness: 1px; text-underline-offset: 4px; }
@@ -114,9 +115,12 @@
   textarea.ed { overflow: hidden; }
   .voix .ed { max-width: calc(68ch + 14px); }
   .objet { font-weight: 400; color: var(--gris); }
+  .voix:not(:focus-within) .objet { display: none; } /* il redit le titre ; il part quand même avec le mail */
   .envoye { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; color: var(--gris); } /* parti : en gris, comme le passé ; le brouillon reste en encre */
   .refus { flex: none; margin: 10px 0 0; font-size: 13px; display: flex; align-items: center; gap: 8px; }
-  .actions { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 18px 0 4px; }
+  .actions { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 16px 0 0; }
+  .fil > details { flex: none; margin-top: 6px; }
+  .fil > details .detail { max-height: 160px; overflow-y: auto; padding-right: 4px; }
   .plein { display: inline-flex; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 8px; background: var(--encre); color: #fff; font-weight: 500; white-space: nowrap; }
   .plein:hover { background: #2b2b2b; }
   .plein[disabled] { opacity: .4; cursor: default; }
@@ -134,10 +138,12 @@
   .chiffres .num { color: var(--encre); }
   .fiche { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 240px; grid-template-rows: minmax(0, 1fr); gap: 56px; align-items: start; }
   .registre { max-height: 100%; overflow-y: auto; }
-  .reg { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 8px 6px; border-top: 1px solid var(--filet); }
-  .reg:hover { background: var(--survol); }
+  .reg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--filet); }
+  .reg:hover { background: var(--survol); margin: 0 -8px; padding: 8px 8px; }
+  .reg.part, .reg.part:hover { margin-top: 12px; }
   .reg .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .reg .v { font-size: 12px; color: var(--gris); white-space: nowrap; }
+  .reg .v { display: flex; align-items: baseline; gap: 10px; font-size: 12px; color: var(--gris); white-space: nowrap; }
+  .reg .v .num { min-width: 52px; text-align: right; }
   .reg.passe { color: var(--gris); }
   .reglages .bloc { padding: 10px 0 12px; border-top: 1px solid var(--filet); }
   .contact { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
@@ -185,6 +191,9 @@
   #plein .haut { display: flex; align-items: baseline; gap: 24px; width: min(100%, calc((100vh - 96px) * 1.6)); }
   #plein .haut span { flex: 1; min-width: 0; color: var(--gris); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #plein .cadre { width: min(100%, calc((100vh - 96px) * 1.6)); cursor: zoom-out; }
+
+  /* la demande du client à gauche (sans capture) : sous 1000 px, 2 lignes ; si le fil ne commence plus par le client, rien ne s'efface */
+  @media (max-width: 999px) { .preuve .lead.replie { -webkit-line-clamp: 2; } #vue.serre .fil-texte > .voix:first-child:not(.du-client) { display: block; } }
 
   /* ── sous 1000 px : la colonne se resserre, la preuve passe au-dessus du fil, le bouton reste visible ── */
   @media (max-width: 999px) {
@@ -413,18 +422,23 @@ function colonne(cur) {
 
 // ───────── une demande ─────────
 const voix = (qui, corps, cls = "") => `<div class="voix ${cls}"><div class="qui">${qui}</div>${corps}</div>`;
-function voixClient(t, serre) {
-  const a = auteur(t), ouvert = !serre || deplies.has(t.id);
+const texteClient = (t, ouvert) => ouvert ? String(t.request ?? "").trim().replace(/\n\s*\n+/g, "\n") : String(t.request ?? "").replace(/^\s*(bonjour|bonsoir|hello|salut|coucou|hi)\b[^\n]{0,40}\n+/i, "").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
+// `lead` : la demande prend la place de gauche (pas de capture), en 20 px ; en gris quand elle n'attend plus rien de Simon
+function voixClient(t, serre, lead) {
+  const a = auteur(t), ouvert = !serre || deplies.has(t.id), attend = ["valider", "message"].includes(t.status), gris = ["file", "fini"].includes(t.status);
   // replié : on saute la formule d'appel pour que les deux lignes disent la demande
-  const txt = ouvert ? String(t.request ?? "").trim().replace(/\n\s*\n+/g, "\n") : String(t.request ?? "").replace(/^\s*(bonjour|bonsoir|hello|salut|coucou|hi)\b[^\n]{0,40}\n+/i, "").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
-  return voix(a ? `<span data-contenu>${esc(a)}</span>` : "Toi", `<div class="dit ${ouvert ? "deplie" : "replie"}"${serre ? ` data-act="deplier"` : ""} data-contenu>${esc(txt)}</div>`);
+  return voix(a ? `<span data-contenu>${esc(a)}</span>` : "Toi", `<div class="${lead ? `lead${gris ? " gris" : ""}` : "dit"} ${ouvert ? "deplie" : `replie${attend && !lead ? " court" : ""}`}"${serre ? ` data-act="deplier"` : ""} data-contenu>${esc(texteClient(t, ouvert))}</div>`, lead ? "" : "du-client");
 }
 function voixClaude(t) {
   if (["travail", "question"].includes(t.status)) return ""; // sa phrase est déjà à gauche
   // sans changement de code, sa réponse est le message : on ne garde que la réserve ; sinon une seule phrase (le résumé entier est dans le Détail)
   const repond = !t.changed && (t.status === "message" || (t.status === "fini" && t.draft?.body));
   const phr = String(t.summary ?? "").trim().split(/\n|(?<=[.?!…])\s/)[0];
-  let s = repond ? "" : t.change ? `<div class="dit" data-contenu>${esc(t.change)}</div>` : phr ? `<div class="dit" data-contenu>${esc(phr)}</div>` : "";
+  // la phrase n'est pas redite quand le message la dit déjà : 60 % de ses mots de plus de 3 lettres sont dans le brouillon
+  const mots = (x) => (x.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").match(/[a-z0-9]+/g) ?? []).filter((m) => m.length > 3);
+  const corps = new Set(mots(["valider", "message"].includes(t.status) ? brouillon(t).body : t.draft?.body ?? "")), dit = mots(t.change || phr);
+  const redit = dit.length > 0 && dit.filter((m) => corps.has(m)).length / dit.length >= 0.6;
+  let s = repond || redit ? "" : t.change ? `<div class="dit" data-contenu>${esc(t.change)}</div>` : phr ? `<div class="dit" data-contenu>${esc(phr)}</div>` : "";
   if (t.reserve) s += `<div class="reserve"><span>À vérifier : <span data-contenu>${esc(t.reserve)}</span></span></div>`;
   return s ? voix("Claude", s) : "";
 }
@@ -469,6 +483,7 @@ function vueDemande(t, h) {
   if (avecPreuve) {
     const x = choisie(t, o);
     scene = o.length ? `${selecteur(o, x)}<figure class="cadre" data-act="plein">${media(t, x)}</figure>` : `<div class="cadre vide">Pas de capture</div>`;
+    if (!o.length) scene += voixClient(t, true, true);
   } else if (t.status === "question") scene = voix("Claude", `<p class="lead" data-contenu>${esc(t.question)}</p>`);
   else if (t.status === "erreur") scene = `<p class="lead"><i class="point"></i><span data-contenu>${esc(raison(t))}</span></p>`;
   else if (t.status === "travail") { // la dernière phrase de Claude, jamais son journal d'outils
@@ -476,6 +491,9 @@ function vueDemande(t, h) {
     if (l) scene = voix("Claude", `<p class="lead gris" data-contenu>${esc(l)}</p>`);
   }
   const serre = ["valider", "message"].includes(t.status) || (t.status === "fini" && !t.dropped);
+  // la demande du client prend la place de gauche quand il n'y a pas de capture ; elle quitte alors le fil
+  const gauche = ["valider", "message", "file", "fini"].includes(t.status) && !(avecPreuve && o.length);
+  if (gauche && !scene) scene = voixClient(t, true, true);
   const message = ["valider", "message"].includes(t.status) ? voixMessage(t, false) : t.status === "fini" && !t.dropped && t.draft?.body ? voixMessage(t, true) : "";
   const det = [];
   if (t.summary) det.push(`<p class="resume" data-contenu>${esc(t.summary)}</p>`);
@@ -491,25 +509,29 @@ function vueDemande(t, h) {
       ${t.status === "valider" ? `<button class="lien" data-act="seulement">Sans envoyer</button>` : ""}</div>`;
   }
   const refus = t.status === "message" && t.error ? `<p class="refus"><i class="point"></i><span data-contenu>${esc(raison(t))}</span>${relier(t.error)}</p>` : "";
-  const fil = `<div class="fil"><div class="fil-texte">${voixClient(t, serre)}${voixClaude(t)}${message}${detail}</div>${refus}${actions}</div>`;
+  const fil = `<div class="fil"><div class="fil-texte">${gauche ? "" : voixClient(t, serre)}${voixClaude(t)}${message}</div>${refus}${actions}${detail}</div>`;
   return `${tete}<div class="corps"><div class="preuve">${scene}</div>${fil}</div>`;
 }
 
 // ───────── un client ─────────
 function vueClient(c) {
   const ts = S.tickets.filter((t) => t.clientId === c.id && !retenues.has(t.id));
-  // un registre : ce qui attend Simon, puis ce que Claude a en main, puis le passé ; le plus récent en haut dans chaque part
-  const ouv = ts.filter((t) => t.status !== "fini").sort((a, b) => MINE.includes(b.status) - MINE.includes(a.status) || parDate(b, a));
-  const pas = ts.filter((t) => t.status === "fini").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  // un seul ordre, celui de la colonne : ce qui attend Simon, ce que Claude a en main, puis le passé du plus récent au plus ancien
+  const { toi, claude } = files(), moi = toi.filter((t) => t.clientId === c.id), lui = claude.filter((t) => t.clientId === c.id);
+  const pas = ts.filter((t) => t.status === "fini").sort((a, b) => Date.parse(b.sentAt || b.updatedAt) - Date.parse(a.sentAt || a.updatedAt));
   const n = new Date(), ceMois = pas.filter((t) => { const d = new Date(t.sentAt || t.updatedAt); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length;
-  const plusVieille = ouv.filter((t) => MINE.includes(t.status)).map((t) => t.createdAt).sort()[0];
-  const envoi = ts.map((t) => t.sentAt).filter(Boolean).sort().pop();
-  const ch = [ouv.length && `<span class="num">${ouv.length}</span> ouverte${ouv.length > 1 ? "s" : ""}`, plusVieille && `attend depuis <span class="num">${age(plusVieille)}</span>`,
-    ceMois && `<span class="num">${ceMois}</span> réglée${ceMois > 1 ? "s" : ""} ce mois`, envoi && `dernier envoi le <span class="num">${date(envoi)}</span>`].filter(Boolean).join(" · ");
-  const ligne = (t, passe) => `<a class="reg${passe ? " passe" : ""}" href="#d=${encodeURIComponent(t.id)}"><span class="num">${date(t.createdAt)}</span><span class="t" data-contenu>${esc(t.title)}</span><span class="v">${t.status === "erreur" ? `<i class="point"></i> ` : ""}${passe ? issue(t) : t.status === "travail" ? `Claude · ${verbe(t)}` : verbe(t)}</span></a>`;
-  const reg = ts.length ? `${ouv.map((t) => ligne(t, false)).join("")}${pas.map((t) => ligne(t, true)).join("")}` : `<p class="gris">Aucune demande.</p>`;
+  const plusVieille = moi.map((t) => t.createdAt).sort()[0];
+  const ch = [moi.length && `<span class="num">${moi.length}</span> à toi`, plusVieille && `attend depuis <span class="num">${age(plusVieille)}</span>`,
+    lui.length && `<span class="num">${lui.length}</span> avec Claude`, ceMois && `<span class="num">${ceMois}</span> réglée${ceMois > 1 ? "s" : ""} ce mois`].filter(Boolean).join(" · ");
+  // le titre part du bord du titre de la page ; à droite le verbe puis l'âge, alignés comme dans la colonne
+  const ligne = (t, passe, part) => {
+    const v = passe ? `${issue(t)}<span class="num">${date(t.sentAt || t.updatedAt)}</span>`
+      : `${t.status === "erreur" || t.error ? `<i class="point"></i>` : ""}${t.status === "travail" ? "Claude" : verbe(t)}<span class="num">${age(t.status === "travail" ? t.startedAt || t.updatedAt : t.createdAt)}</span>`;
+    return `<a class="reg${passe ? " passe" : ""}${part ? " part" : ""}" href="#d=${encodeURIComponent(t.id)}"><span class="t" data-contenu>${esc(t.title)}</span><span class="v">${v}</span></a>`;
+  };
+  const parts = [moi, lui, pas], reg = parts.map((l, i) => l.map((t, j) => ligne(t, i === 2, j === 0 && parts.slice(0, i).some((x) => x.length)))).flat().join("");
   return `<header class="tete"><div class="h"><h1 data-contenu>${esc(c.name)}</h1></div>${ch ? `<div class="chiffres">${ch}</div>` : ""}</header>
-  <div class="fiche"><div class="registre">${reg}</div>
+  <div class="fiche"><div class="registre">${ts.length ? reg : `<p class="gris">Aucune demande.</p>`}</div>
   <aside class="reglages" data-client="${esc(c.id)}">
     <div class="bloc"><div class="qui">Dépôt</div><input class="ed" data-cfg="repo" value="${esc(c.repo)}" placeholder="propriétaire/nom" aria-label="Dépôt"></div>
     <div class="bloc"><div class="qui">Contacts</div>${c.contacts.map((k) => `<div class="contact"><span data-contenu>${esc(k)}</span><button class="croix" data-act="retirer-contact" data-k="${esc(k)}" aria-label="Retirer">${SVG_CROIX}</button></div>`).join("")}
