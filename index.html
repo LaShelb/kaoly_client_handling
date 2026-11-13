@@ -158,6 +158,7 @@
   /* la fiche client et les arrivées : des lignes à filets, pas de cadre */
   .chiffres { margin-top: 3px; color: var(--gris); }
   .chiffres .num { color: var(--encre); }
+  .etat .num, .chiffres .num { font-family: inherit; font-size: inherit; letter-spacing: normal; }
   .fiche { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 240px; grid-template-rows: minmax(0, 1fr); gap: 56px; align-items: start; }
   .registre { max-height: 100%; overflow-y: auto; }
   .reg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--filet); }
@@ -279,7 +280,7 @@
   <div id="barre">
     <div id="trouve"></div>
     <div id="dit" aria-live="polite"></div>
-    <form id="champ"><span class="puce" id="puce" hidden></span><textarea id="say" rows="1" placeholder="Écris ou colle ici" aria-label="Barre de commande (⌘K)"></textarea></form>
+    <form id="champ"><span class="puce" id="puce" data-contenu hidden></span><textarea id="say" rows="1" placeholder="Écris ou colle ici" aria-label="Barre de commande (⌘K)"></textarea></form>
   </div>
 </main>
 <div id="plein" data-act="fermer-plein"></div>
@@ -306,7 +307,6 @@ let ajout = null, detailOuvert = false, destEdit = null, mailForm = false, mailA
 // ───────── petites règles d'affichage ─────────
 const minutes = (iso) => Math.max(1, Math.floor((Date.now() - Date.parse(iso)) / 60000));
 const age = (iso) => { const m = minutes(iso); return m < 60 ? `${m} min` : m < 1440 ? `${Math.floor(m / 60)} h` : `${Math.floor(m / 1440)} j`; };
-const ageMot = (iso) => (age(iso) === "1 j" ? "hier" : age(iso));
 const date = (iso) => { const d = new Date(iso); return `${d.getDate()} ${MOIS[d.getMonth()]}`; };
 const estGroupe = (t) => /@g\.us$/.test(t.source?.from ?? "");
 const prenom = (t) => String(t.source?.name ?? "").trim().split(/\s+/)[0] || "";
@@ -334,23 +334,24 @@ function verbe(t) {
 }
 function issue(t) { return t.dropped ? "classée" : t.unsent ? "en ligne, sans message" : t.shipped === "auto" ? "en ligne sans toi puis envoyée" : t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"; }
 
-// La phrase d'état : client, nature et mise en ligne, qui l'a envoyée, depuis quand. Elle remplace toutes les étiquettes.
+// La phrase d'état : client · verbe de la colonne · précision · prénom · âge. Le canal n'y est jamais : il est dit sur la ligne du message.
+const fin = (x) => String(x).replace(/ /g, "\u202f"); // chiffre et unité ne se séparent pas
 function phrase(t) {
   const enLigne = `<span class="vert">en ligne</span>`;
-  const nat = t.kind === "bug" ? "bug corrigé" : t.kind === "question" || !t.changed ? "réponse prête" : "interface modifiée";
+  const nat = t.kind === "bug" ? "bug corrigé" : t.kind === "question" || !t.changed ? "réponse" : "interface modifiée";
+  const ligne = t.shipped === "auto" ? `${enLigne} sans toi` : t.shipped ? enLigne : "pas en ligne";
   const etat = {
-    valider: t.revalider ? `${nat}, à revalider` : `${nat}, pas encore en ligne`,
-    message: t.error ? (t.shipped ? `${nat}, ${enLigne}, envoi bloqué` : "envoi bloqué") : !t.changed ? "réponse prête" : t.shipped === "auto" ? `${nat}, ${enLigne} sans toi` : t.shipped ? `${nat}, ${enLigne}` : `${nat}, pas encore en ligne`,
-    question: "Claude te demande",
-    erreur: { "copie du dépôt": "copie bloquée", "envoi du code": "mise en ligne bloquée", "mise en ligne": "mise en ligne bloquée", "envoi au client": "envoi bloqué" }[t.step] ?? "arrêtée",
-    travail: `Claude y travaille depuis <span class="num">${age(t.startedAt || t.updatedAt)}</span>`,
-    file: "en attente d'une place",
-    fini: t.dropped || t.unsent ? `classée le <span class="num">${date(t.updatedAt)}</span>${t.unsent ? ` · ${enLigne}` : ""}` : `${t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"} le <span class="num">${date(t.sentAt || t.updatedAt)}</span>${t.shipped ? ` · ${enLigne}` : ""}`,
+    valider: `à valider · ${t.revalider ? `${nat}, nouvelle version` : `${nat === "interface modifiée" ? "interface" : nat}, pas en ligne`}`,
+    message: t.error ? `arrêtée${t.shipped ? ` · ${nat}, ${ligne}` : ""}` : t.changed ? `à envoyer · ${nat}, ${ligne}` : "à envoyer",
+    question: "Claude demande",
+    erreur: "arrêtée",
+    travail: "Claude y travaille",
+    file: "en attente",
+    fini: t.dropped || t.unsent ? `classée le ${fin(date(t.updatedAt))}${t.unsent ? ` · ${enLigne}` : ""}` : `${t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"} le ${fin(date(t.sentAt || t.updatedAt))}${t.shipped ? ` · ${enLigne}` : ""}`,
   }[t.status] ?? "";
-  // le canal n'est dit qu'une fois : sur la ligne « À Claire · mail » quand il y a un message, sinon ici
-  const a = auteur(t), aMessage = ["valider", "message"].includes(t.status) || (t.status === "fini" && !t.dropped && !t.unsent && t.draft?.body);
-  const qui = a ? `<span data-contenu>${esc(a)}</span>${aMessage ? "" : ` par ${t.source.channel === "whatsapp" ? "WhatsApp" : "mail"}`}` : "Toi";
-  return `<a href="#c=${encodeURIComponent(t.clientId)}" data-contenu>${esc(t.client)}</a> · ${etat} · ${qui}${["fini", "travail"].includes(t.status) ? "" : ` · <span class="num">${ageMot(t.createdAt)}</span>`}`;
+  const a = auteur(t), qui = a ? `<span data-contenu>${esc(a)}</span>` : "Toi";
+  const quand = t.status === "fini" ? "" : ` · ${fin(age(t.status === "travail" ? t.startedAt || t.updatedAt : t.createdAt))}`;
+  return `<a href="#c=${encodeURIComponent(t.clientId)}" data-contenu>${esc(t.client)}</a> · ${etat} · ${qui}${quand}`;
 }
 
 // La raison d'une panne en une phrase lisible ; le texte brut reste dans Détail.
@@ -650,12 +651,12 @@ function vueClient(c) {
   const pas = ts.filter((t) => t.status === "fini").sort((a, b) => Date.parse(b.sentAt || b.updatedAt) - Date.parse(a.sentAt || a.updatedAt));
   const n = new Date(), ceMois = pas.filter((t) => { const d = new Date(t.sentAt || t.updatedAt); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length;
   const plusVieille = moi.map((t) => t.createdAt).sort()[0];
-  const ch = [moi.length && `<span class="num">${moi.length}</span> à toi`, plusVieille && `attend depuis <span class="num">${age(plusVieille)}</span>`,
+  const ch = [moi.length && `<span class="num">${moi.length}</span> à toi`, plusVieille && `attend depuis <span class="num">${fin(age(plusVieille))}</span>`,
     lui.length && `<span class="num">${lui.length}</span> avec Claude`, ceMois && `<span class="num">${ceMois}</span> réglée${ceMois > 1 ? "s" : ""} ce mois`].filter(Boolean).join(" · ");
   // le titre part du bord du titre de la page ; à droite le verbe puis l'âge, alignés comme dans la colonne
   const ligne = (t, passe, part) => {
     const v = passe ? `${issue(t)}<span class="num">${date(t.sentAt || t.updatedAt)}</span>`
-      : `${t.status === "erreur" || t.error ? `<i class="point"></i>` : ""}${t.status === "travail" ? "Claude" : verbe(t)}<span class="num">${age(t.status === "travail" ? t.startedAt || t.updatedAt : t.createdAt)}</span>`;
+      : `${t.status === "erreur" || t.error ? `<i class="point"></i>` : ""}${t.status === "travail" ? "Claude y travaille" : verbe(t)}<span class="num">${age(t.status === "travail" ? t.startedAt || t.updatedAt : t.createdAt)}</span>`;
     return `<a class="reg${passe ? " passe" : ""}${part ? " part" : ""}" href="#d=${encodeURIComponent(t.id)}"><span class="t" data-contenu>${esc(t.title)}</span><span class="v">${v}</span></a>`;
   };
   const parts = [moi, lui, pas], reg = parts.map((l, i) => l.map((t, j) => ligne(t, i === 2, j === 0 && parts.slice(0, i).some((x) => x.length)))).flat().join("");
