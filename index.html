@@ -117,6 +117,11 @@
   .ed::placeholder { color: var(--gris); }
   textarea.ed { overflow: hidden; }
   .voix .ed { max-width: calc(68ch + 14px); }
+  .joint { display: inline-flex; align-items: center; gap: 6px; color: var(--gris); }
+  .piece { color: inherit; padding: 0 3px; border-radius: 4px; }
+  button.piece:hover { color: var(--encre); background: var(--survol); }
+  .piece.off { display: none; text-decoration: line-through; }
+  .qui-ed:hover .piece.off { display: inline; }
   .objet { font-weight: 400; color: var(--gris); }
   .voix:not(:focus-within) .objet { display: none; } /* il redit le titre ; il part quand même avec le mail */
   .envoye { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; color: var(--gris); } /* parti : en gris, comme le passé ; le brouillon reste en encre */
@@ -237,7 +242,6 @@
     /* la phrase de Claude se lit entière ; elle ne tient sur une ligne qu'en dernier recours (couperTout) */
     .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)), .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: normal; }
     #vue.une .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)), #vue.une .fil-texte > .voix:nth-child(2):not(:has(textarea, .envoye, .deplie)) :is(.qui, .dit) { white-space: nowrap; }
-    .voix:not(:focus-within) .objet { display: none; }
     #vue.serre .fil-texte > .voix:first-child:not(:has(textarea, .envoye, .deplie)) { display: none; } /* ça ne tient pas, même la preuve à 80 px : la ligne du client s'efface */
     /* les réglages passent au-dessus du registre, sur une ligne : la bascule, « Détail » ; les contacts et le reste sont dans le Détail */
     .fiche { display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow-y: auto; }
@@ -275,6 +279,7 @@ const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août"
 const say = $("#say");
 const SVG_PLUS = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 2.5v7M2.5 6h7"/></svg>`;
 const SVG_CRAYON = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M8.2 1.8l2 2-6.4 6.4-2.6.6.6-2.6z"/></svg>`;
+const SVG_CLIP = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 5.4L5.7 9.3a2 2 0 0 1-2.8-2.8l4.3-4.3a1.3 1.3 0 0 1 1.9 1.9L4.9 8.4a.6.6 0 0 1-.9-.9l3.5-3.5"/></svg>`;
 const SVG_CROIX =`<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"/></svg>`;
 
 let S = null;
@@ -314,7 +319,7 @@ function verbe(t) {
   return { valider: "à valider", question: "Claude demande", erreur: "arrêtée", file: "en attente" }[t.status]
     ?? (t.status === "message" ? "à envoyer" : t.status === "travail" ? `<span class="num">${age(t.startedAt || t.updatedAt)}</span>` : "");
 }
-function issue(t) { return t.dropped ? "classée" : t.shipped === "auto" ? "en ligne sans toi puis envoyée" : t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"; }
+function issue(t) { return t.dropped ? "classée" : t.unsent ? "en ligne, sans message" : t.shipped === "auto" ? "en ligne sans toi puis envoyée" : t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"; }
 
 // La phrase d'état : client, nature et mise en ligne, qui l'a envoyée, depuis quand. Elle remplace toutes les étiquettes.
 function phrase(t) {
@@ -327,10 +332,10 @@ function phrase(t) {
     erreur: { "copie du dépôt": "copie bloquée", "envoi du code": "mise en ligne bloquée", "mise en ligne": "mise en ligne bloquée", "envoi au client": "envoi bloqué" }[t.step] ?? "arrêtée",
     travail: `Claude y travaille depuis <span class="num">${age(t.startedAt || t.updatedAt)}</span>`,
     file: "en attente d'une place",
-    fini: t.dropped ? `classée le <span class="num">${date(t.updatedAt)}</span>` : `${t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"} le <span class="num">${date(t.sentAt || t.updatedAt)}</span>${t.shipped ? ` · ${enLigne}` : ""}`,
+    fini: t.dropped || t.unsent ? `classée le <span class="num">${date(t.updatedAt)}</span>${t.unsent ? ` · ${enLigne}` : ""}` : `${t.sentVia === "whatsapp" ? "préparée dans WhatsApp" : "envoyée"} le <span class="num">${date(t.sentAt || t.updatedAt)}</span>${t.shipped ? ` · ${enLigne}` : ""}`,
   }[t.status] ?? "";
   // le canal n'est dit qu'une fois : sur la ligne « À Claire · mail » quand il y a un message, sinon ici
-  const a = auteur(t), aMessage = ["valider", "message"].includes(t.status) || (t.status === "fini" && !t.dropped && t.draft?.body);
+  const a = auteur(t), aMessage = ["valider", "message"].includes(t.status) || (t.status === "fini" && !t.dropped && !t.unsent && t.draft?.body);
   const qui = a ? `<span data-contenu>${esc(a)}</span>${aMessage ? "" : ` par ${t.source.channel === "whatsapp" ? "WhatsApp" : "mail"}`}` : "Toi";
   return `<a href="#c=${encodeURIComponent(t.clientId)}" data-contenu>${esc(t.client)}</a> · ${etat} · ${qui}${["fini", "travail"].includes(t.status) ? "" : ` · <span class="num">${ageMot(t.createdAt)}</span>`}`;
 }
@@ -420,7 +425,9 @@ function aller(hash, remplacer) {
 }
 const adrDemande = (id, extra = {}) => [`d=${encodeURIComponent(id)}`, ...Object.entries(extra).filter(([, v]) => v != null).map(([k, v]) => (v === true ? k : `${k}=${v}`))].join("&");
 function courante() { const h = adresse(); return h.d != null ? S?.tickets.find((t) => t.id === h.d) : null; }
-function brouillon(t) { return drafts[t.id] ?? { to: t.draft?.to ?? "", subject: t.draft?.subject ?? "", body: t.draft?.body ?? "" }; }
+// ce que le mail joint : même test que le serveur (images sans « avant », pas de vidéo)
+const piecesDefaut = (t) => (t.proofs ?? []).filter((f) => /\.(png|jpe?g|gif)$/i.test(f) && !/avant/i.test(f));
+function brouillon(t) { return drafts[t.id] ?? { to: t.draft?.to ?? "", subject: t.draft?.subject ?? "", body: t.draft?.body ?? "", pieces: t.draft?.pieces ?? piecesDefaut(t) }; }
 function suivante(id) {
   const { toi } = files(), i = toi.findIndex((t) => t.id === id), reste = toi.filter((t) => t.id !== id);
   return (i >= 0 ? toi.slice(i + 1).find((t) => t.id !== id) : null) ?? reste[0] ?? null;
@@ -475,20 +482,29 @@ function nomDest(t, to) {
   if (/@g\.us$/.test(to)) return "le groupe";
   return to;
 }
+// ce qui part avec le mail : le trombone et les noms du sélecteur ; un clic retire, les retirées reviennent au survol
+function joint(t, d, lecture) {
+  const o = preuves(t), p = d.pieces;
+  if (!o.length || !p) return "";
+  if (lecture) { const on = o.filter((x) => p.includes(x.f)); return on.length ? `<span class="joint">· ${SVG_CLIP}${on.map((x) => `<span>${x.nom}</span>`).join("")}</span>` : ""; }
+  return `<span class="joint">· ${SVG_CLIP}${o.map((x) => `<button class="piece${p.includes(x.f) ? "" : " off"}" data-act="joindre" data-f="${esc(x.f)}">${x.nom}</button>`).join("")}</span>`;
+}
 function voixMessage(t, lecture) {
   const d = lecture ? (t.draft ?? {}) : brouillon(t), to = d.to ?? "";
   const canal = lecture ? (t.sentVia === "whatsapp" ? "WhatsApp" : "mail") : to ? (isMail(to) ? "mail" : "WhatsApp") : t.source?.channel === "whatsapp" ? "WhatsApp" : "mail";
   const nom = nomDest(t, to);
   let qui;
-  if (lecture) qui = `À <span data-contenu>${esc(nom ?? "")}</span> · ${canal}`;
+  const mail = canal === "mail";
+  if (lecture) qui = `À <span data-contenu>${esc(nom ?? "")}</span> · ${canal}${mail ? joint(t, d, true) : ""}`;
   else if (destEdit === t.id) qui = `<input class="ed" data-champ="to" value="${esc(to)}" placeholder="adresse ou numéro" aria-label="Destinataire">`;
   else qui = nom ? `À <button class="nom" data-act="dest" data-contenu>${esc(nom)}</button> · ${canal}` : `<button class="nom incertain" data-act="dest">À qui ?</button> · ${canal}`;
   // un crayon au trait : le message se modifie sur place, sans cadre au repos
-  if (!lecture && destEdit !== t.id) qui = `<span class="qui-ed">${qui}<button class="crayon" data-act="ecrire" aria-label="Modifier le message">${SVG_CRAYON}</button></span>`;
-  const mail = canal === "mail";
+  if (!lecture && destEdit !== t.id) qui = `<span class="qui-ed">${qui}${mail ? joint(t, d, false) : ""}<button class="crayon" data-act="ecrire" aria-label="Modifier le message">${SVG_CRAYON}</button></span>`;
+  // ponytail : l'objet d'une réponse ne se choisit pas, il part en « Re: » devant celui du client
+  const reponse = t.source?.channel === "mail" && String(t.source.subject ?? "").trim();
   const corps = lecture
-    ? `${mail && d.subject ? `<div class="objet gris" data-contenu>${esc(d.subject)}</div>` : ""}<div class="envoye" data-contenu>${esc(d.body)}</div>`
-    : `${mail ? `<input class="ed objet" data-champ="subject" value="${esc(d.subject)}" aria-label="Objet">` : ""}<textarea class="ed" data-champ="body" rows="1" aria-label="Message">${esc(d.body)}</textarea>`;
+    ? `${mail && d.subject && !reponse ? `<div class="objet gris" data-contenu>${esc(d.subject)}</div>` : ""}<div class="envoye" data-contenu>${esc(d.body)}</div>`
+    : `${mail && !reponse ? `<input class="ed objet" data-champ="subject" value="${esc(d.subject)}" aria-label="Objet">` : ""}<textarea class="ed" data-champ="body" rows="1" aria-label="Message">${esc(d.body)}</textarea>`;
   return voix(qui, corps);
 }
 function libellePrincipal(t) {
@@ -516,11 +532,11 @@ function vueDemande(t, h) {
     const l = [...(t.live ?? [])].reverse().find((x) => !/^[A-Z][\w-]* · /.test(x));
     if (l) scene = voix("Claude", `<p class="lead gris" data-contenu>${esc(l)}</p>`);
   }
-  const serre = ["valider", "message"].includes(t.status) || (t.status === "fini" && !t.dropped);
+  const serre = ["valider", "message"].includes(t.status) || (t.status === "fini" && !t.dropped && !t.unsent);
   // la demande du client prend la place de gauche quand il n'y a pas de capture ; elle quitte alors le fil
   const gauche = ["valider", "message", "file", "fini"].includes(t.status) && !(avecPreuve && o.length);
   if (gauche && !scene) scene = voixClient(t, true, true);
-  const message = ["valider", "message"].includes(t.status) ? voixMessage(t, false) : t.status === "fini" && !t.dropped && t.draft?.body ? voixMessage(t, true) : "";
+  const message = ["valider", "message"].includes(t.status) ? voixMessage(t, false) : t.status === "fini" && !t.dropped && !t.unsent && t.draft?.body ? voixMessage(t, true) : "";
   const det = [];
   if (t.summary) det.push(`<p class="resume" data-contenu>${esc(t.summary)}</p>`);
   if (t.status === "erreur" && t.error) det.push(`<p data-contenu>${esc(t.error)}</p>`);
@@ -853,6 +869,7 @@ document.addEventListener("click", async (e) => {
   if (act === "deplier") { if (getSelection().toString()) return; deplies.has(t.id) ? deplies.delete(t.id) : deplies.add(t.id); return forcer(); }
   if (act === "dest") { destEdit = t.id; forcer(); const i = $('#vue [data-champ="to"]'); i?.focus(); i?.select(); return; }
   if (act === "ecrire") { const b = $('#vue [data-champ="body"]'); b?.focus(); b?.setSelectionRange(b.value.length, b.value.length); return; }
+  if (act === "joindre" && t) { const d = brouillon(t), f = el.dataset.f; drafts[t.id] = { ...d, pieces: d.pieces.includes(f) ? d.pieces.filter((x) => x !== f) : [...d.pieces, f] }; return forcer(); }
   if (act === "annuler") return annuler(el.dataset.cle);
   if (act === "allumer") { await post("/api/config", { auto: true }); return rendre(); }
   if (act === "arrivees") return aller("arrivees");
