@@ -4,7 +4,7 @@ import WebKit
 
 let bun = "__BUN__", root = "__ROOT__", port = "4118"
 
-final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate {
   var window: NSWindow!
   var web: WKWebView!
   let server = Process()
@@ -28,8 +28,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     window.minSize = NSSize(width: 720, height: 480)
     window.center()
     window.setFrameAutosaveName("Kaoly Clients")
-    web = WKWebView(frame: .zero)
+    window.isReleasedWhenClosed = false // fermer la fenêtre ne détruit rien : la relève et Claude continuent
+    let conf = WKWebViewConfiguration()
+    if #available(macOS 14.0, *) { conf.preferences.inactiveSchedulingPolicy = .none } // badge du Dock à jour fenêtre fermée (à confirmer)
+    web = WKWebView(frame: .zero, configuration: conf)
     web.navigationDelegate = self
+    web.uiDelegate = self
     window.contentView = web
     // la page écrit « Kaoly Clients (3) » dans son titre : le nombre de demandes à toi va sur l'icône du Dock
     titleWatch = web.observe(\.title) { w, _ in
@@ -47,7 +51,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
   func webView(_ w: WKWebView, didFailProvisionalNavigation n: WKNavigation!, withError e: Error) {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self.open() }
   }
-  func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { true }
+  // les liens (code sur GitHub, pièces jointes) s'ouvrent dans le navigateur, jamais dans la fenêtre
+  func dehors(_ u: URL?) -> Bool {
+    guard let u = u, ["http", "https"].contains(u.scheme) else { return false }
+    NSWorkspace.shared.open(u); return true
+  }
+  func webView(_ w: WKWebView, createWebViewWith c: WKWebViewConfiguration, for a: WKNavigationAction, windowFeatures f: WKWindowFeatures) -> WKWebView? {
+    _ = dehors(a.request.url); return nil
+  }
+  func webView(_ w: WKWebView, decidePolicyFor a: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+    if a.navigationType == .linkActivated, a.request.url?.host != "127.0.0.1", dehors(a.request.url) { decisionHandler(.cancel) } else { decisionHandler(.allow) }
+  }
+  func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { false }
+  func applicationShouldHandleReopen(_ s: NSApplication, hasVisibleWindows v: Bool) -> Bool {
+    if !v { window.makeKeyAndOrderFront(nil) }
+    return true
+  }
   func applicationWillTerminate(_ note: Notification) { if server.isRunning { server.terminate() } }
 }
 
@@ -56,6 +75,7 @@ let menu = NSMenu()
 let appItem = NSMenuItem(); menu.addItem(appItem)
 appItem.submenu = NSMenu()
 appItem.submenu!.addItem(withTitle: "Quitter Kaoly Clients", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+appItem.submenu!.addItem(withTitle: "Fermer la fenêtre", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
 let editItem = NSMenuItem(); menu.addItem(editItem)
 editItem.submenu = NSMenu(title: "Édition") // sans ce menu, impossible de coller un message de client
 editItem.submenu!.addItem(withTitle: "Couper", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
