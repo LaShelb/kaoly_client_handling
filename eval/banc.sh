@@ -360,7 +360,7 @@ const pj = await js(`window.__p.filter((x) => x.includes('"envoyer"')).join(" ; 
 bon.push(pj.includes('"envoyer"') && !pj.includes("liste clients.png") ? "" : "la capture du client part avec le mail : " + pj);
 p.kill(); console.log(bon.filter(Boolean).join(" ; "));
 EOF
-  ( sleep 100; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
+  ( sleep 170; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
   R=$(bun "$T/trouve.ts" "$CHROME" "$U" "$T/chrome2" "$L" 2>&1) || echec "essai de la barre : $R"
   kill $W 2>/dev/null
   [ -z "$R" ] || echec "la barre qui trouve : $R"
