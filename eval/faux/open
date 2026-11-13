@@ -1,0 +1,3 @@
+#!/bin/sh
+# faux open : WhatsApp et le Finder ne s'ouvrent jamais
+echo "open $*" >> "${FAUX_LOG:-$(dirname "$0")}/open.log"

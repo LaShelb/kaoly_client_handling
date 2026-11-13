@@ -1,10 +1,25 @@
 #!/bin/sh
-# faux Claude Code : modifie un fichier, dépose une preuve, répond au format attendu
-case "$*" in *stream-json*) ;; *) echo '{"is_error":false,"structured_output":{"reply":"Ticket ouvert.","actions":[{"type":"create_ticket","clientId":"essai","title":"Titre faux","request":"Le titre est faux <script>alert(1)</script>","kind":"bug"}]}}'; exit 0;; esac
+# faux Claude Code : aucun appel réel. Repères dans le texte : [BUCKWELL] (client), [QUESTION], [VISIBLE], [RIEN] (aucun changement), [LENT].
+L="${FAUX_LOG:-$(dirname "$0")}"
+case "$*" in *stream-json*) ;; *)
+  # tri des messages entrants (relève) ; échoue si le fichier $FAUX_TRI_PANNE existe
+  case "$*" in *"Tu tries les messages"*)
+    [ -n "$FAUX_TRI_PANNE" ] && [ -e "$FAUX_TRI_PANNE" ] && { echo '{"is_error":true,"result":"tri en panne"}'; exit 0; }
+    echo '{"is_error":false,"structured_output":{"tickets":[{"msg":0,"title":"Export cassé","request":"L export ne marche plus depuis hier.","kind":"bug"}]}}'; exit 0;; esac
+  # barre de commande
+  C=arion; case "$*" in *"[BUCKWELL]"*) C=buckwell;; esac
+  M=""; for k in QUESTION RIEN VISIBLE LENT; do case "$*" in *"[$k]"*) M="$M [$k]";; esac; done
+  echo "{\"is_error\":false,\"structured_output\":{\"reply\":\"C'est noté.\",\"actions\":[{\"type\":\"create_ticket\",\"clientId\":\"$C\",\"title\":\"Titre <img src=x onerror=alert(1)>\",\"request\":\"Le titre est faux <script>alert(1)</script>$M\",\"kind\":\"bug\"},{\"type\":\"update_client\",\"id\":\"arion\",\"autoProd\":true}]}}"
+  exit 0;; esac
+echo "travail" >> "$L/claude.log"
+case "$*" in *"[LENT]"*) sleep 4;; esac
 P=$(echo "$*" | sed -n 's/.*--add-dir \([^ ]*\/preuves\/[^ ]*\).*/\1/p')
-echo "<h1>Bonjour corrigé</h1>" > index.html
-printf 'PNG' > "$P/2-apres.png"
 echo '{"type":"system","subtype":"init","session_id":"sess-1"}'
 echo '{"type":"assistant","message":{"content":[{"type":"text","text":"Je corrige le titre."},{"type":"tool_use","name":"Edit","input":{"file_path":"index.html"}}]}}'
-case "$*" in *QUESTION*) echo '{"type":"result","is_error":false,"structured_output":{"status":"question","kind":"bug","summary":"Bloqué","question":"Quel titre ?","message":{"subject":"","body":""}}}';;
-*) echo '{"type":"result","is_error":false,"structured_output":{"status":"fait","kind":"bug","summary":"Titre corrigé, vérifié en local.","message":{"subject":"Titre corrigé","body":"Bonjour, c est corrigé. Simon"}}}';; esac
+case "$*" in *"[QUESTION]"*)
+  echo '{"type":"result","is_error":false,"structured_output":{"status":"question","kind":"bug","summary":"Bloqué","change":"","reserve":"","question":"Quel titre ?","message":{"subject":"","body":""}}}'; exit 0;; esac
+K=bug; case "$*" in *"[VISIBLE]"*) K=visible;; esac
+case "$*" in *"[RIEN]"*) K=question;; *)
+  echo "<p>modifié $$</p>" >> index.html
+  printf 'PNG' > "$P/avant-titre.png"; printf 'PNG' > "$P/apres-titre.png";; esac
+echo "{\"type\":\"result\",\"is_error\":false,\"structured_output\":{\"status\":\"fait\",\"kind\":\"$K\",\"summary\":\"Titre corrigé, vérifié en local.\",\"change\":\"Le titre de la page d'accueil dit Bonjour.\",\"reserve\":\"\",\"message\":{\"subject\":\"Titre corrigé\",\"body\":\"Bonjour, c'est corrigé. Simon\"}}}"

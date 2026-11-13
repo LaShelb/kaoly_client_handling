@@ -1,0 +1,4 @@
+#!/bin/sh
+# faux Claude lent : le travail dure 600 s (pour capturer l'état « Claude y travaille ») ; le reste passe au faux normal
+case "$*" in *stream-json*) sleep 600; exit 1;; esac
+exec "$(dirname "$0")/../faux/claude" "$@"

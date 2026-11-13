@@ -1,0 +1,2 @@
+#!/bin/sh
+echo "pbcopy $(cat)" >> "${FAUX_LOG:-$(dirname "$0")}/open.log"

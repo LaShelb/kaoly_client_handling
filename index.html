@@ -2,6 +2,7 @@
 <html lang="fr">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="jeton" content="__JETON__">
 <title>Kaoly Clients</title>
 <style>
   /* Même famille que Kaoly Observability : toile gris très clair, cartes blanches cerclées d'un filet, titres serrés.
@@ -86,13 +87,14 @@
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-let S = null, view = "toi", last = "";
+let S = null, view = "toi", last = "", proposals = [];
+const JETON = document.querySelector('meta[name="jeton"]').content;
 const MINE = ["valider", "message", "question", "erreur"];
 const KIND = { bug: "Bug", visible: "Changement visible", question: "Question" };
 const WAIT = { valider: "À valider avant la production", message: "Message prêt à envoyer", question: "Claude a une question", erreur: "Arrêté sur une erreur", file: "En attente", travail: "Claude y travaille" };
 
 async function post(path, body) {
-  const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json", "x-kaoly": JETON }, body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({ error: "Réponse illisible." }));
   if (j.error) { say(j.error); return null; }
   if (j.tickets) { S = j; render(true); }
@@ -172,6 +174,7 @@ document.addEventListener("click", async (e) => {
   if (el.closest("#zoom")) return $("#zoom").classList.remove("on");
   const act = el.dataset.act; if (!act) return;
   if (act === "mail") return post("/api/config", { mail: { user: $("#mailUser").value, password: $("#mailPass").value } });
+  if (act === "appliquer") { for (const p of proposals) await post("/api/config", { client: p }); proposals = []; return say(""); }
   if (act === "removeClient") return post("/api/config", { removeClient: el.closest("[data-client]").dataset.client });
   const box = el.closest("[data-id]"), body = { id: box.dataset.id, action: act };
   box.querySelectorAll("[data-f]").forEach((f) => (body[f.dataset.f] = f.value));
@@ -190,7 +193,9 @@ $("#chat").addEventListener("submit", async (e) => {
   const text = $("#say").value.trim(); if (!text) return;
   $("#say").value = ""; say("Claude réfléchit…");
   const r = await post("/api/chat", { text });
-  if (r) { say([r.reply, ...r.done.map((d) => "· " + d)].join("\n")); tick(); } else $("#say").value = text;
+  // ponytail : affichage minimal des propositions, la page sera réécrite
+  if (r) { proposals = r.propose ?? []; say([r.reply, ...r.done.map((d) => "· " + d), ...proposals.map((p) => "Proposé : " + (p.name || p.id))].join("\n"));
+    if (proposals.length) $("#said").insertAdjacentHTML("beforeend", ` <button class="link" data-act="appliquer">Appliquer</button>`); tick(); } else $("#say").value = text;
 });
 $("#say").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#chat").requestSubmit(); } });
 </script>

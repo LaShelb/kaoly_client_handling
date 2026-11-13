@@ -1,0 +1,4 @@
+#!/bin/sh
+# faux trousseau : le vrai n'est jamais lu
+[ "$1" = find-generic-password ] && echo faux
+exit 0

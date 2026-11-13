@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
   var window: NSWindow!
   var web: WKWebView!
   let server = Process()
+  var titleWatch: NSKeyValueObservation?
 
   func applicationDidFinishLaunching(_ note: Notification) {
     server.executableURL = URL(fileURLWithPath: bun)
@@ -30,6 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     web = WKWebView(frame: .zero)
     web.navigationDelegate = self
     window.contentView = web
+    // la page écrit « Kaoly Clients (3) » dans son titre : le nombre de demandes à toi va sur l'icône du Dock
+    titleWatch = web.observe(\.title) { w, _ in
+      let t = w.title ?? ""
+      NSApp.dockTile.badgeLabel = t.range(of: #"(?<=\()\d+(?=\))"#, options: .regularExpression).map { String(t[$0]) }
+    }
     window.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
     open()
