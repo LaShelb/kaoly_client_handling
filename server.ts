@@ -303,7 +303,7 @@ async function finish(t: any) {
   }
   if (t.status === "fini") return;
   set(t, { changed });
-  const next = gate(t.kind, !!c?.autoProd, changed);
+  const next = gate(t.kind, !!c?.autoProd && !t.relu, changed);
   if (next === "production") await ship(t, true);
   else set(t, { status: next });
 }
@@ -502,7 +502,8 @@ function answer(t: any, text: string) {
   }
   // en file : le nombre de sessions reste borné par pump()
   // ponytail : seule la dernière parole de Simon est gardée
-  set(t, { status: "file", error: null, question: null, options: null, said: { text: String(text).trim().slice(0, 2000), at: now(), ...(t.status === "question" && t.question ? { q: String(t.question).slice(0, 300) } : {}) }, reprises: null, revalider: null, followUp: t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}${rangees}` });
+  // Une demande que Simon a déjà eue à valider ne repart plus jamais seule en ligne, même si le réglage du client change entre-temps.
+  set(t, { status: "file", ...(t.status === "valider" || t.status === "message" ? { relu: true } : {}), error: null, question: null, options: null, said: { text: String(text).trim().slice(0, 2000), at: now(), ...(t.status === "question" && t.question ? { q: String(t.question).slice(0, 300) } : {}) }, reprises: null, revalider: null, followUp: t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}${rangees}` });
   pump();
 }
 
@@ -604,6 +605,7 @@ function check() {
   const eq = (a: any, b: any, what: string) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${what} : ${JSON.stringify(a)} au lieu de ${JSON.stringify(b)}`); };
   eq(gate("bug", true, true), "production", "bug sur un client autorisé");
   eq(gate("bug", false, true), "valider", "bug sur un client non autorisé");
+  eq(gate("bug", true && !({ relu: true } as any).relu, true), "valider", "une retouche après relecture attend Simon");
   eq(gate("visible", true, true), "valider", "un changement visible attend toujours Simon");
   eq(gate("question", true, false), "message", "sans changement de code, seule la réponse reste");
   eq([strictest("visible", "bug"), strictest("bug", "visible"), strictest("bug", "bug"), strictest("question", "bug"), strictest("bug", "question"), strictest("question", "question")],
