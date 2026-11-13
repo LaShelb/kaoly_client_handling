@@ -35,7 +35,7 @@ EOF
 mkdir -p "$D/pieces/1" && echo '<script>alert(1)</script>' > "$D/pieces/1/page.html"
 cat > "$D/tickets.json" <<EOF
 [{"id":"ancien","status":"valider","source":{"channel":"mail","from":"claire@arion.fr","name":"Claire"},"files":["$D/pieces/1/page.html"],"createdAt":"2026-11-10T09:00:00.000Z","updatedAt":"2026-11-10T09:30:00.000Z",
-  "clientId":"arion","title":"Bouton Exporter","request":"Ajouter un bouton.","kind":"visible","summary":"Bouton ajouté.","draft":{"to":"claire@arion.fr","subject":"Export","body":"Bonjour"},"changed":true,"pr":"https://github.com/x/y/pull/9"},
+  "clientId":"arion","title":"Bouton Exporter","request":"Ajouter un bouton.","kind":"visible","summary":"Bouton ajouté. Il est en haut à droite.","draft":{"to":"claire@arion.fr","subject":"Export","body":"Bonjour"},"changed":true,"pr":"https://github.com/x/y/pull/9"},
  {"id":"coupee","status":"travail","source":{"channel":"toi"},"files":[],"createdAt":"2026-11-11T09:00:00.000Z","updatedAt":"2026-11-11T09:00:00.000Z",
   "clientId":"arion","title":"Lien cassé","request":"Le lien du pied de page est cassé.","kind":"bug"}]
 EOF
@@ -244,6 +244,12 @@ if [ -x "$CHROME" ]; then
   grep -q '<img src="x"' "$L/page.html" && echec "balise du client interprétée par la page"
   grep -q '<script>alert(1)' "$L/page.html" && echec "script du client inséré dans la page"
   ok "texte du client échappé"
+  # le fil ne dit que la première phrase du résumé ; le reste n'est que dans le Détail
+  "$CHROME" --headless=new --disable-gpu --no-first-run --user-data-dir="$T/chrome" --virtual-time-budget=6000 --dump-dom "$U/#d=ancien" > "$L/fil.html" 2>/dev/null &
+  P=$!; ( sleep 45; kill $P 2>/dev/null ) & W=$!
+  wait $P; kill $W 2>/dev/null
+  vaut "$(grep -c 'Il est en haut' "$L/fil.html")" "1" "résumé entier hors du Détail"
+  ok "fil en une phrase"
 else echo "--   Chrome absent : échappement non vérifié"; fi
 
 grep -qi "unhandled\|TypeError\|ReferenceError" "$L/serveur.log" && echec "erreur dans le journal du serveur"
