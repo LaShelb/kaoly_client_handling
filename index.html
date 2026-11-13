@@ -51,6 +51,9 @@
   .l1 .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .moi .t { font-weight: 500; }
   .loin .t { color: var(--gris); }
+  .partante { width: 100%; animation: vient .15s ease-out; }
+  .partante .annul { color: var(--encre); }
+  .partante:hover .annul { text-decoration: underline; text-underline-offset: 3px; }
   .l1 .num { color: var(--gris); }
   .l2 { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 17px; color: var(--gris); white-space: nowrap; overflow: hidden; }
   .l2 .v { flex: 1; min-width: 0; display: flex; white-space: pre; }
@@ -234,6 +237,7 @@ const SVG_CROIX =`<svg width="10" height="10" viewBox="0 0 10 10" fill="none" st
 let S = null;
 const drafts = {};          // brouillons modifiés par Simon, par demande, gardés jusqu'à l'envoi (le rafraîchissement ne les touche pas)
 const retenues = new Map(); // actions retenues 5 s dans la page : clé → { timer, chemin, body, retour }
+const textes = {};          // retouche qui n'est pas partie, gardée par demande jusqu'à la réouverture
 const deplies = new Set();  // demandes du client dépliées
 const choix = {};           // preuve affichée, par demande
 let destEdit = null, mailForm = false, mailAide = false, puceOff = null, propositions = [], rendus = {}, dernierCur = "", effacer = null;
@@ -251,8 +255,8 @@ const rang = (t) => t.status === "question" ? 0 : t.status === "erreur" || t.err
 const parDate = (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt);
 const accepte = (t) => ["question", "valider", "erreur"].includes(t.status) || (t.status === "message" && !t.shipped);
 
-function files() {
-  const vis = S.tickets.filter((t) => !retenues.has(t.id));
+function files(avecRetenues) { // les demandes retenues 5 s ne comptent pas, mais la colonne les garde à leur place
+  const vis = S.tickets.filter((t) => avecRetenues || !retenues.has(t.id));
   const toi = vis.filter((t) => MINE.includes(t.status)).sort((a, b) => rang(a) - rang(b) || parDate(a, b));
   const claude = vis.filter((t) => t.status === "travail").sort(parDate).concat(vis.filter((t) => t.status === "file").sort(parDate));
   return { toi, claude };
@@ -343,17 +347,20 @@ function suivante(id) {
 
 // ───────── la colonne ─────────
 function colonne(cur) {
-  const { toi, claude } = files();
+  const { toi, claude } = files(true), nb = toi.filter((t) => !retenues.has(t.id)).length;
   // le titre a toute la largeur ; l'âge (ou la durée du travail de Claude) tombe à droite de la seconde ligne
-  const ligne = (t, moi) => { const tr = t.status === "travail";
+  const ligne = (t, moi) => { const tr = t.status === "travail", r = retenues.get(t.id);
+    // ponytail : une demande retenue qui n'est pas dans « À toi » ni « Claude y travaille » n'a pas de ligne ; seuls ces deux groupes la dessinent
+    if (r) return `<button class="ligne loin partante" data-act="annuler" data-cle="${esc(t.id)}"><span class="l1"><span class="t" data-contenu>${esc(t.title)}</span></span><span class="l2">${esc(r.libelle)} · <span class="annul">Annuler</span></span></button>`;
     return `<a class="ligne ${moi ? "moi" : "loin"}${cur === `d:${t.id}` ? " on" : ""}" href="#d=${encodeURIComponent(t.id)}">
     <span class="l1"><span class="t" data-contenu>${esc(t.title)}</span></span>
     <span class="l2">${t.status === "erreur" || t.error ? `<i class="point"></i>` : ""}<span class="v"><span data-contenu>${esc(t.client)}</span>${tr ? "" : `<span> · ${verbe(t)}</span>`}</span><span class="num">${tr ? age(t.startedAt || t.updatedAt) : age(t.createdAt)}</span></span></a>`; };
   const attente = (c) => toi.filter((t) => t.clientId === c.id).map((t) => t.createdAt).sort()[0];
-  const clients = S.clients.filter((c) => !retenues.has(`c:${c.id}`)).map((c) => ({ c, a: attente(c) }))
+  const clients = S.clients.map((c) => ({ c, a: attente(c) }))
     .sort((x, y) => (x.a && y.a ? x.a.localeCompare(y.a) : x.a ? -1 : y.a ? 1 : x.c.name.localeCompare(y.c.name)))
-    .map(({ c, a }) => `<a class="client${cur === `c:${c.id}` ? " on" : ""}" href="#c=${encodeURIComponent(c.id)}"><span data-contenu>${esc(c.name)}</span>${a ? `<span class="num gris">${age(a)}</span>` : ""}</a>`).join("");
-  return `<div class="groupe toi">À toi<span class="num">${toi.length}</span></div>${toi.map((t) => ligne(t, true)).join("")}
+    .map(({ c, a }) => retenues.has(`c:${c.id}`) ? `<button class="client partante" data-act="annuler" data-cle="${esc(`c:${c.id}`)}"><span class="gris" data-contenu>${esc(c.name)}</span><span class="gris">Retiré · <span class="annul">Annuler</span></span></button>`
+      : `<a class="client${cur === `c:${c.id}` ? " on" : ""}" href="#c=${encodeURIComponent(c.id)}"><span data-contenu>${esc(c.name)}</span>${a ? `<span class="num gris">${age(a)}</span>` : ""}</a>`).join("");
+  return `<div class="groupe toi">À toi<span class="num">${nb}</span></div>${toi.map((t) => ligne(t, true)).join("")}
     ${claude.length ? `<div class="groupe">Claude y travaille<span class="num">${claude.length}</span></div>${claude.map((t) => ligne(t, false)).join("")}` : ""}
     <div class="filet"></div><div class="groupe">Clients<button class="plus" data-act="nouveau" aria-label="Nouveau client">${SVG_PLUS}</button></div>${clients}`;
 }
@@ -518,6 +525,7 @@ function rendre() {
   const cible = t && accepte(t) && puceOff !== t.id ? t : null;
   $("#puce").hidden = !cible;
   if (cible) $("#puce").textContent = `${cible.client} · ${cible.title}`;
+  if (cible && textes[cible.id] && !say.value) { say.value = textes[cible.id]; delete textes[cible.id]; tailleBarre(); }
   say.placeholder = !cible ? "Écris ou colle ici" : cible.status === "question" ? "Ta réponse" : cible.status === "erreur" ? "Une consigne ?" : "Une retouche ?";
   if (cur !== dernierCur) { if (dernierCur && !cur.startsWith("d:" + puceOff)) puceOff = null; if (t?.status === "question" && !plein) say.focus(); }
   dernierCur = cur;
@@ -565,10 +573,11 @@ function dire(html, ms = 8000, brut = false) {
 }
 
 // Une action ne part au serveur qu'au bout de 5 s ; « Annuler » l'arrête et rouvre la demande. Rien n'est à défaire côté serveur.
-function retenir(cle, chemin, body, libelle, retour, apres) {
-  const r = { chemin, body, retour, timer: setTimeout(() => partir(cle), 5000) };
+// Elle se montre sur la ligne de sa demande dans la colonne (colonne()), pas dans la barre : plusieurs peuvent attendre ensemble.
+function retenir(cle, chemin, body, libelle, retour, apres, texte) {
+  clearTimeout(retenues.get(cle)?.timer);
+  const r = { chemin, body, libelle, retour, texte, timer: setTimeout(() => partir(cle), 5000) };
   retenues.set(cle, r);
-  dire(`<span class="fort">${esc(libelle)}</span><button data-act="annuler" data-cle="${esc(cle)}">Annuler</button>`, 5000, true);
   if (apres) aller(apres, true); else rendre();
 }
 let pasParti = null;
@@ -577,7 +586,8 @@ async function partir(cle) {
   const j = await post(r.chemin, r.body);
   retenues.delete(cle);
   if (j) delete drafts[cle];
-  else { // pas parti : la ligne reste jusqu'à la prochaine phrase de la barre ou l'ouverture de la demande
+  else if (r.texte) textes[cle] = r.texte; // la retouche revient dans la barre à la réouverture de sa demande
+  if (!j) { // pas parti : la ligne reste jusqu'à la prochaine phrase de la barre ou l'ouverture de la demande
     const t = S?.tickets.find((x) => x.id === cle);
     if (t) { dire(`<i class="point"></i><span class="fort">Pas parti · <span data-contenu>${esc(t.title)}</span></span><span>· ${esc(humain(derniereErreur))} ·</span><a class="lien" href="#${adrDemande(cle)}">Ouvrir</a>`, 0, true); pasParti = cle; }
   }
@@ -586,8 +596,8 @@ async function partir(cle) {
 function annuler(cle) {
   const r = retenues.get(cle); if (!r) return;
   clearTimeout(r.timer); retenues.delete(cle);
-  $("#dit").innerHTML = "";
   if (r.retour) aller(r.retour); else forcer();
+  if (r.texte) { if (say.value) textes[cle] = r.texte; else { say.value = r.texte; tailleBarre(); say.focus(); say.setSelectionRange(say.value.length, say.value.length); } }
 }
 function agir(t, action) {
   const nx = suivante(t.id), apres = nx ? adrDemande(nx.id) : "rien", d = brouillon(t), nom = nomDest(t, d.to) ?? "";
@@ -616,12 +626,8 @@ async function envoyerBarre() {
   const t = courante(), cible = t && accepte(t) && puceOff !== t.id ? t : null;
   say.value = ""; tailleBarre();
   if (cible) {
-    dire("…", 0);
-    const j = await post("/api/ticket", { id: cible.id, action: "retouche", text });
-    if (!j) { say.value = text; tailleBarre(); return; }
-    dire("✓ Transmis à Claude");
-    const nx = suivante(cible.id);
-    return aller(nx ? adrDemande(nx.id) : "rien", true);
+    const nx = suivante(cible.id); // la retouche attend 5 s comme les autres gestes ; la confirmation, c'est la demande qui passe chez Claude
+    return retenir(cible.id, "/api/ticket", { id: cible.id, action: "retouche", text }, "Retouche", adrDemande(cible.id), nx ? adrDemande(nx.id) : "rien", text);
   }
   dire("Claude réfléchit…", 0);
   const j = await post("/api/chat", { text });
@@ -701,6 +707,7 @@ document.addEventListener("keydown", (e) => {
   const a = document.activeElement, saisie = a && (/^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== "checkbox" || a.isContentEditable);
   const enPlein = document.body.classList.contains("en-plein");
   if (e.metaKey && e.key.toLowerCase() === "k") { e.preventDefault(); say.focus(); return; }
+  if (e.metaKey && !e.shiftKey && e.key.toLowerCase() === "z" && !saisie) { const k = [...retenues.keys()].pop(); if (k) { e.preventDefault(); annuler(k); } return; }
   if (e.metaKey && e.key === "Enter") { const b = $("#vue .plein:not([disabled])"); if (b) { e.preventDefault(); b.click(); } return; }
   if (e.key === "Escape") {
     if (enPlein) plein(false);
