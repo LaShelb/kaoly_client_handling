@@ -115,6 +115,7 @@ ok "bug sur client non autorisé : attend Simon"
 vaut "$(ticket "$A" retouche --arg text "[VISIBLE] ajoute le bouton")" 200 "retouche"
 attendre "$A" valider
 vaut "$(champ "$A" .kind)/$(travaux)/$(commits "$A")" "visible/2/2" "retouche : Claude repris, deuxième commit, changement visible"
+vaut "$(champ "$A" .said.text)" "[VISIBLE] ajoute le bouton" "ta parole reste sur la demande"
 vaut "$(ls "$D/preuves/$A/precedent" | tr '\n' ,)/$(champ "$A" '.proofs|join(",")')" "apres-titre.png,/apres-titre.png,avant-titre.png" "ancienne capture rangée dans precedent/, avant gardée"
 ok "retouche"
 
@@ -140,9 +141,11 @@ ok "client autorisé : en ligne seul, message retenu"
 # ── question de Claude ──
 post /api/chat '{"text":"[QUESTION] le titre est faux"}' > /dev/null
 Q=$(dernier); attendre "$Q" question
-vaut "$(champ "$Q" .question)" "Quel titre ?" "question posée"
+vaut "$(champ "$Q" .question)/$(champ "$Q" '.options[0]')" "Quel titre ?/Garde Bonjour" "question posée, réponse proposée"
 vaut "$(ticket "$Q" retouche --arg text "Garde Bonjour")" 200 "réponse"
 attendre "$Q" valider
+vaut "$(champ "$Q" .said.text)/$(champ "$Q" .said.q)" "Garde Bonjour/Quel titre ?" "ta réponse reste avec la question"
+vaut "$(champ "$Q" .options)" null "plus de réponse proposée une fois la question réglée"
 ok "question puis réponse"
 
 # ── PR fusionnée à la main, « Seulement mettre en ligne » ──
@@ -290,8 +293,10 @@ else echo "--   Chrome absent : échappement non vérifié"; fi
 
 # ── la barre trouve avant de demander à Claude : « exporter » puis ↓ Entrée ouvre la demande, « garonne » le client, un texte long rien ──
 if [ -x "$CHROME" ]; then
+  post /api/chat '{"text":"[QUESTION] encore un titre"}' > /dev/null
+  Q2=$(dernier); attendre "$Q2" question
   cat > "$T/trouve.ts" <<'EOF'
-const [chrome, url, profil, lieu] = process.argv.slice(2);
+const [chrome, url, profil, lieu, q2] = process.argv.slice(2);
 const p = Bun.spawn([chrome, "--headless=new", "--disable-gpu", "--no-first-run", "--remote-debugging-port=0", `--user-data-dir=${profil}`, "about:blank"], { stdout: "ignore", stderr: "pipe" });
 const lec = p.stderr.getReader(), dec = new TextDecoder(); let tam = "", ws = "";
 while (!ws) { const { value, done } = await lec.read(); if (done) process.exit(3); tam += dec.decode(value); ws = tam.match(/listening on (ws:\/\/\S+)/)?.[1] ?? ""; }
@@ -349,6 +354,15 @@ bon.push(chat.includes('"clientId":"buckwell"') && barre.includes("fiche du clie
 await js(`location.hash = "#c=garonne"`); await Bun.sleep(300); await js(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); 0`);
 await js(`document.querySelector("#say").focus(); document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); 0`); await Bun.sleep(300);
 bon.push((await js(`document.querySelector("#puce").hidden`)) ? "" : "Échap ne retire pas la puce du client");
+// la réponse proposée se règle d'un clic : rien n'est envoyé avant 5 s, puis une seule retouche au texte choisi
+await js(`location.hash = "#d=${q2}"`); await Bun.sleep(600);
+const n1 = await js("window.__p.length");
+bon.push((await js(`document.querySelector('.option[data-i="0"]')?.textContent`)) === "1Garde Bonjour" ? "" : "pas de réponse proposée sur la question");
+await js(`document.querySelector('.option[data-i="0"]').click(); 0`); await Bun.sleep(1500);
+bon.push((await js(`window.__p.length`)) === n1 ? "" : "la réponse part avant les 5 s");
+await Bun.sleep(5000);
+const rep = await js(`window.__p.slice(${n1}).join(' ; ')`);
+bon.push(rep.split('"retouche"').length === 2 && rep.includes('"text":"Garde Bonjour"') ? "" : "clic sur une réponse : " + rep);
 // sa capture : « Claire » dans le sélecteur, l'image vient de /piece/ sans cadrage, et la capture du client ne part jamais avec le mail
 await js(`location.hash = "#d=capture"`); await Bun.sleep(800);
 bon.push((await js(`[...document.querySelectorAll("#vue .choix button")].some((b) => b.textContent === "Claire")`)) ? "" : "pas de « Claire » dans le sélecteur");
@@ -360,8 +374,8 @@ const pj = await js(`window.__p.filter((x) => x.includes('"envoyer"')).join(" ; 
 bon.push(pj.includes('"envoyer"') && !pj.includes("liste clients.png") ? "" : "la capture du client part avec le mail : " + pj);
 p.kill(); console.log(bon.filter(Boolean).join(" ; "));
 EOF
-  ( sleep 170; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
-  R=$(bun "$T/trouve.ts" "$CHROME" "$U" "$T/chrome2" "$L" 2>&1) || echec "essai de la barre : $R"
+  ( sleep 190; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
+  R=$(bun "$T/trouve.ts" "$CHROME" "$U" "$T/chrome2" "$L" "$Q2" 2>&1) || echec "essai de la barre : $R"
   kill $W 2>/dev/null
   [ -z "$R" ] || echec "la barre qui trouve : $R"
   ok "la barre trouve avant de demander à Claude"

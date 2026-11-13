@@ -103,6 +103,10 @@
   .replie.court { -webkit-line-clamp: 2; } /* un message attend : la demande du client tient sur 2 lignes, un clic la déplie */
   [data-act="deplier"] { cursor: pointer; }
   .reserve { margin-top: 4px; max-width: 68ch; }
+  .options { margin-top: 10px; }
+  .option { display: flex; align-items: baseline; gap: 10px; padding: 3px 6px; margin-left: -6px; font-size: 13px; color: var(--encre); text-align: left; border-radius: 4px; }
+  .option:hover { background: var(--survol); }
+  .option .num { color: var(--gris); }
   .reserve span:first-child { text-decoration: underline dashed rgba(0,0,0,.5); text-decoration-thickness: 1px; text-underline-offset: 4px; }
   .lead { font-size: 20px; line-height: 1.4; letter-spacing: -.01em; max-width: 34em; overflow-wrap: anywhere; }
   .lead .point { width: 8px; height: 8px; margin: 0 10px 3px 0; vertical-align: middle; }
@@ -570,6 +574,13 @@ function libellePrincipal(t) {
   const to = brouillon(t).to, nom = nomDest(t, to);
   return estGroupe(t) && to === t.source?.from ? "Envoyer au groupe" : nom && !/[@+\d]/.test(nom) ? `Envoyer à ${nom}` : "Envoyer";
 }
+// ce que Simon a dit à Claude reste dans le fil, entre le client et Claude
+function voixToi(t) {
+  if (!t.said?.text) return "";
+  return voix(`Toi · ${age(t.said.at)}`, (t.said.q ? `<div class="gris" data-contenu>${esc(t.said.q)}</div>` : "") + `<div class="dit" data-contenu>${esc(t.said.text)}</div>`, "de-toi");
+}
+// les réponses que Claude propose à sa question : un clic ou ⌘1 à ⌘3
+const options = (t) => t.status === "question" && t.options?.length ? `<div class="options">${t.options.map((o, i) => `<button class="option" data-act="repondre" data-i="${i}" aria-label="⌘${i + 1}"><span class="num">${i + 1}</span><span data-contenu>${esc(o)}</span></button>`).join("")}</div>` : "";
 function vueDemande(t, h) {
   const { toi } = files(), o = preuves(t), v = vues(t);
   const avecPreuve = t.status === "valider" ? t.changed || o.length > 0 : ["message", "fini"].includes(t.status) && o.length > 0;
@@ -583,7 +594,7 @@ function vueDemande(t, h) {
     const x = choisie(t, v);
     scene = o.length ? `${selecteur(v, x)}<figure class="cadre" data-act="plein">${media(t, x)}</figure>` : `<div class="cadre vide">Pas de capture</div>`;
     if (!o.length) scene += voixClient(t, true, true);
-  } else if (t.status === "question") scene = voix("Claude", `<p class="lead" data-contenu>${esc(t.question)}</p>`);
+  } else if (t.status === "question") scene = voix("Claude", `<p class="lead" data-contenu>${esc(t.question)}</p>` + options(t));
   else if (t.status === "erreur") scene = `<p class="lead"><i class="point"></i><span data-contenu>${esc(raison(t))}</span></p>`;
   else if (t.status === "travail") { // la dernière phrase de Claude, jamais son journal d'outils
     const l = [...(t.live ?? [])].reverse().find((x) => !/^[A-Z][\w-]* · /.test(x));
@@ -608,7 +619,7 @@ function vueDemande(t, h) {
       ${t.status === "valider" ? `<button class="lien" data-act="seulement">Sans envoyer</button>` : ""}</div>`;
   }
   const refus = t.status === "message" && t.error ? `<p class="refus"><i class="point"></i><span data-contenu>${esc(raison(t))}</span>${relier(t.error)}</p>` : "";
-  const fil = `<div class="fil"><div class="fil-texte">${gauche ? "" : voixClient(t, serre)}${voixClaude(t)}${message}</div>${refus}${actions}${detail}</div>`;
+  const fil = `<div class="fil"><div class="fil-texte">${gauche ? "" : voixClient(t, serre)}${voixToi(t)}${voixClaude(t)}${message}</div>${refus}${actions}${detail}</div>`;
   return `${tete}<div class="corps"><div class="preuve">${scene}</div>${fil}</div>`;
 }
 
@@ -816,6 +827,12 @@ function decrire(p) {
   if (typeof p.autoProd === "boolean" && p.autoProd !== c?.autoProd) ch.push(`bugs sans validation → ${p.autoProd ? "oui" : "non"}`);
   return `${c?.name ?? p.name ?? ""} : ${ch.join(", ") || "rien ne change"}`;
 }
+// même attente de 5 s qu'une retouche : « Annuler » sur la ligne, ⌘Z
+function repondre(t, i) {
+  const o = t?.status === "question" && t.options?.[i]; if (!o) return;
+  const s = suivante(t.id);
+  return retenir(t.id, "/api/ticket", { id: t.id, action: "retouche", text: o }, "Réponse", adrDemande(t.id), s ? adrDemande(s.id) : "rien", o);
+}
 async function envoyerBarre() {
   const text = say.value.trim(); if (!text) return;
   const t = courante(), cible = t && accepte(t) && puceOff !== cle() ? t : null, vise = clientVise();
@@ -913,6 +930,7 @@ document.addEventListener("keydown", (e) => {
   const enPlein = document.body.classList.contains("en-plein");
   if (e.metaKey && e.key.toLowerCase() === "k") { e.preventDefault(); say.focus(); return; }
   if (e.metaKey && !e.shiftKey && e.key.toLowerCase() === "z" && (!saisie || a === say && !say.value)) { const k = [...retenues.keys()].pop(); if (k) { e.preventDefault(); annuler(k); } return; }
+  if (e.metaKey && /^[1-3]$/.test(e.key) && !(saisie && a !== say)) { const t = courante(); if (t?.status === "question" && t.options?.[+e.key - 1]) { e.preventDefault(); repondre(t, +e.key - 1); } return; }
   if (e.metaKey && e.key === "Enter") { const b = $("#vue .plein:not([disabled])"); if (b) { e.preventDefault(); b.click(); } return; }
   if (e.key === "Escape") {
     if (enPlein) plein(false);
@@ -942,6 +960,7 @@ document.addEventListener("click", async (e) => {
   if (act === "dest") { destEdit = t.id; forcer(); const i = $('#vue [data-champ="to"]'); i?.focus(); i?.select(); return; }
   if (act === "ecrire") { const b = $('#vue [data-champ="body"]'); b?.focus(); b?.setSelectionRange(b.value.length, b.value.length); return; }
   if (act === "joindre" && t) { const d = brouillon(t), f = el.dataset.f; drafts[t.id] = { ...d, pieces: d.pieces.includes(f) ? d.pieces.filter((x) => x !== f) : [...d.pieces, f] }; return forcer(); }
+  if (act === "repondre") return repondre(t, +el.dataset.i);
   if (act === "annuler") return annuler(el.dataset.cle);
   if (act === "allumer") { await post("/api/config", { auto: true }); return rendre(); }
   if (act === "arrivees") return aller("arrivees");

@@ -188,7 +188,7 @@ async function askClaude(prompt: string, system: string, schema: any) {
 const WORK_SCHEMA = { type: "object", required: ["status", "kind", "summary", "change", "reserve", "message"], properties: {
   status: { type: "string", enum: ["fait", "question"] },
   kind: { type: "string", enum: ["bug", "visible", "question"] },
-  summary: { type: "string" }, change: { type: "string" }, reserve: { type: "string" }, question: { type: "string" },
+  summary: { type: "string" }, change: { type: "string" }, reserve: { type: "string" }, question: { type: "string" }, options: { type: "array", items: { type: "string" } },
   message: { type: "object", required: ["subject", "body"], properties: { subject: { type: "string" }, body: { type: "string" } } },
 } };
 
@@ -199,7 +199,7 @@ const RULES = (proofs: string) => `Tu travailles pour Simon (Kaoly) sur l'applic
 - Suis les règles du dépôt (CLAUDE.md, conventions, règles d'interface déjà en place). Lance les tests et vérifications qui existent.
 - Preuves : dépose dans ${proofs} une capture « avant » et une capture « après », nommées avant-<sujet>.png et apres-<sujet>.png, prises à la même taille de fenêtre (1280 × 800) et avec le même cadrage, la zone modifiée visible sans zoom ; et, si tu peux, une courte vidéo video-<sujet>.mp4 qui montre le résultat. Pour cela, lance l'application en local et pilote un navigateur : Playwright s'il est dans le dépôt, sinon Chrome sans fenêtre ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --screenshot=…). ffmpeg est installé. Arrête tout serveur que tu as lancé. Si tu ne peux pas produire de preuve, dis pourquoi dans summary.
 - kind : "bug" si tu rétablis un comportement attendu sans rien changer d'autre à ce que l'utilisateur voit ; "visible" dès que l'interface, un parcours ou un texte change, ou dans le doute ; "question" si la demande n'appelle aucun changement de code.
-- status : "fait", ou "question" seulement si tu es réellement bloqué (accès manquant, demande dont deux lectures mènent à deux résultats différents). Pose alors une seule question précise dans question.
+- status : "fait", ou "question" seulement si tu es réellement bloqué (accès manquant, demande dont deux lectures mènent à deux résultats différents). Pose alors une seule question précise dans question, et dans options deux ou trois réponses possibles de six mots au plus, la plus probable d'abord, que Simon choisira d'un clic ; [] si la réponse est forcément libre.
 - change : une phrase de 25 mots au plus, en français courant pour Simon : ce qu'il verra de différent dans l'application. Sans code, sans balise, sans nom de fichier.
 - reserve : 20 mots au plus, ce que Simon doit vérifier lui-même (« l'emplacement du bouton »), ou "" si rien ne reste incertain.
 - summary : pour Simon, en français, 3 à 6 lignes. Ce qui était demandé, ce que tu as changé, ce que tu as vérifié, ce qui reste incertain. Aucun code.
@@ -251,7 +251,7 @@ async function agent(t: any, cwd: string, proofs: string, prompt: string) {
 
 // Tout passage en « travail » : une panne devient une erreur à l'étape en cours, sauf si Simon a classé la demande entre-temps.
 async function guarded(t: any, fn: () => Promise<any>) {
-  set(t, { status: "travail", error: null, question: null, startedAt: now() });
+  set(t, { status: "travail", error: null, question: null, options: null, startedAt: now() });
   try { await fn(); }
   catch (e: any) { running.delete(t.id); if (t.status !== "fini") set(t, { status: "erreur", error: e.message }); }
   finally { pump(); }
@@ -280,7 +280,7 @@ const work = (t: any, followUp?: string) => guarded(t, async () => {
   const r = await agent(t, wt, proofs, followUp ?? `Demande du client ${c.name} (${t.source.channel}${t.source.from ? `, de ${t.source.from}` : ""}) :\n\n${t.title}\n\n${t.request}${
     t.files?.length ? `\n\nPièces jointes du client, à regarder : ${t.files.join(", ")}` : ""}${repo ? "" : "\n\nIl n'y a pas de dépôt pour ce client : rédige seulement la réponse."}`);
   if (t.status === "fini") return; // classée pendant que Claude travaillait
-  if (r.status === "question") return set(t, { status: "question", question: r.question || r.summary, summary: r.summary, followUp: null });
+  if (r.status === "question") return set(t, { status: "question", question: r.question || r.summary, options: (Array.isArray(r.options) ? r.options : []).map((s) => String(s).trim().slice(0, 80)).filter(Boolean).slice(0, 3), summary: r.summary, followUp: null });
   // revalider : le brouillon déjà relu par Simon reste tel quel, Claude ne fait qu'intégrer la branche principale
   set(t, { followUp: null, kind: strictest(t.kind, r.kind), summary: r.summary, change: r.change ?? "", reserve: r.reserve ?? "",
     draft: t.revalider && t.draft ? t.draft : { to: recipient(t.source.from, c.contacts), subject: r.message?.subject ?? "", body: r.message?.body ?? "" } });
@@ -501,7 +501,8 @@ function answer(t: any, text: string) {
     rangees = " Tes anciennes captures sont dans precedent/.";
   }
   // en file : le nombre de sessions reste borné par pump()
-  set(t, { status: "file", error: null, question: null, reprises: null, revalider: null, followUp: t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}${rangees}` });
+  // ponytail : seule la dernière parole de Simon est gardée
+  set(t, { status: "file", error: null, question: null, options: null, said: { text: String(text).trim().slice(0, 2000), at: now(), ...(t.status === "question" && t.question ? { q: String(t.question).slice(0, 300) } : {}) }, reprises: null, revalider: null, followUp: t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}${rangees}` });
   pump();
 }
 
