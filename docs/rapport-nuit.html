@@ -1,0 +1,496 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kaoly Clients : point d'étape de la nuit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@400;500&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   Gabarit « carnet » — carnet de recherche clair et aéré.
+   Tiré de docs/directions-visuelles/direction-3-carnet.html, généralisé.
+   Titres Inter Tight léger, étiquettes Roboto Mono sur aplat vert,
+   grandes cartes arrondies sans ombre, sommaire fixe à gauche sur grand écran,
+   mode sombre (prefers-color-scheme + data-theme).
+   À recopier tel quel dans le <style> de chaque page (pas de CSS externe),
+   avec la balise de polices.html dans le <head>.
+   ========================================================================== */
+
+/* ---------- 1. Couleurs et polices ---------- */
+:root{
+  --bg:#f7f7f5; --card:#eeeeee; --card2:#e7e8e1; --surface:#ffffff; --fg:#222f30; --muted:#4d5757; --line:#d8dad1; --edge:#ffffff;
+  --wash:#cef79e; --wash-fg:#222f30; --deep:#445e5f; --sage:#c9cbbe;
+  --blue-wash:#cfe8f4; --blue-fg:#1d3a47;
+  --good:#2c7038; --warn:#94600e; --bad:#a3372d; --neutral:#445e5f; --violet:#5b4c8c;
+  --term:#222f30; --term-fg:#f7f7f5;
+  --display:"Inter Tight",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"Roboto Mono",ui-monospace,monospace;
+  /* Alias du modèle de doc d'origine : les schémas et styles en ligne qui
+     appellent var(--accent) ou var(--good-soft) restent justes. */
+  --accent:var(--deep);
+  --accent-soft:var(--card2);
+  --good-soft:color-mix(in srgb,var(--good) 13%,var(--bg));
+  --warn-soft:color-mix(in srgb,var(--warn) 13%,var(--bg));
+  --bad-soft:color-mix(in srgb,var(--bad) 12%,var(--bg));
+  --violet-soft:color-mix(in srgb,var(--violet) 12%,var(--bg));
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0c1111; --card:#151c1c; --card2:#1a2222; --surface:#111818; --fg:#e7e8e1; --muted:#9ea9a8; --line:#283435; --edge:#222c2d;
+  --wash:#2f4a17; --wash-fg:#e3f7c9; --deep:#8fb3b4; --sage:#4d5757;
+  --blue-wash:#173543; --blue-fg:#d6eef9;
+  --good:#9ad48a; --warn:#e3b065; --bad:#f08c7f; --neutral:#9cc0c1; --violet:#b3a6e6;
+  --term:#000000; --term-fg:#e7e8e1; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0c1111; --card:#151c1c; --card2:#1a2222; --surface:#111818; --fg:#e7e8e1; --muted:#9ea9a8; --line:#283435; --edge:#222c2d;
+  --wash:#2f4a17; --wash-fg:#e3f7c9; --deep:#8fb3b4; --sage:#4d5757;
+  --blue-wash:#173543; --blue-fg:#d6eef9;
+  --good:#9ad48a; --warn:#e3b065; --bad:#f08c7f; --neutral:#9cc0c1; --violet:#b3a6e6;
+  --term:#000000; --term-fg:#e7e8e1; color-scheme:dark }
+
+/* ---------- 2. Éléments nus ---------- */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16.5px;line-height:1.65;padding-inline:16px;padding-block:0 96px;overflow-wrap:break-word}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2.3rem,6.4vw,4.4rem);line-height:1.02;letter-spacing:-.035em;margin:.5em 0 .45em;text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:clamp(1.65rem,3.6vw,2.3rem);line-height:1.1;letter-spacing:-.025em;margin:2.8em 0 .6em;text-wrap:balance;scroll-margin-top:72px}
+h3{font-family:var(--display);font-weight:500;font-size:1.15rem;letter-spacing:-.01em;margin:1.5em 0 .4em;scroll-margin-top:72px}
+h4{font-family:var(--display);font-weight:500;font-size:1rem;letter-spacing:-.005em;margin:1.3em 0 .3em}
+p,li{max-width:68ch} p{margin:.7em 0}
+li{margin:.3em 0}
+ul,ol{padding-left:1.3em}
+a{color:var(--fg);text-decoration-color:var(--deep);text-underline-offset:3px}
+a:hover{background:var(--wash);color:var(--wash-fg)}
+strong,b{font-weight:600}
+small{font-size:.85em}
+sup,sub{font-size:.7em;line-height:0}
+mark{background:var(--wash);color:var(--wash-fg);padding:0 4px;border-radius:4px}
+abbr[title]{text-decoration:underline dotted var(--muted);text-underline-offset:3px;cursor:help}
+kbd{font-family:var(--mono);font-size:.8em;border:1px solid var(--line);background:var(--surface);border-radius:5px;padding:0 5px}
+hr{border:0;border-top:1px solid var(--line);margin:48px 0}
+img,video{max-width:100%;height:auto;border-radius:20px}
+dl{margin:.6em 0 1em}
+dt{font-family:var(--display);font-weight:500;letter-spacing:-.01em;margin-top:.8em}
+dd{margin:.15em 0 0;max-width:68ch}
+details{background:var(--card);border:1px solid var(--edge);border-radius:20px;padding:12px 20px;margin:16px 0}
+summary{font-family:var(--display);font-weight:500;cursor:pointer}
+details[open] summary{margin-bottom:.4em}
+button{font-family:var(--mono);font-size:.76rem;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:4px 12px;cursor:pointer}
+button:hover{background:var(--wash);color:var(--wash-fg);border-color:transparent}
+input[type="checkbox"],input[type="radio"]{accent-color:var(--deep)}
+:focus-visible{outline:2px solid var(--deep);outline-offset:2px}
+
+/* ---------- 3. Mise en page : colonne, en-tête, sommaire ---------- */
+.wrap{max-width:780px;margin:0 auto}
+header.hero{padding-block:72px 40px}
+.eyebrow{display:inline-block;font-family:var(--mono);font-size:.74rem;letter-spacing:-.01em;background:var(--wash);color:var(--wash-fg);padding:3px 8px;border-radius:4px;line-height:1.5;text-transform:none}
+.lead{font-size:1.2rem;line-height:1.5;color:var(--muted);max-width:56ch}
+.small{font-size:.85rem;color:var(--muted)}
+.muted{color:var(--muted)}
+.q{font-family:var(--display);font-weight:500;font-size:1.3rem;letter-spacing:-.015em}
+ul.tight li,ol.tight li{margin:.35em 0}
+
+/* Sommaire : bandeau collant qui défile à l'horizontale sur petit écran… */
+nav.toc{position:sticky;top:0;background:var(--bg);padding:10px 16px;margin:0 -16px;z-index:5;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav.toc ul,nav.toc ol{list-style:none;margin:0 auto;padding:0;display:flex;gap:6px;white-space:nowrap;max-width:780px}
+nav.toc li{margin:0;max-width:none}
+nav.toc a{display:block;font-family:var(--mono);font-size:.74rem;text-decoration:none;color:var(--muted);padding:3px 9px;border-radius:20px;border:1px solid var(--line)}
+nav.toc a:hover{background:var(--wash);color:var(--wash-fg);border-color:transparent}
+/* …colonne fixe à gauche sur grand écran (seulement si la page a un sommaire). */
+@media (min-width:1200px){
+  .wrap:has(nav.toc){max-width:1100px;padding-left:280px}
+  nav.toc{position:fixed;top:72px;left:calc(50% - 550px);width:220px;margin:0;padding:0;background:none;border:0;overflow:visible;max-height:calc(100vh - 96px);overflow-y:auto}
+  nav.toc::before{content:"Sommaire";display:block;font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-bottom:12px}
+  nav.toc ul,nav.toc ol{flex-direction:column;gap:2px;white-space:normal}
+  nav.toc a{border:0;padding:4px 10px;margin-left:-10px;font-size:.78rem}
+}
+
+/* ---------- 4. Encadrés et cartes ---------- */
+.verdict{background:var(--card2);border:1px solid var(--edge);border-radius:32px;padding:32px 36px 24px;margin:12px 0 32px}
+.verdict h2{margin-top:0;font-size:1.9rem}
+.verdict>:last-child{margin-bottom:0}
+
+.callout{border:1px solid var(--edge);background:var(--card);padding:18px 22px;border-radius:24px;margin:22px 0}
+.callout p:first-child{margin-top:0}.callout p:last-child{margin-bottom:0}
+.callout>ul:last-child,.callout>ol:last-child{margin-bottom:0}
+.callout.good{background:var(--wash);color:var(--wash-fg);border-color:transparent}
+.callout.good a{color:var(--wash-fg)}
+.callout.good code{background:color-mix(in srgb,var(--wash-fg) 9%,transparent)}
+.callout.warn{background:var(--surface);border:1px solid var(--line);padding:22px 26px}
+.callout.bad{background:color-mix(in srgb,var(--bad) 7%,var(--surface));border:1px solid color-mix(in srgb,var(--bad) 30%,var(--line))}
+/* « À confirmer » : toujours en pointillé, y compris « callout warn unsure ». */
+.callout.unsure,.callout.warn.unsure{border:1.5px dashed var(--warn);background:transparent}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:22px 0}
+.grid2>div{background:var(--surface);border:1px solid var(--line);padding:18px 20px;border-radius:24px;min-width:0}
+.grid2 h3{margin-top:0;font-family:var(--mono);font-weight:400;font-size:.74rem;letter-spacing:-.01em;color:var(--muted)}
+.grid2 ul{padding-left:1.1em}
+.grid2>div>:last-child{margin-bottom:0}
+
+.card{background:var(--card);border:1px solid var(--edge);border-radius:24px;padding:18px 22px;margin:18px 0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:22px 0}
+.tile{background:var(--surface);border:1px solid var(--line);padding:18px 20px;border-radius:24px;min-width:0}
+.tile .n{font-family:var(--display);font-weight:400;font-size:2rem;line-height:1.05;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.tile .l{font-size:.85rem;color:var(--muted);margin-top:6px}
+
+.kpi{font-family:var(--display);font-weight:400;font-size:2.9rem;line-height:1;letter-spacing:-.04em;margin:.15em 0 .15em;font-variant-numeric:tabular-nums}
+
+/* Semaine d'un plan : date à gauche, contenu à droite. */
+.week{display:grid;grid-template-columns:130px 1fr;gap:4px 20px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:20px 24px;margin:14px 0}
+.week>:not(.when){grid-column:2;min-width:0}
+.week .when{font-family:var(--mono);font-size:.74rem;line-height:1.5;color:var(--muted)}
+.week h3{margin:0 0 .3em}
+.week ul{margin:.2em 0;padding-left:1.1em}
+.week .num{font-family:var(--mono);font-size:.76rem;line-height:1.5;color:var(--wash-fg);background:var(--wash);border-radius:12px;padding:8px 12px;margin-top:.8em}
+
+/* Étapes numérotées. */
+.step{display:grid;grid-template-columns:44px 1fr;gap:16px;margin:20px 0;align-items:start}
+.step>.w{font-family:var(--mono);font-size:.8rem;width:36px;height:36px;border-radius:50%;background:var(--wash);color:var(--wash-fg);display:grid;place-items:center}
+.step>:not(.w){min-width:0}
+.step h3{margin:0 0 .3em}
+
+/* Cases à cocher : liste simple ou étiquettes cliquables. */
+ul.chk{list-style:none;padding:0}
+ul.chk li{padding-left:28px;position:relative;margin:.45em 0;max-width:none}
+ul.chk li::before{content:"";position:absolute;left:0;top:.35em;width:14px;height:14px;border:1.5px solid var(--sage);border-radius:4px}
+label.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);max-width:none}
+label.chk input{margin-top:5px;accent-color:var(--deep)}
+label.chk:has(input:checked) span{color:var(--muted);text-decoration:line-through}
+.prog{height:8px;background:var(--card2);border-radius:20px;overflow:hidden;margin:8px 0 4px}
+.prog>div{height:100%;background:var(--deep);width:0%;border-radius:20px}
+
+blockquote{margin:24px 0;background:var(--card);border:1px solid var(--edge);border-radius:24px;padding:18px 24px;font-family:var(--display);font-weight:400;font-size:1.12rem;line-height:1.5;letter-spacing:-.01em}
+blockquote p{margin:.3em 0}
+blockquote cite{display:block;font-family:var(--mono);font-size:.72rem;letter-spacing:-.01em;color:var(--muted);font-style:normal;margin-top:8px}
+
+/* ---------- 5. Étiquettes, code, figures, tableaux ---------- */
+.pill{display:inline-block;font-family:var(--mono);font-size:.7rem;padding:1px 9px;border-radius:20px;white-space:nowrap;vertical-align:1px;margin-right:2px}
+.pill.good{background:color-mix(in srgb,var(--good) 13%,transparent);color:var(--good)}
+.pill.warn{background:color-mix(in srgb,var(--warn) 13%,transparent);color:var(--warn)}
+.pill.bad{background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad)}
+.pill.neutral{background:var(--card2);color:var(--neutral)}
+.pill.violet{background:color-mix(in srgb,var(--violet) 12%,transparent);color:var(--violet)}
+.pill.muted{background:var(--card2);color:var(--muted)}
+.pill.unsure{background:transparent;border:1px dashed var(--warn);color:var(--warn)}
+.tag{display:inline-block;font-family:var(--mono);font-size:.7rem;padding:1px 9px;border-radius:20px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+small.hyp{color:var(--warn);font-family:var(--mono);font-size:.72rem}
+
+code{font-family:var(--mono);font-size:.84em;background:var(--card2);padding:1px 5px;border-radius:5px;overflow-wrap:anywhere}
+pre{font-family:var(--mono);font-size:.8rem;background:var(--term);color:var(--term-fg);border-radius:20px;padding:18px 22px;overflow-x:auto;line-height:1.65;max-width:100%}
+pre code{background:none;padding:0;font-size:inherit;color:inherit;overflow-wrap:normal}
+
+figure{margin:32px 0;background:var(--card);border:1px solid var(--edge);border-radius:28px;padding:26px 24px 18px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:560px;overflow:visible} /* Roboto Mono est plus large que l'ancienne police : les étiquettes en bord de schéma débordent dans la marge du cadre au lieu d'être coupées */
+figure img{display:block;margin:0 auto}
+figcaption{font-size:.84rem;color:var(--muted);margin-top:14px;max-width:none}
+
+.tablewrap{overflow-x:auto;margin:20px 0}
+table{border-collapse:collapse;width:100%;font-size:.86rem;line-height:1.5}
+caption{caption-side:top;text-align:left;font-family:var(--mono);font-size:.72rem;color:var(--muted);padding-bottom:8px}
+th,td{text-align:left;vertical-align:top;padding:11px 14px 11px 0;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:.7rem;color:var(--muted);font-weight:400;letter-spacing:-.01em;text-transform:none}
+th.num{text-align:right}
+td.num{text-align:right;font-family:var(--mono);font-size:.8rem;white-space:nowrap}
+td strong{font-weight:600}
+.sources{font-size:.86rem}
+.sources li{margin:.3em 0;max-width:none;word-break:break-word}
+.url{display:block;font-family:var(--mono);font-size:.72rem;color:var(--muted);overflow-wrap:anywhere;margin-top:2px}
+
+/* ---------- 6. À confirmer (générique) ---------- */
+.unsure{border-style:dashed!important;border-color:var(--warn)!important}
+td.unsure{border:1px dashed var(--warn);background:color-mix(in srgb,var(--warn) 6%,transparent);padding-left:10px}
+tr.unsure>td{border-bottom:1px dashed var(--warn);background:color-mix(in srgb,var(--warn) 5%,transparent)}
+
+/* ---------- 7. Schémas SVG ---------- */
+.t{font-family:var(--body);font-size:11.5px;letter-spacing:-.01em;fill:var(--fg)}
+.ts{font-family:var(--body);font-size:11px;fill:var(--muted)}
+.tb{font-family:var(--display);font-weight:500;font-size:14px;fill:var(--fg)}
+.tm{font-family:var(--mono);font-size:10px;fill:var(--muted);paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
+.lbl,.k14{font-family:var(--body);font-size:14px;fill:var(--fg)}
+.chart-text{font-family:var(--body);font-size:12px;fill:var(--fg)}
+.chart-muted{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+.chart-grid{stroke:var(--line);stroke-width:1}
+.box{fill:var(--surface);stroke:var(--sage);stroke-width:1;rx:10}
+.box.hi{stroke:var(--fg);stroke-width:1.3}
+.box.src{fill:var(--blue-wash);stroke:transparent}
+.box.src + .tb,.box.src + .tb + .tm,.box.src + .tb + .t{fill:var(--blue-fg)}
+.box.src + .tb + .tm{stroke:var(--blue-wash)}
+.box.unsure{stroke:var(--warn);stroke-dasharray:5 4;stroke-width:1.3}
+.box.no{fill:var(--bg);stroke:var(--line);stroke-dasharray:3 3}
+/* Boîtes colorées des anciens schémas, ramenées à la palette carnet. */
+.boxa{fill:var(--card2);stroke:var(--deep);stroke-width:1;rx:10}
+.boxg{fill:var(--wash);stroke:transparent;rx:10}
+.boxv{fill:color-mix(in srgb,var(--violet) 12%,var(--surface));stroke:var(--violet);stroke-width:1;rx:10}
+.boxw{fill:color-mix(in srgb,var(--warn) 10%,var(--surface));stroke:var(--warn);stroke-width:1;rx:10}
+.boxu{fill:var(--surface);stroke:var(--warn);stroke-width:1.3;stroke-dasharray:5 4;rx:10}
+.boxp{fill:var(--blue-wash);stroke:transparent;rx:10}
+.arrow{stroke:var(--deep);stroke-width:1.2;fill:none;marker-end:url(#ar)}
+.arrow.hi{stroke:var(--fg);stroke-width:1.6;marker-end:url(#arhi)}
+.ln{stroke:var(--muted);stroke-width:1.2;fill:none}
+.lna{stroke:var(--deep);stroke-width:1.6;fill:none}
+.lnv{stroke:var(--violet);stroke-width:1.4;fill:none}
+.bar{fill:var(--deep);rx:9} .bar.rej{fill:var(--bad)} .bar.base{fill:var(--sage)}
+
+/* ---------- 8. Petits écrans (390 px compris) ---------- */
+@media (max-width:640px){
+  .week{grid-template-columns:1fr}
+  .week>:not(.when){grid-column:1}
+}
+@media (max-width:560px){
+  header.hero{padding-top:48px}
+  .verdict{padding:22px 18px 16px;border-radius:24px}
+  figure{padding:18px 14px 12px;border-radius:20px}
+  .callout{padding:16px 16px}
+  .callout.warn{padding:18px 18px}
+  .grid2>div,.tile,.week{border-radius:20px}
+  .week{padding:16px 16px}
+  pre{border-radius:16px;padding:14px 16px}
+  /* Les tableaux défilent dans leur cadre ; .tablewrap.narrow les laisse se replier. */
+  .tablewrap table{min-width:600px}
+  .tablewrap.narrow table{min-width:0}
+  table:not(.tablewrap table){display:block;overflow-x:auto}
+}
+/* ---------- propre à cette page ---------- */
+.shot{margin:18px 0 6px;background:none;border:0;padding:0;overflow:visible}
+.shot img{border:1px solid var(--line);border-radius:14px;width:100%}
+.shot figcaption{margin-top:8px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.duo figure{margin:0}
+ol.cinq{padding-left:1.3em}
+ol.cinq li{margin:.45em 0}
+td.v{white-space:nowrap}
+.chart-line{fill:none;stroke:var(--deep);stroke-width:2}
+.chart-dot{fill:var(--surface);stroke:var(--deep);stroke-width:2}
+.chart-dot.fin{fill:var(--deep)}
+tr.unsure>td:first-child{padding-left:10px}
+@media (max-width:560px){ .duo{grid-template-columns:1fr} th,td{padding-right:10px} }
+</style></head><body><div class="wrap">
+
+<header class="hero">
+<div class="eyebrow">Kaoly Clients · nuit du 12 au 13 novembre 2026 · branche nuit-2026-11-13</div>
+<h1>Point d'étape de la nuit</h1>
+<p class="lead">L'application tient sur une fenêtre : ce qui t'attend à gauche, une demande à droite, la preuve sous les yeux, un geste pour valider. Note finale 90,7 sur 100, page de départ à 10,2 sur 40.</p>
+</header>
+
+<nav class="toc" aria-label="Sommaire"><ul>
+<li><a href="#change">Ce qui change</a></li><li><a href="#essayer">L'essayer</a></li><li><a href="#decider">Ce qui te revient</a></li><li><a href="#archi">Ce qui va ensemble</a></li><li><a href="#mesure">La mesure</a></li><li><a href="#arbre">Les idées</a></li><li><a href="#pas-reel">Pas essayé en vrai</a></li><li><a href="#cout">Modèles et coût</a></li><li><a href="#suite">La suite</a></li>
+</ul></nav>
+
+<h2 id="change">Ce qui change pour toi</h2>
+<ol class="cinq">
+<li><strong>Une fenêtre, une demande à la fois.</strong> À gauche « À toi » avec son compte, puis ce que Claude a en main, puis tes clients. Plus de cartes empilées ni d'étiquettes de couleur.</li>
+<li><strong>Valider tient en un geste.</strong> La preuve (Après, Avant, Vidéo, capture du client), la phrase de Claude, le message au client et « Mettre en ligne et envoyer » (<kbd>⌘↵</kbd>) sur le même écran ; 5 s pour annuler.</li>
+<li><strong>La barre agit.</strong> « ok », « envoie », « classe » font le geste de la demande ouverte ; une question de Claude se règle d'un clic ou de <kbd>⌘1</kbd>.</li>
+<li><strong>Ce qui se règle seul ne te dérange plus.</strong> Un conflit à la mise en ligne repart sans toi ; tu n'es appelé qu'à la seconde panne.</li>
+<li><strong>Fermer la fenêtre ne coupe plus rien.</strong> La relève et Claude continuent, le Dock garde le compte (après un nouveau build).</li>
+</ol>
+
+<figure class="shot"><img src="captures/valider.png" alt="Demande à valider : preuve Après à gauche, fil et bouton Mettre en ligne et envoyer à droite" width="1000" height="672">
+<figcaption>Une demande à valider : titre, phrase d'état, la preuve à gauche, le fil à trois voix et le seul bouton plein à droite.</figcaption></figure>
+<div class="duo">
+<figure class="shot"><img src="captures/question.png" alt="Question de Claude en grand, barre prête pour la réponse" width="1000" height="672" loading="lazy">
+<figcaption>Claude demande : sa question en grand, la barre attend ta réponse.</figcaption></figure>
+<figure class="shot"><img src="captures/client.png" alt="Fiche du client Arion : registre des demandes et réglages" width="1000" height="672" loading="lazy">
+<figcaption>Un client : ce qui t'attend, ce que Claude a en main, le passé en gris, ses réglages à côté.</figcaption></figure>
+</div>
+
+<h2 id="essayer">L'ouvrir et l'essayer</h2>
+<p><strong>Sans risque, sur le jeu d'essai</strong> (faux Claude, faux GitHub, mail vers ton propre Mac, relève éteinte) :</p>
+<pre>cd ~/Desktop/code/kaoly_client_handling
+D=$(mktemp -d)
+cp -R eval/jeu/. "$D"
+KAOLY_CLIENTS_DIR="$D" \
+KAOLY_WA_DB=/nonexistent PORT=4300 \
+PATH="$PWD/eval/faux:$PATH" \
+bun server.ts</pre>
+<p>Puis <code>http://127.0.0.1:4300</code> dans le navigateur, <kbd>ctrl</kbd> <kbd>C</kbd> pour arrêter. À essayer : <kbd>↓</kbd> <kbd>↑</kbd> pour descendre la file, <kbd>←</kbd> <kbd>→</kbd> pour passer d'Après à Avant, espace pour la preuve en plein écran, <kbd>⌘↵</kbd> puis « Annuler » sur la ligne de la demande, « ok » dans la barre (<kbd>⌘K</kbd>).</p>
+<p><strong>Ton application, sur tes vraies données :</strong> quitte-la (<kbd>⌘Q</kbd>), lance <code>sh app/build.sh</code>, rouvre-la. Tes <code>config.json</code> et <code>tickets.json</code> actuels se relisent tels quels (vérifié sur des copies au format d'origine, un fichier par état).</p>
+
+<h2 id="decider">Ce qui te revient</h2>
+<div class="tablewrap narrow"><table>
+<thead><tr><th>Question</th><th>Ma recommandation</th></tr></thead>
+<tbody>
+<tr><td><strong>Le fil à une seule place.</strong> Sur certaines demandes, le message du client passe en grand à gauche, là où tu attends la preuve (capture plus bas). Deux essais refusés cette nuit.</td><td>Gauche = ce que tu regardes (preuve, « Pas de capture », question, panne) ; droite = le fil entier, toujours dans le même ordre. Premier chantier.</td></tr>
+<tr><td><strong>Un mot d'accord envoie.</strong> « ok » ou « envoie » dans la barre valent le bouton plein d'une demande à valider ou à envoyer, avec les mêmes 5 s pour annuler.</td><td>Garder. Repli prêt en une ligne si tu préfères le seul bouton.</td></tr>
+<tr><td><strong>Ce qui part avec le mail.</strong> Par défaut, seule la capture « Après » est jointe ; tu peux la retirer d'un clic.</td><td>Garder : le client voit le résultat, pas l'ancien écran.</td></tr>
+<tr><td><strong>Une retouche qui partirait seule.</strong> Cas rare : tu demandes une retouche sur une demande à valider, puis tu actives « Bugs sans validation » pour ce client ; si c'est un bug, la retouche part en ligne sans toi. Le message au client attend toujours ton clic.</td><td>Corriger : ce que tu as retouché revient à toi. Petit changement.</td></tr>
+<tr><td><strong>La puce de la barre.</strong> Avec une demande ouverte, ce que tu tapes va à cette demande. Coller le mail d'un autre client sans retirer la puce le transmettrait comme retouche.</td><td>Garder ; la puce est visible et <kbd>Échap</kbd> la retire. À revoir si ça t'arrive.</td></tr>
+<tr class="unsure"><td><strong>Le badge du Dock fenêtre fermée.</strong> Écrit, compilé, pas encore vu : <code>build.sh</code> n'a pas été lancé cette nuit.</td><td>Lancer le build ce matin, fermer la fenêtre, regarder si le compte bouge.</td></tr>
+</tbody></table></div>
+
+<h2 id="archi">Ce qui va ensemble, et pourquoi</h2>
+<p>Trois objets en tout : la demande, le client, les arrivées. « En cours » et « réglé » sont des moments d'une demande, pas des pages.</p>
+<figure>
+<svg viewBox="0 0 760 360" role="img" aria-labelledby="a1t"><title id="a1t">Schéma de la fenêtre : colonne à gauche, demande ouverte à droite, barre en bas</title>
+<rect class="box" x="10" y="10" width="740" height="340"/>
+<line class="chart-grid" x1="200" y1="10" x2="200" y2="350"/>
+<text class="tb" x="26" y="42">À toi</text><text class="tm" x="176" y="42" text-anchor="end">9</text>
+<text class="t" x="26" y="66">Bouton Exporter</text><text class="ts" x="26" y="82">Arion · à valider</text>
+<text class="t" x="26" y="106">Filtre par conseiller</text><text class="ts" x="26" y="122">Arion · arrêtée</text>
+<circle cx="20" cy="118" r="3" fill="var(--bad)"/>
+<text class="ts" x="26" y="158">Claude y travaille</text>
+<text class="ts" x="26" y="180">Logo trop petit · Buckwell</text>
+<text class="ts" x="26" y="222">Clients</text>
+<text class="t" x="26" y="244">Arion</text><text class="tm" x="176" y="244" text-anchor="end">2 j</text>
+<text class="ts" x="26" y="330">Relève éteinte · allumer</text>
+<text class="tb" x="220" y="42">Titre de la demande</text>
+<text class="ts" x="220" y="62">client · nature · en ligne ou pas · prénom · âge</text>
+<rect class="box hi" x="220" y="80" width="300" height="200"/>
+<text class="tb" x="236" y="108">Ce que tu regardes</text>
+<text class="t" x="236" y="132">la preuve : Après · Avant · Vidéo</text>
+<text class="t" x="236" y="152">ou « Pas de capture »</text>
+<text class="t" x="236" y="172">ou la question de Claude</text>
+<text class="t" x="236" y="192">ou la raison de la panne</text>
+<text class="tb" x="545" y="96">Le fil</text>
+<text class="t" x="545" y="120">Claire · sa demande</text>
+<text class="t" x="545" y="142">Claude · ce qui a changé</text>
+<text class="t" x="545" y="164">À Claire · mail · ton message</text>
+<rect x="545" y="196" width="190" height="32" rx="8" fill="var(--fg)"/>
+<text x="560" y="217" font-family="var(--body)" font-size="12" fill="var(--bg)">Mettre en ligne et envoyer</text>
+<rect class="box" x="220" y="300" width="515" height="34"/>
+<text class="ts" x="236" y="322">la barre : écrire à Claude, chercher, faire le geste</text>
+</svg>
+<figcaption>Une colonne qui liste des choses, jamais des états ; à droite un seul objet ouvert. Le bouton est le seul aplat foncé.</figcaption>
+</figure>
+<div class="tablewrap narrow"><table>
+<thead><tr><th>Séparé avant</th><th>C'est la même question</th><th>Donc réuni</th></tr></thead>
+<tbody>
+<tr><td>« Mettre en production » puis « Envoyer », en deux passages</td><td>« c'est bon, on le dit au client »</td><td>preuve, message et un seul bouton sur le même écran</td></tr>
+<tr><td>résumé de Claude, captures, message au client</td><td>le même récit, pour toi puis pour le client</td><td>une colonne de lecture à côté de l'image</td></tr>
+<tr><td>quatre étiquettes : client, nature, état, production</td><td>« où en est-on ? »</td><td>une phrase grise sous le titre</td></tr>
+<tr><td>À toi, En cours, Terminé</td><td>trois moments du même objet</td><td>deux groupes d'une liste ; le passé va chez le client</td></tr>
+<tr><td>page Clients, Terminé, réglages</td><td>tout appartient au client</td><td>une fiche client</td></tr>
+<tr><td>interrupteur, état du mail et de WhatsApp, tri</td><td>« par où ça entre »</td><td>le pied de la colonne, muet quand tout marche</td></tr>
+<tr><td>zone de retouche de chaque carte, réponse à une question, barre</td><td>« écrire à Claude »</td><td>il ne reste que la barre</td></tr>
+</tbody></table></div>
+
+<h2 id="mesure">La mesure</h2>
+<div class="tiles">
+<div class="tile"><div class="n">10,2<small> / 40</small></div><div class="l">page de départ, note automatique seule</div></div>
+<div class="tile"><div class="n">97,7</div><div class="l">le plus haut, au cycle 4</div></div>
+<div class="tile"><div class="n">90,7<small> / 100</small></div><div class="l">final : 39,7 automatique + 51 du juge</div></div>
+</div>
+<figure>
+<svg viewBox="0 0 760 270" role="img" aria-labelledby="m1t"><title id="m1t">Note sur 100 par cycle, de 94,7 au cycle 0 à 90,7 à la fin</title>
+<line class="chart-grid" x1="60" y1="30" x2="730" y2="30"/><line class="chart-grid" x1="60" y1="90" x2="730" y2="90"/><line class="chart-grid" x1="60" y1="150" x2="730" y2="150"/><line class="chart-grid" x1="60" y1="210" x2="730" y2="210"/>
+<text class="chart-muted" x="50" y="34" text-anchor="end">100</text><text class="chart-muted" x="50" y="94" text-anchor="end">95</text><text class="chart-muted" x="50" y="154" text-anchor="end">90</text><text class="chart-muted" x="50" y="214" text-anchor="end">85</text>
+<polyline class="chart-line" points="90,93.6 190,81.6 290,93.6 390,81.6 490,57.6 590,153.6 690,141.6"/>
+<circle class="chart-dot" cx="90" cy="93.6" r="4.5"/><circle class="chart-dot" cx="190" cy="81.6" r="4.5"/><circle class="chart-dot" cx="290" cy="93.6" r="4.5"/><circle class="chart-dot" cx="390" cy="81.6" r="4.5"/><circle class="chart-dot" cx="490" cy="57.6" r="4.5"/><circle class="chart-dot" cx="590" cy="153.6" r="4.5"/><circle class="chart-dot fin" cx="690" cy="141.6" r="4.5"/>
+<text class="chart-text" x="90" y="80" text-anchor="middle">94,7</text><text class="chart-text" x="190" y="68" text-anchor="middle">95,7</text><text class="chart-text" x="290" y="80" text-anchor="middle">94,7</text><text class="chart-text" x="390" y="68" text-anchor="middle">95,7</text><text class="chart-text" x="490" y="44" text-anchor="middle">97,7</text><text class="chart-text" x="590" y="174" text-anchor="middle">89,7</text><text class="chart-text" x="690" y="128" text-anchor="middle">90,7</text>
+<text class="chart-muted" x="90" y="236" text-anchor="middle">0</text><text class="chart-muted" x="190" y="236" text-anchor="middle">1</text><text class="chart-muted" x="290" y="236" text-anchor="middle">2</text><text class="chart-muted" x="390" y="236" text-anchor="middle">3</text><text class="chart-muted" x="490" y="236" text-anchor="middle">4</text><text class="chart-muted" x="590" y="236" text-anchor="middle">5</text><text class="chart-muted" x="690" y="236" text-anchor="middle">final</text>
+<text class="chart-muted" x="90" y="254" text-anchor="middle">direction</text><text class="chart-muted" x="190" y="254" text-anchor="middle">fil, barre</text><text class="chart-muted" x="290" y="254" text-anchor="middle">envoi</text><text class="chart-muted" x="390" y="254" text-anchor="middle">petit, pannes</text><text class="chart-muted" x="490" y="254" text-anchor="middle">preuve, Dock</text><text class="chart-muted" x="590" y="254" text-anchor="middle">ta parole</text><text class="chart-muted" x="690" y="254" text-anchor="middle">relecture</text>
+</svg>
+<figcaption>Note sur 100 du tronc après chaque cycle. L'échelle commence à 85 : tout se joue sur les 60 points du juge, la note automatique est à 39,7 depuis le cycle 0.</figcaption>
+</figure>
+<div class="tablewrap narrow"><table>
+<thead><tr><th>Part</th><th>Ce qu'elle mesure</th><th class="num">Final</th></tr></thead>
+<tbody>
+<tr><td>Automatique</td><td>Dans la page, à 1280 × 860 : mots que l'interface écrit elle-même, nombre d'encadrés, tailles et graisses, contraste, petite fenêtre 760 × 560, gestes au clavier, rien d'envoyé avant 5 s. Note 0 si un essai échoue ou si un texte de client devient du code.</td><td class="num">39,7 / 40</td></tr>
+<tr><td>Juge</td><td>30 questions oui ou non sur les captures, à ta place : hiérarchie, regroupement, sobriété du texte, décision en un geste, lecture d'un client, finition.</td><td class="num">51 / 60</td></tr>
+</tbody></table></div>
+<div class="callout unsure">
+<p><strong>À confirmer : ce que la note ne dit pas.</strong></p>
+<ul>
+<li>La part automatique plafonne depuis le cycle 0 : elle garantit que rien n'est cassé, elle ne départage plus.</li>
+<li>Le juge est un modèle qui lit des captures ; une question vaut 2 points, donc un écart de 2 à 4 points reste du bruit.</li>
+<li>Au dernier cycle, toutes les idées ont eu entre 89,7 et 93,7 et le tronc 89,7 : ce juge-là note plus sévèrement. Deux idées de design refusées (91,7) ont été comparées au 97,7 d'un passage précédent ; face au tronc rejugé, elles auraient passé le seuil.</li>
+<li>Le juge n'a pas noté la page de départ : on n'a d'elle que la part automatique (10,2 / 40).</li>
+<li>Tout est mesuré sur un jeu d'essai de 15 demandes et trois clients, pas sur tes vraies données.</li>
+</ul>
+<p>Pas bloquant : le banc d'essai de bout en bout et les règles de sécurité sont vérifiés à chaque fusion ; le juge ne sert qu'à choisir entre deux écrans.</p>
+</div>
+<figure class="shot"><img src="captures/depart.png" alt="Page de départ : cartes empilées, étiquettes de couleur, menu par états" width="1000" height="672" loading="lazy">
+<figcaption>Pour mémoire, la page de départ : cartes empilées, quatre étiquettes de couleur par demande, un menu par états.</figcaption></figure>
+
+<h2 id="arbre">L'arbre des idées</h2>
+<p>Cinq directions écrites en parallèle, une gardée, puis cinq cycles de cinq idées. Une idée de design n'entre que si elle gagne 1,5 point sur le tronc ; une idée de fonction entre si le banc reste vert et que l'écran ne recule pas.</p>
+<figure>
+<svg viewBox="0 0 760 250" role="img" aria-labelledby="t1t"><title id="t1t">Arbre : départ, cinq directions, greffes, puis cinq cycles</title>
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+<rect class="box src" x="10" y="95" width="100" height="56"/><text class="tb" x="22" y="119">Départ</text><text class="tm" x="22" y="138">10,2 / 40</text>
+<rect class="box hi" x="150" y="14" width="130" height="38"/><text class="tb" x="162" y="38">clavier 91,5</text>
+<rect class="box" x="150" y="62" width="130" height="34"/><text class="t" x="162" y="84">page continue 90,3</text>
+<rect class="box" x="150" y="106" width="130" height="34"/><text class="t" x="162" y="128">par client 89,5</text>
+<rect class="box" x="150" y="150" width="130" height="34"/><text class="t" x="162" y="172">deux volets 89,4</text>
+<rect class="box" x="150" y="194" width="130" height="34"/><text class="t" x="162" y="216">références 89,4</text>
+<path class="arrow" d="M110,123 L148,33"/><path class="arrow" d="M110,123 L148,79"/><path class="arrow" d="M110,123 L148,123"/><path class="arrow" d="M110,123 L148,167"/><path class="arrow" d="M110,123 L148,211"/>
+<rect class="box hi" x="320" y="14" width="110" height="38"/><text class="tb" x="332" y="38">6 greffes</text>
+<path class="arrow" d="M280,33 L318,33"/>
+<path class="ln" stroke-dasharray="3 3" d="M280,79 C300,79 300,52 330,52"/><path class="ln" stroke-dasharray="3 3" d="M280,123 C305,123 305,52 350,52"/><path class="ln" stroke-dasharray="3 3" d="M280,167 C310,167 310,52 370,52"/><path class="ln" stroke-dasharray="3 3" d="M280,211 C315,211 315,52 390,52"/>
+<text class="tm" x="330" y="120">idées reprises</text><text class="tm" x="330" y="134">des quatre autres</text>
+<rect class="box" x="470" y="14" width="80" height="38"/><text class="tb" x="482" y="38">c1 3/5</text>
+<rect class="box" x="470" y="62" width="80" height="38"/><text class="tb" x="482" y="86">c2 2/5</text>
+<rect class="box" x="470" y="110" width="80" height="38"/><text class="tb" x="482" y="134">c3 5/5</text>
+<rect class="box" x="470" y="158" width="80" height="38"/><text class="tb" x="482" y="182">c4 3/5</text>
+<rect class="box" x="470" y="206" width="80" height="38"/><text class="tb" x="482" y="230">c5 2/5</text>
+<path class="arrow" d="M430,33 L468,33"/><path class="arrow" d="M510,52 L510,60"/><path class="arrow" d="M510,100 L510,108"/><path class="arrow" d="M510,148 L510,156"/><path class="arrow" d="M510,196 L510,204"/>
+<rect class="box hi" x="590" y="200" width="160" height="50"/><text class="tb" x="602" y="222">Final 90,7</text><text class="tm" x="602" y="240">16 gardées, 14 non</text>
+<path class="arrow" d="M550,225 L588,225"/>
+<text class="tm" x="600" y="60">cN x/5 : idées</text><text class="tm" x="600" y="74">fusionnées</text>
+</svg>
+<figcaption>Les quatre directions non gardées ont prêté leurs meilleures idées aux greffes (la preuve qui s'ouvre sur Après, le canal dit une seule fois, le message parti en gris).</figcaption>
+</figure>
+<div class="tablewrap narrow"><table>
+<thead><tr><th>Cycle</th><th>Idée</th><th class="num">Note</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Le fil ne dit rien deux fois</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>1</td><td>La barre trouve avant de demander à Claude</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>1</td><td>« Relancer » fait vraiment repartir le travail</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>1</td><td>Fiche client sur la grille de la demande</td><td class="num">95,7</td><td class="v"><span class="pill bad">refusée</span></td></tr>
+<tr><td>1</td><td>La décision et son bouton se touchent</td><td class="num">91,7</td><td class="v"><span class="pill bad">refusée</span></td></tr>
+<tr><td>2</td><td>Un message pas parti se voit et reste</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>2</td><td>La barre ne déclenche rien par erreur</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>2</td><td>Fiche client = la colonne filtrée sur lui</td><td class="num">95,7</td><td class="v"><span class="pill bad">refusée</span></td></tr>
+<tr><td>2</td><td>Preuve cadrée sur ce qui a changé</td><td class="num">95,7</td><td class="v"><span class="pill bad">refusée</span></td></tr>
+<tr><td>2</td><td>Petite fenêtre : rien de coupé</td><td class="num">93,7</td><td class="v"><span class="pill bad">refusée</span></td></tr>
+<tr><td>3</td><td>Petite fenêtre finie, réglages réduits</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>3</td><td>Preuve lisible, plus de trou ni de vide</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>3</td><td>« Annuler » sur la ligne de sa demande, <kbd>⌘Z</kbd></td><td class="num">95,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>3</td><td>Ce que le client reçoit se voit en entier</td><td class="num">95,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>3</td><td>Une panne réglable repart seule</td><td class="num">95,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>4</td><td>La preuve s'arrête sur des lignes entières</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>4</td><td>La barre fait le geste (« ok », « classe »)</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>4</td><td>Fermer la fenêtre ne coupe rien</td><td class="num">97,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>4</td><td>Le fil se lit pareil partout</td><td class="num">95,7</td><td class="v"><span class="pill bad">refusée</span></td></tr>
+<tr><td>4</td><td>À gauche seulement ce que tu tranches</td><td class="num">95,7</td><td class="v"><span class="pill bad">refusée</span></td></tr>
+<tr><td>5</td><td>La capture du client dans le cadre de la preuve</td><td class="num">93,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr><td>5</td><td>Ta parole reste dans le fil, question en un clic</td><td class="num">91,7</td><td class="v"><span class="pill good">fusionnée</span></td></tr>
+<tr class="unsure"><td>5</td><td>Un seul fil, à une seule place</td><td class="num">91,7</td><td class="v"><span class="pill unsure">à rejuger</span></td></tr>
+<tr class="unsure"><td>5</td><td>Une seule règle de taille pour la preuve</td><td class="num">91,7</td><td class="v"><span class="pill unsure">à rejuger</span></td></tr>
+<tr class="unsure"><td>5</td><td>Un état, un mot, dans la phrase d'état</td><td class="num">89,7</td><td class="v"><span class="pill unsure">à rejuger</span></td></tr>
+</tbody></table></div>
+<p class="small">Les trois dernières ont été refusées face à 97,7 ; elles traitent exactement les trois défauts restants. Les branches refusées sont supprimées ; leurs commits sont notés dans <code>eval/arbre.json</code> et git les garde encore quelques semaines.</p>
+
+<h2 id="pas-reel">Ce qui n'a pas tourné en vrai</h2>
+<div class="callout unsure">
+<ul>
+<li><strong>Mails :</strong> relève et envoi testés contre un faux serveur sur ton Mac, jamais contre ta boîte.</li>
+<li><strong>WhatsApp :</strong> base absente (interdit de l'ouvrir) ; l'envoi s'ouvre prérempli, tu appuies sur Entrée.</li>
+<li><strong>Claude Code :</strong> un faux <code>claude</code> joue les sessions ; aucune vraie session sur un dépôt client.</li>
+<li><strong>GitHub :</strong> faux <code>gh</code> ; rien n'a été poussé ni fusionné.</li>
+<li><strong>L'application Mac :</strong> compilée sans erreur, mais <code>build.sh</code> n'a pas été lancé (fenêtre qui reste, badge du Dock).</li>
+</ul>
+<p>Pas bloquant : le banc d'essai fait tout le parcours avec ces faux, qui répondent comme les vrais outils ; la relève reste éteinte tant que tu ne l'allumes pas, les messages d'inconnus ne déclenchent rien, et aucun message ne part sans ton clic. Premier essai conseillé : un client de test avec ton adresse personnelle comme contact, puis un mail depuis elle.</p>
+</div>
+
+<h2 id="cout">Modèles et coût</h2>
+<p><strong>0 € d'appels payants.</strong> Tout sur l'abonnement : aucune clé API, aucun vrai <code>claude -p</code>, aucun service payant.</p>
+<div class="tablewrap narrow"><table>
+<thead><tr><th>Rôle</th><th>Modèle</th></tr></thead>
+<tbody>
+<tr><td>Contrat, mesure, fusions, relecture finale</td><td>Opus</td></tr>
+<tr><td>Réaliser une idée dans sa copie de travail</td><td>Sonnet</td></tr>
+<tr><td>Lancer les mesures, captures, corrections cadrées</td><td>Haiku</td></tr>
+<tr><td>Proposer et choisir les idées entre deux cycles</td><td>Opus et Fable</td></tr>
+<tr><td>Juger les captures à ta place</td><td>Fable</td></tr>
+<tr class="unsure"><td colspan="2">Répartition prévue par la règle de la boucle ; le décompte réel par modèle est à lire dans l'usage de ton abonnement.</td></tr>
+</tbody></table></div>
+<p>Le forfait Fable est presque épuisé : la suite tourne au plus sur Opus 5.5, juge compris (ce rapport aussi). Changer de juge change l'échelle des notes : on rejuge le tronc et les idées sur les mêmes captures avant de comparer.</p>
+
+<h2 id="suite">La suite</h2>
+<figure class="shot"><img src="captures/classee.png" alt="Demande classée : le message de Julien en grand à gauche, Claude seul à droite" width="1000" height="672" loading="lazy">
+<figcaption>Le défaut principal : sur une demande classée, le message du client prend la place de la preuve, Claude reste seul à droite.</figcaption></figure>
+<ol>
+<li><strong>Le fil à une seule place</strong>, toujours à droite, dans le même ordre ; à gauche seulement ce que tu regardes. Rejuger d'abord « Un seul fil, à une seule place » face au tronc.</li>
+<li><strong>Petite fenêtre :</strong> ne jamais couper la demande du client ; la preuve garde au moins 200 px, entière et réduite.</li>
+<li><strong>La phrase d'état dans un seul ordre :</strong> client · nature · en ligne ou pas · prénom par canal · âge.</li>
+<li><strong>Petites finitions :</strong> un verbe d'état sur chaque ligne de « Claude y travaille » ; un titre en mots quand le client colle du code ; « Rien ne t'attend » seulement si la file est vide, « Demande introuvable » pour une adresse morte.</li>
+<li>Corriger la retouche qui pourrait partir seule.</li>
+<li>Build, puis premier essai réel sur un client de test.</li>
+<li>Plus tard, comme tu l'as dit : suivi d'usage et avancement des déploiements.</li>
+</ol>
+
+</div></body></html>
