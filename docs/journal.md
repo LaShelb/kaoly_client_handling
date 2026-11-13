@@ -25,3 +25,4 @@
 - page (écart §12) · la colonne dit « à envoyer » aussi quand le bug est déjà en ligne ; la phrase d'état sous le titre garde « en ligne » en vert.
 - page (écart §1) · « Relève éteinte » n'est plus en tête de « À toi » : un seul endroit, le pied de la colonne, avec « allumer » ; les pannes de mail, WhatsApp ou tri y passent aussi, avec le point rouge.
 - page (précision §4) · à gauche ce qu'il y a à regarder (preuve, question de Claude, raison de la panne, ce que Claude fait), à droite le fil et le geste, dans tous les états ; le canal n'est écrit qu'une fois (sur « À Claire · mail » quand il y a un message).
+- serveur (idée c2-relancer-qui-aboutit) · « Relancer » et la retouche passent par la file (pump borne les sessions) ; une fusion bloquée (« not mergeable », conflit) renvoie Claude fusionner la branche principale (reprise(t)) ; avant une retouche, apres-*, video-* et images sans « avant » vont dans preuves/<id>/precedent/.

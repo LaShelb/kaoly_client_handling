@@ -82,6 +82,11 @@ export function allowed(method: string, host: string | null, origin: string | nu
 // Les étapes d'une demande, dans l'ordre. « Relancer » reprend après Claude si son travail est déjà là.
 export const STEPS = ["copie du dépôt", "travail de Claude", "envoi du code", "mise en ligne", "envoi au client"];
 export const resumeAt = (t: { step?: string; draft?: any }) => (t.draft && STEPS.indexOf(t.step ?? "") > 1 ? "finish" : "work");
+// Reprise d'une demande en erreur : une fusion bloquée par un conflit renvoie Claude régler la branche (consigne en plus), sinon on reprend à l'étape.
+export const reprise = (t: { step?: string; draft?: any; error?: string; base?: string }): { to: "finish" | "work"; consigne?: string } =>
+  /not mergeable|conflict|conflit/i.test(t.error ?? "")
+    ? { to: "work", consigne: `La branche principale a changé et la mise en ligne bloque sur un conflit. Intègre-la dans ta branche (git fetch, puis git merge ${t.base ?? "la branche principale"} ; pas de rebase, l'application pousse sans forcer), règle les conflits en gardant ton changement, relance les vérifications et refais la capture après.` }
+    : { to: resumeAt(t) };
 
 // Deux demandes au même titre dans la même milliseconde (un tri qui en rend plusieurs) : -2, -3…, jamais le même identifiant.
 export const uniqueId = (base: string, taken: (id: string) => boolean) => { let id = base; for (let n = 2; taken(id); n++) id = `${base}-${n}`; return id; };
@@ -303,7 +308,7 @@ async function ship(t: any, auto = false) {
 function pump() {
   for (const t of [...tickets].reverse()) { // les plus anciens d'abord
     if (tickets.filter((x) => x.status === "travail").length >= MAX_SESSIONS) return;
-    if (t.status === "file") work(t);
+    if (t.status === "file") work(t, t.followUp ?? undefined);
   }
 }
 
@@ -457,7 +462,16 @@ function upsertClient(x: any) {
 function answer(t: any, text: string) {
   if (!["question", "valider", "message", "erreur"].includes(t?.status)) throw new Error("Cette demande n'attend pas de réponse.");
   if (t.shipped) throw new Error("Ce changement est déjà en ligne : ouvre une nouvelle demande pour la retouche.");
-  work(t, t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}`);
+  let rangees = "";
+  if (t.status !== "question") { // les anciennes captures passent dans precedent/ (vidé à chaque fois) ; les « avant » restent
+    const d = `${DIR}/preuves/${t.id}`, p = `${d}/precedent`;
+    rmSync(p, { recursive: true, force: true }); mkdirSync(p, { recursive: true });
+    for (const f of proofsOf(t).filter((f) => !f.startsWith("avant"))) renameSync(`${d}/${f}`, `${p}/${f}`);
+    rangees = " Tes anciennes captures sont dans precedent/.";
+  }
+  // en file : le nombre de sessions reste borné par pump()
+  set(t, { status: "file", error: null, question: null, followUp: t.status === "question" ? `Réponse de Simon à ta question : ${text}` : `Retour de Simon après relecture, à prendre en compte (refais les preuves) : ${text}${rangees}` });
+  pump();
 }
 
 async function chat(text: string) {
@@ -539,8 +553,9 @@ async function handle(req: Request) {
         }
         else if (body.action === "relancer") {
           if (t.status !== "erreur") throw new Error("Cette demande n'est pas arrêtée.");
-          if (resumeAt(t) === "finish") guarded(t, () => finish(t)); // Claude a déjà fini : on reprend à l'envoi du code
-          else work(t, t.followUp ?? (t.sessionId ? "Tu as été interrompu. Reprends où tu en étais et termine." : undefined));
+          const r = reprise(t);
+          if (r.to === "finish") guarded(t, () => finish(t)); // Claude a déjà fini : on reprend à l'envoi du code
+          else { set(t, { status: "file", error: null, followUp: r.consigne ?? t.followUp ?? (t.sessionId ? "Tu as été interrompu. Reprends où tu en étais et termine." : null) }); pump(); }
         }
         else if (body.action === "fermer") { running.get(t.id)?.kill(); set(t, { status: "fini", dropped: !t.shipped }); cleanup(t); }
         else throw new Error("Action inconnue.");
@@ -580,6 +595,9 @@ function check() {
     [true, false, true, false, false, false, false, false], "origine, jeton et Host");
   eq([resumeAt({ step: "envoi du code", draft: {} }), resumeAt({ step: "mise en ligne", draft: {} }), resumeAt({ step: "travail de Claude", draft: {} }), resumeAt({ step: "envoi du code" }), resumeAt({})],
     ["finish", "finish", "work", "work", "work"], "Relancer reprend à l'étape");
+  eq([reprise({ error: "gh pr merge x --squash : GraphQL: Pull request is not mergeable", step: "mise en ligne", draft: {} }).to, reprise({ error: "pull request create failed: x", step: "envoi du code", draft: {} }).to,
+    reprise({ error: "Merge CONFLICT", step: "mise en ligne", draft: {}, base: "origin/dev" }).consigne?.includes("git merge origin/dev ;"), reprise({ error: "boum", step: "travail de Claude" }).consigne],
+    ["work", "finish", true, undefined], "relancer : un conflit renvoie Claude, le reste reprend à l'étape");
   eq([uniqueId("a", () => false), uniqueId("a", (id) => ["a", "a-2"].includes(id))], ["a", "a-3"], "identifiants uniques");
   console.log("vérification : tout est juste");
 }

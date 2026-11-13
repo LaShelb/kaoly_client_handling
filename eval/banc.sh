@@ -54,7 +54,7 @@ ajoute_wa() { bun -e 'const { Database } = require("bun:sqlite"); new Database(p
 for f in claude gh security open pbcopy; do [ -x "$ICI/eval/faux/$f" ] || echec "faux $f absent : le serveur d'essai ne démarre pas sans lui"; done
 cd "$ICI" || exit 1
 env KAOLY_CLIENTS_DIR="$D" PORT="$PORT" KAOLY_WA_DB="$WA" PATH="$ICI/eval/faux:$PATH" FAUX_LOG="$L" \
-  FAUX_GH_PANNE="$T/gh-panne" FAUX_GH_FUSIONNEE="$T/gh-fusionnee" FAUX_TRI_PANNE="$T/tri-panne" FAUX_GH_BLOQUE="$T/gh-bloque" \
+  FAUX_GH_PANNE="$T/gh-panne" FAUX_GH_FUSIONNEE="$T/gh-fusionnee" FAUX_TRI_PANNE="$T/tri-panne" FAUX_GH_BLOQUE="$T/gh-bloque" FAUX_GH_CONFLIT="$T/gh-conflit" \
   FAUX_GH_DEPOT="$T/origine.git" FAUX_CLAUDE_PANNE="$T/claude-panne" FAUX_OPEN_LENT="$T/open-lent" KAOLY_DELAI=3000 \
   GIT_AUTHOR_NAME=banc GIT_AUTHOR_EMAIL=banc@exemple.invalid GIT_COMMITTER_NAME=banc GIT_COMMITTER_EMAIL=banc@exemple.invalid \
   bun server.ts > "$L/serveur.log" 2>&1 &
@@ -107,6 +107,7 @@ ok "bug sur client non autorisé : attend Simon"
 vaut "$(ticket "$A" retouche --arg text "[VISIBLE] ajoute le bouton")" 200 "retouche"
 attendre "$A" valider
 vaut "$(champ "$A" .kind)/$(travaux)/$(commits "$A")" "visible/2/2" "retouche : Claude repris, deuxième commit, changement visible"
+vaut "$(ls "$D/preuves/$A/precedent" | tr '\n' ,)/$(champ "$A" '.proofs|join(",")')" "apres-titre.png,/apres-titre.png,avant-titre.png" "ancienne capture rangée dans precedent/, avant gardée"
 ok "retouche"
 
 # ── mise en ligne et envoi : l'envoi du mail échoue (127.0.0.1), la demande reste en ligne, message à envoyer ──
@@ -150,6 +151,20 @@ vaut "$(ticket "$E" relancer)" 200 "relancer"
 attendre "$E" valider
 vaut "$(travaux)/$(commits "$E")/$(champ "$E" .pr)" "$n/1/https://github.com/x/y/pull/1" "relance sans Claude, un seul commit"
 ok "erreur puis relance"
+
+# ── conflit à la mise en ligne : « Relancer » renvoie Claude fusionner la branche principale ──
+touch "$T/gh-conflit"
+post /api/chat '{"text":"[VISIBLE] le menu"}' > /dev/null
+V=$(dernier); attendre "$V" valider
+vaut "$(ticket "$V" valider)" 400 "mise en ligne bloquée par un conflit"
+vaut "$(champ "$V" .status)" erreur "conflit : demande en erreur"
+champ "$V" .error | grep -q "not mergeable" || echec "conflit non signalé : $(champ "$V" .error)"
+rm "$T/gh-conflit"; n=$(travaux)
+vaut "$(ticket "$V" relancer)" 200 "relancer après conflit"
+attendre "$V" valider
+vaut "$(travaux)" "$((n+1))" "conflit : Claude relancé"
+grep -q "git merge" "$L/prompt.txt" || echec "la consigne de fusion n'est pas donnée à Claude"
+ok "conflit : Claude relancé avec la consigne de fusion"
 
 # ── retouche, puis Claude tombe : « Relancer » lui redonne la remarque de Simon ──
 touch "$T/claude-panne"
