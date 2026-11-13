@@ -228,14 +228,13 @@
     #vue.serre .fil-texte > .voix:first-child:not(:has(textarea, .envoye, .deplie)) { display: none; } /* ça ne tient pas, même la preuve à 80 px : la ligne du client s'efface */
     /* les réglages passent au-dessus du registre, sur une ligne : la bascule, « Détail » ; les contacts et le reste sont dans le Détail */
     .fiche { display: flex; flex-direction: column; align-items: stretch; gap: 0; overflow-y: auto; }
-    .reglages { order: -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; margin-bottom: 12px; }
+    .reglages { order: -1; position: relative; margin-bottom: 12px; }
     .reglages .bloc { padding: 0; }
-    .reglages .bascule { justify-content: flex-start; }
-    .reglages details { display: contents; }
-    .reglages summary { order: 1; margin-left: auto; }
-    .reglages .contacts { order: 2; flex-basis: 100%; padding-top: 10px; }
-    .reglages:not(:has(details[open])) :is(.contacts, .detail) { display: none; }
-    .reglages .detail { order: 3; flex-basis: 100%; margin-top: 10px; }
+    .reglages .bascule { justify-content: flex-start; padding-right: 60px; }
+    .reglages summary { position: absolute; top: 0; right: 0; line-height: 16px; } /* ponytail : « Détail » reste à droite de la bascule, ouvert ou non ; son contenu passe dessous */
+    .reglages:not(:has(details[open])) .contacts { display: none; }
+    .reglages .contacts { padding-top: 10px; }
+    .reglages .detail { margin-top: 10px; }
     .registre { flex: none; max-height: none; margin-bottom: 16px; }
     .reg { padding: 6px; }
   }
