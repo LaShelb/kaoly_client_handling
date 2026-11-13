@@ -505,9 +505,10 @@ function answer(t: any, text: string) {
   pump();
 }
 
-async function chat(text: string) {
-  const s = cfg();
-  const r = await askClaude(`Clients : ${JSON.stringify(s.clients)}\nDemandes ouvertes : ${JSON.stringify(tickets.filter((t) => t.status !== "fini").map((t) => ({ id: t.id, client: t.clientId, titre: t.title, etat: t.status, question: t.question })))}\n\nSimon écrit :\n${text}`, CHAT, CHAT_SCHEMA);
+async function chat(text: string, clientId?: string) {
+  const s = cfg(), c = s.clients.find((x: any) => x.id === clientId); // ponytail : un clientId inconnu est ignoré, la barre parle alors à Claude sans contexte
+  const fiche = c ? `Simon regarde la fiche du client ${c.name} (${c.id}) : sauf indication contraire, ce qu'il écrit le concerne.\n\n` : "";
+  const r = await askClaude(`Clients : ${JSON.stringify(s.clients)}\nDemandes ouvertes : ${JSON.stringify(tickets.filter((t) => t.status !== "fini").map((t) => ({ id: t.id, client: t.clientId, titre: t.title, etat: t.status, question: t.question })))}\n\n${fiche}Simon écrit :\n${text}`, CHAT, CHAT_SCHEMA);
   const done: string[] = [], propose: any[] = [];
   for (const a of r.actions ?? []) try {
     // ni pièce jointe ni expéditeur : un texte collé ne doit pas joindre un fichier du Mac ni choisir le destinataire
@@ -552,7 +553,7 @@ async function handle(req: Request) {
   if (req.method !== "POST") return new Response("Introuvable", { status: 404 });
   try {
     const body: any = await req.json();
-    if (pathname === "/api/chat") return Response.json(await chat(String(body.text ?? "").slice(0, 20000)));
+    if (pathname === "/api/chat") return Response.json(await chat(String(body.text ?? "").slice(0, 20000), typeof body.clientId === "string" ? body.clientId : undefined));
     if (pathname === "/api/config") {
       if (typeof body.auto === "boolean") { setCfg({ auto: body.auto }); if (body.auto) intake(); }
       if (body.client) upsertClient(body.client);

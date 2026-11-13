@@ -288,7 +288,7 @@ else echo "--   Chrome absent : échappement non vérifié"; fi
 # ── la barre trouve avant de demander à Claude : « exporter » puis ↓ Entrée ouvre la demande, « garonne » le client, un texte long rien ──
 if [ -x "$CHROME" ]; then
   cat > "$T/trouve.ts" <<'EOF'
-const [chrome, url, profil] = process.argv.slice(2);
+const [chrome, url, profil, lieu] = process.argv.slice(2);
 const p = Bun.spawn([chrome, "--headless=new", "--disable-gpu", "--no-first-run", "--remote-debugging-port=0", `--user-data-dir=${profil}`, "about:blank"], { stdout: "ignore", stderr: "pipe" });
 const lec = p.stderr.getReader(), dec = new TextDecoder(); let tam = "", ws = "";
 while (!ws) { const { value, done } = await lec.read(); if (done) process.exit(3); tam += dec.decode(value); ws = tam.match(/listening on (ws:\/\/\S+)/)?.[1] ?? ""; }
@@ -319,14 +319,37 @@ const ligne = await taper("exporter");
 bon.push(ligne.endsWith("Envoyer en retouche⌘↵") && (await js(`document.querySelector("#trouve .on")?.textContent`)).includes("Bouton Exporter") ? "" : "dernière ligne ou première ligne choisie absente : " + ligne);
 await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); 0`);
 bon.push((await js(`document.querySelectorAll("#trouve a").length`)) === 0 && (await js(`document.querySelector("#puce").hidden`)) === false ? "" : "Échap ne ferme pas d'abord la liste");
+// la barre fait le geste de la demande ouverte (à valider) : « ok » = bouton plein, ⌘Z avant 5 s n'envoie rien
+bon.push((await js(`document.querySelector("#vue .plein")?.textContent`)).includes("Mettre en ligne et envoyer") ? "" : "ancien n'est pas à valider");
+const geste = await taper("ok");
+bon.push(geste.startsWith("Mettre en ligne et envoyer") && (await js(`document.querySelector("#trouve .on")?.textContent`)).startsWith("Mettre en ligne et envoyer") ? "" : "« ok » ne propose pas le bouton plein : " + geste);
+await touche("Enter");
+await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "z", metaKey: true, bubbles: true, cancelable: true })); 0`); await Bun.sleep(6000);
+bon.push((await js("window.__p.length")) === 0 && (await js("location.hash")) === "#d=ancien" ? "" : "« ok » puis ⌘Z : " + (await js("window.__p.join(' ; ')")));
 await taper("plus gros");
 await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true, cancelable: true })); 0`); await Bun.sleep(6000); // la retouche attend 5 s
 const envoyes = await js("window.__p.join(' ; ')");
 bon.push(envoyes.includes('"retouche"') && !envoyes.includes('"valider"') && !envoyes.includes('"envoyer"') ? "" : "⌘↵ dans la barre : " + envoyes);
+// « cla » + Entrée classe la demande : un seul POST « fermer » après 5 s, aucune retouche
+await js(`location.hash = "#d=ancien"`); await Bun.sleep(600);
+const n0 = await js("window.__p.length"), cla = await taper("cla");
+bon.push(cla.startsWith("Classer") && (await js(`document.querySelector("#trouve .on")?.textContent`)).startsWith("Classer") ? "" : "« cla » ne propose pas Classer : " + cla);
+await touche("Enter"); await Bun.sleep(6000);
+const fermes = await js(`window.__p.slice(${n0}).join(' ; ')`);
+bon.push(fermes.split('"fermer"').length === 2 && !fermes.includes('"retouche"') ? "" : "« cla » + Entrée : " + fermes);
+// sur la fiche d'un client, la barre parle de lui : puce à son nom, invite « Une demande ? », clientId envoyé, Échap retire la puce
+await js(`location.hash = "#c=buckwell"`); await Bun.sleep(600);
+bon.push((await js(`document.querySelector("#puce").hidden === false && document.querySelector("#puce").textContent === "Buckwell" && document.querySelector("#say").placeholder === "Une demande ?"`)) ? "" : "pas de puce au nom du client");
+await taper("le menu"); await js(`document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true, cancelable: true })); 0`); await Bun.sleep(2500);
+const chat = await js(`window.__p.filter((x) => x.startsWith("/api/chat")).join(" ; ")`), barre = await Bun.file(`${lieu}/barre.txt`).text().catch(() => "");
+bon.push(chat.includes('"clientId":"buckwell"') && barre.includes("fiche du client Buckwell (buckwell)") ? "" : "la fiche ne vise pas le client : " + chat + " / " + barre.slice(-200));
+await js(`location.hash = "#c=garonne"`); await Bun.sleep(300); await js(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); 0`);
+await js(`document.querySelector("#say").focus(); document.querySelector("#say").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); 0`); await Bun.sleep(300);
+bon.push((await js(`document.querySelector("#puce").hidden`)) ? "" : "Échap ne retire pas la puce du client");
 p.kill(); console.log(bon.filter(Boolean).join(" ; "));
 EOF
   ( sleep 60; pkill -f "$T/chrome2" 2>/dev/null ) & W=$!
-  R=$(bun "$T/trouve.ts" "$CHROME" "$U" "$T/chrome2" 2>&1) || echec "essai de la barre : $R"
+  R=$(bun "$T/trouve.ts" "$CHROME" "$U" "$T/chrome2" "$L" 2>&1) || echec "essai de la barre : $R"
   kill $W 2>/dev/null
   [ -z "$R" ] || echec "la barre qui trouve : $R"
   ok "la barre trouve avant de demander à Claude"
