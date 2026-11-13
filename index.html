@@ -425,6 +425,9 @@ function aller(hash, remplacer) {
 }
 const adrDemande = (id, extra = {}) => [`d=${encodeURIComponent(id)}`, ...Object.entries(extra).filter(([, v]) => v != null).map(([k, v]) => (v === true ? k : `${k}=${v}`))].join("&");
 function courante() { const h = adresse(); return h.d != null ? S?.tickets.find((t) => t.id === h.d) : null; }
+// la fiche d'un client ouverte : ce que Simon écrit dans la barre le concerne, tant que la puce n'est pas retirée
+function clientVise() { const h = adresse(), c = h.c != null ? S?.clients.find((x) => x.id === h.c) : null; return c && puceOff !== `c:${c.id}` ? c : null; }
+const cle = () => { const h = adresse(); return h.d != null ? `d:${h.d}` : h.c != null ? `c:${h.c}` : ""; }; // ce que puceOff retient : la fiche dont la puce est retirée
 // ce que le mail joint : même test que le serveur (images sans « avant », pas de vidéo)
 const piecesDefaut = (t) => (t.proofs ?? []).filter((f) => /\.(png|jpe?g|gif)$/i.test(f) && !/avant/i.test(f));
 function brouillon(t) { return drafts[t.id] ?? { to: t.draft?.to ?? "", subject: t.draft?.subject ?? "", body: t.draft?.body ?? "", pieces: t.draft?.pieces ?? piecesDefaut(t) }; }
@@ -634,12 +637,12 @@ function rendre() {
   else pose("#plein", "");
 
   // la barre : la puce nomme la demande visée
-  const cible = t && accepte(t) && puceOff !== t.id ? t : null;
-  $("#puce").hidden = !cible;
-  if (cible) $("#puce").textContent = `${cible.client} · ${cible.title}`;
+  const cible = t && accepte(t) && puceOff !== cur ? t : null, vise = clientVise();
+  $("#puce").hidden = !cible && !vise;
+  if (cible || vise) $("#puce").textContent = cible ? `${cible.client} · ${cible.title}` : vise.name;
   if (cible && textes[cible.id] && !say.value) { say.value = textes[cible.id]; delete textes[cible.id]; tailleBarre(); }
-  say.placeholder = !cible ? "Écris ou colle ici" : cible.status === "question" ? "Ta réponse" : cible.status === "erreur" ? "Une consigne ?" : "Une retouche ?";
-  if (cur !== dernierCur) { if (dernierCur && !cur.startsWith("d:" + puceOff)) puceOff = null; if (t?.status === "question" && !plein) say.focus(); }
+  say.placeholder = vise ? "Une demande ?" : !cible ? "Écris ou colle ici" : cible.status === "question" ? "Ta réponse" : cible.status === "erreur" ? "Une consigne ?" : "Une retouche ?";
+  if (cur !== dernierCur) { if (dernierCur && cur !== puceOff) puceOff = null; if (t?.status === "question" && !plein) say.focus(); }
   dernierCur = cur;
 }
 // Tout élément qui défile (fil, colonne, fiche client) s'arrête entre deux lignes, jamais au milieu d'une. `air` : marge gardée en dessous.
@@ -761,14 +764,14 @@ function decrire(p) {
 }
 async function envoyerBarre() {
   const text = say.value.trim(); if (!text) return;
-  const t = courante(), cible = t && accepte(t) && puceOff !== t.id ? t : null;
+  const t = courante(), cible = t && accepte(t) && puceOff !== cle() ? t : null, vise = clientVise();
   say.value = ""; tailleBarre();
   if (cible) {
     const nx = suivante(cible.id); // la retouche attend 5 s comme les autres gestes ; la confirmation, c'est la demande qui passe chez Claude
     return retenir(cible.id, "/api/ticket", { id: cible.id, action: "retouche", text }, "Retouche", adrDemande(cible.id), nx ? adrDemande(nx.id) : "rien", text);
   }
   dire("Claude réfléchit…", 0);
-  const j = await post("/api/chat", { text });
+  const j = await post("/api/chat", vise ? { text, clientId: vise.id } : { text });
   if (!j) { say.value = text; tailleBarre(); return; }
   propositions = j.propose ?? [];
   const parts = [`<span class="fort" data-contenu>${esc(j.reply)}</span>`, ...(j.done ?? []).map((d) => `<span data-contenu>✓ ${esc(d)}</span>`),
@@ -782,7 +785,7 @@ async function envoyerBarre() {
 let trouvees = [], pris = -1;
 const nu = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 function trouver() {
-  const q = nu(say.value.trim()), t = courante(), puce = t && accepte(t) && puceOff !== t.id;
+  const q = nu(say.value.trim()), t = courante(), puce = t && accepte(t) && puceOff !== cle();
   trouvees = []; pris = -1;
   if (q && say.value.length < 40 && !say.value.includes("\n")) {
     const ok = (s) => nu(s).includes(q), { toi, claude } = files();
@@ -859,7 +862,7 @@ document.addEventListener("keydown", (e) => {
   if (e.metaKey && e.key === "Enter") { const b = $("#vue .plein:not([disabled])"); if (b) { e.preventDefault(); b.click(); } return; }
   if (e.key === "Escape") {
     if (enPlein) plein(false);
-    else if (a === say && !$("#puce").hidden) { puceOff = courante()?.id ?? null; rendre(); }
+    else if (a === say && !$("#puce").hidden) { puceOff = cle(); rendre(); }
     else if (destEdit) { destEdit = null; forcer(); }
     else a?.blur?.();
     return;
@@ -887,7 +890,7 @@ document.addEventListener("click", async (e) => {
   if (act === "annuler") return annuler(el.dataset.cle);
   if (act === "allumer") { await post("/api/config", { auto: true }); return rendre(); }
   if (act === "arrivees") return aller("arrivees");
-  if (act === "nouveau") { puceOff = t?.id ?? null; say.value = "Nouveau client : "; tailleBarre(); rendre(); say.focus(); return; }
+  if (act === "nouveau") { puceOff = cle(); say.value = "Nouveau client : "; tailleBarre(); rendre(); say.focus(); return; }
   if (act === "appliquer") { const ps = propositions; propositions = []; for (const p of ps) if (!(await post("/api/config", { client: p }))) return; dire("✓ Appliqué"); return rendre(); }
   if (act === "relier") { mailForm = true; return forcer(); }
   if (act === "aide") { mailAide = !mailAide; return forcer(); }
