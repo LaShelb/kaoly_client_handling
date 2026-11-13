@@ -9,3 +9,11 @@
 - page · ajout minimal seulement (jeton, ligne « Proposé : … · Appliquer ») ; la page est réécrite par les concepteurs. Elle doit garder `<meta name="jeton" content="__JETON__">` et l'en-tête `x-kaoly`.
 - Swift · `main.swift` lit le nombre entre parenthèses du titre de la page pour le badge du Dock (compilé avec swiftc vers le scratchpad, `app/build.sh` non lancé). Reste à la page d'écrire `document.title = "Kaoly Clients (n)"`.
 - banc · `sh eval/banc.sh <port>` : les corps JSON sont construits par jq, le sh de macOS (bash 3.2) déforme un JSON entre guillemets dans `$( )`.
+- serveur (relecture) · toute commande git, gh ou security a un délai (10 min, `KAOLY_DELAI` pour le banc) et `GIT_TERMINAL_PROMPT=0` : un git bloqué tenait la file du dépôt et une place de session pour toujours.
+- serveur (relecture) · une action à la fois par demande (`busy`) : un double clic sur « Envoyer » envoyait deux messages au client, un double « Mettre en ligne » finissait en erreur.
+- serveur (relecture) · la remarque de Simon (retouche ou réponse) est gardée dans `followUp` jusqu'à la réponse de Claude : « Relancer » après une panne la redonne au lieu de « reprends où tu en étais ».
+- serveur (relecture) · une demande classée pendant la copie du dépôt ne lance plus Claude (avant, il travaillait 45 min sur une demande classée, hors du compte des sessions).
+- serveur (relecture) · `create_ticket` de la barre ne recopie plus `files` ni `source` : un texte collé pouvait joindre un fichier du Mac ou choisir le destinataire du message.
+- serveur (relecture) · preuves et pièces jointes servies avec `content-security-policy: sandbox` : une pièce jointe HTML ouverte aurait lu le jeton et commandé l'application.
+- serveur (relecture) · un contact WhatsApp sous forme de nom ne vaut que pour un groupe : le nom d'une discussion à deux peut être celui que l'inconnu s'est choisi.
+- serveur (relecture) · `authOk` ignore les commentaires et chaînes entre guillemets de l'en-tête, qui recopient l'adresse d'enveloppe choisie par l'expéditeur.

@@ -29,10 +29,12 @@ git -C "$T/depot" push -q -u origin main && git -C "$T/depot" remote set-head or
 cat > "$D/config.json" <<EOF
 {"auto":false,"mail":{"user":"simon@kaoly.fr","imap":"127.0.0.1","smtp":"127.0.0.1"},"waLast":0,
  "clients":[{"id":"arion","name":"Arion","repo":"$T/depot","contacts":["@arion.fr","claire@arion.fr"],"autoProd":false},
-            {"id":"buckwell","name":"Buckwell","repo":"$T/depot","contacts":["+33 6 12 34 56 78"],"autoProd":true}]}
+            {"id":"buckwell","name":"Buckwell","repo":"$T/depot","contacts":["+33 6 12 34 56 78"],"autoProd":true},
+            {"id":"garonne","name":"Garonne","repo":"LaShelb/garonne","contacts":["Marc"],"autoProd":false}]}
 EOF
-cat > "$D/tickets.json" <<'EOF'
-[{"id":"ancien","status":"valider","source":{"channel":"mail","from":"claire@arion.fr","name":"Claire"},"files":[],"createdAt":"2026-11-10T09:00:00.000Z","updatedAt":"2026-11-10T09:30:00.000Z",
+mkdir -p "$D/pieces/1" && echo '<script>alert(1)</script>' > "$D/pieces/1/page.html"
+cat > "$D/tickets.json" <<EOF
+[{"id":"ancien","status":"valider","source":{"channel":"mail","from":"claire@arion.fr","name":"Claire"},"files":["$D/pieces/1/page.html"],"createdAt":"2026-11-10T09:00:00.000Z","updatedAt":"2026-11-10T09:30:00.000Z",
   "clientId":"arion","title":"Bouton Exporter","request":"Ajouter un bouton.","kind":"visible","summary":"Bouton ajouté.","draft":{"to":"claire@arion.fr","subject":"Export","body":"Bonjour"},"changed":true,"pr":"https://github.com/x/y/pull/9"},
  {"id":"coupee","status":"travail","source":{"channel":"toi"},"files":[],"createdAt":"2026-11-11T09:00:00.000Z","updatedAt":"2026-11-11T09:00:00.000Z",
   "clientId":"arion","title":"Lien cassé","request":"Le lien du pied de page est cassé.","kind":"bug"}]
@@ -52,7 +54,8 @@ ajoute_wa() { bun -e 'const { Database } = require("bun:sqlite"); new Database(p
 for f in claude gh security open pbcopy; do [ -x "$ICI/eval/faux/$f" ] || echec "faux $f absent : le serveur d'essai ne démarre pas sans lui"; done
 cd "$ICI" || exit 1
 env KAOLY_CLIENTS_DIR="$D" PORT="$PORT" KAOLY_WA_DB="$WA" PATH="$ICI/eval/faux:$PATH" FAUX_LOG="$L" \
-  FAUX_GH_PANNE="$T/gh-panne" FAUX_GH_FUSIONNEE="$T/gh-fusionnee" FAUX_TRI_PANNE="$T/tri-panne" \
+  FAUX_GH_PANNE="$T/gh-panne" FAUX_GH_FUSIONNEE="$T/gh-fusionnee" FAUX_TRI_PANNE="$T/tri-panne" FAUX_GH_BLOQUE="$T/gh-bloque" \
+  FAUX_GH_DEPOT="$T/origine.git" FAUX_CLAUDE_PANNE="$T/claude-panne" FAUX_OPEN_LENT="$T/open-lent" KAOLY_DELAI=3000 \
   GIT_AUTHOR_NAME=banc GIT_AUTHOR_EMAIL=banc@exemple.invalid GIT_COMMITTER_NAME=banc GIT_COMMITTER_EMAIL=banc@exemple.invalid \
   bun server.ts > "$L/serveur.log" 2>&1 &
 SRV=$!
@@ -148,6 +151,48 @@ attendre "$E" valider
 vaut "$(travaux)/$(commits "$E")/$(champ "$E" .pr)" "$n/1/https://github.com/x/y/pull/1" "relance sans Claude, un seul commit"
 ok "erreur puis relance"
 
+# ── retouche, puis Claude tombe : « Relancer » lui redonne la remarque de Simon ──
+touch "$T/claude-panne"
+vaut "$(ticket "$E" retouche --arg text "[VISIBLE] mets le pied de page en gris")" 200 "retouche"
+attendre "$E" erreur
+rm "$T/claude-panne"
+vaut "$(ticket "$E" relancer)" 200 "relancer"
+attendre "$E" valider
+grep -q "mets le pied de page en gris" "$L/prompt.txt" || echec "la remarque de Simon est perdue à la relance"
+vaut "$(champ "$E" .kind)" visible "retouche prise en compte"
+ok "remarque gardée après une panne"
+
+# ── commande bloquée : arrêtée au bout du délai, la demande passe en erreur au lieu de rester « en travail » ──
+touch "$T/gh-bloque"
+post /api/chat '{"text":"la marge"}' > /dev/null
+K=$(dernier); attendre "$K" erreur
+rm "$T/gh-bloque"
+champ "$K" .error | grep -q "arrêté" || echec "délai non signalé : $(champ "$K" .error)"
+ok "commande bloquée arrêtée"
+
+# ── Classer pendant la copie du dépôt : Claude ne démarre jamais ──
+n=$(travaux)
+post /api/chat '{"text":"[GARONNE] le menu"}' > /dev/null
+GA=$(dernier); attendre "$GA" travail
+vaut "$(ticket "$GA" fermer)" 200 "classer pendant la copie"
+sleep 3
+vaut "$(champ "$GA" .status)/$(travaux)/$([ -e "$D/travail/$GA" ] && echo copie || echo rien)" "fini/$n/rien" "classée pendant la copie : pas de Claude, pas de copie laissée"
+ok "classée pendant la copie"
+
+# ── la barre ne peut imposer ni pièce jointe ni expéditeur (sinon le message partirait chez un inconnu) ──
+post /api/chat '{"text":"[FORGE] le pied"}' > /dev/null
+F=$(dernier); attendre "$F" valider
+vaut "$(champ "$F" .source.channel)/$(champ "$F" '.files|length')/$(champ "$F" .draft.to)" "toi/0/claire@arion.fr" "champs imposés par la barre ignorés"
+vaut "$(code "$U/piece/$F/hosts")" 404 "fichier du Mac imposé par la barre"
+ok "barre sans pièce jointe ni expéditeur imposés"
+
+# ── deux demandes identiques à la même milliseconde : deux identifiants ──
+post /api/chat '{"text":"[DOUBLE] deux fois"}' > /dev/null
+D1=$(etat '.tickets[0].id'); D2=$(etat '.tickets[1].id')
+[ "$D1" != "$D2" ] || echec "deux demandes avec le même identifiant : $D1"
+attendre "$D1" valider; attendre "$D2" valider
+ok "identifiants uniques"
+
 # ── Classer pendant que Claude travaille ──
 post /api/chat '{"text":"[LENT] le titre"}' > /dev/null
 C=$(dernier); attendre "$C" travail
@@ -164,7 +209,16 @@ ln -s "$D/config.json" "$D/preuves/$B/apres-lien.png"
 vaut "$(code "$U/preuve/$B/apres-lien.png")/$(champ "$B" '.proofs|index("apres-lien.png")')" "404/null" "lien vers un autre fichier du Mac"
 vaut "$(code "$U/piece/$B/config.json")" 404 "pièce jointe hors de la demande"
 vaut "$(code "$U/preuve/$B/apres-titre.png")" 200 "vraie preuve"
-ok "chemins de preuve interdits"
+curl -s -D - -o /dev/null "$U/piece/ancien/page.html" | grep -qi "content-security-policy: sandbox" || echec "pièce jointe HTML servie sans bac à sable"
+ok "chemins de preuve interdits, pièces jointes en bac à sable"
+
+# ── double clic sur « Envoyer » : un seul message ──
+touch "$T/open-lent"
+ticket "$B" envoyer --arg to "+33 6 12 34 56 78" --arg subject "" --arg body "Double envoi" > /dev/null & P1=$!
+ticket "$B" envoyer --arg to "+33 6 12 34 56 78" --arg subject "" --arg body "Double envoi" > /dev/null & P2=$!
+wait $P1 $P2; rm "$T/open-lent"
+vaut "$(grep -c "text=Double%20envoi" "$L/open.log")/$(champ "$B" .status)" "1/fini" "un seul envoi pour deux clics"
+ok "double clic : un seul envoi"
 
 # ── relève : les inconnus ne déclenchent rien ; un tri en échec ne crée rien et ne perd rien ──
 wa() { etat '[.tickets[]|select(.source.channel=="whatsapp")]|length'; }

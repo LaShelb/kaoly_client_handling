@@ -1,5 +1,6 @@
 #!/bin/sh
-# faux Claude Code : aucun appel réel. Repères dans le texte : [BUCKWELL] (client), [QUESTION], [VISIBLE], [RIEN] (aucun changement), [LENT].
+# faux Claude Code : aucun appel réel. Repères dans le texte : [BUCKWELL] ou [GARONNE] (client), [QUESTION], [VISIBLE], [RIEN] (aucun changement), [LENT],
+# [FORGE] (la barre tente d'imposer pièces jointes et expéditeur), [DOUBLE] (deux demandes identiques). Le travail échoue tant que $FAUX_CLAUDE_PANNE existe.
 L="${FAUX_LOG:-$(dirname "$0")}"
 case "$*" in *stream-json*) ;; *)
   # tri des messages entrants (relève) ; échoue si le fichier $FAUX_TRI_PANNE existe
@@ -7,11 +8,16 @@ case "$*" in *stream-json*) ;; *)
     [ -n "$FAUX_TRI_PANNE" ] && [ -e "$FAUX_TRI_PANNE" ] && { echo '{"is_error":true,"result":"tri en panne"}'; exit 0; }
     echo '{"is_error":false,"structured_output":{"tickets":[{"msg":0,"title":"Export cassé","request":"L export ne marche plus depuis hier.","kind":"bug"}]}}'; exit 0;; esac
   # barre de commande
-  C=arion; case "$*" in *"[BUCKWELL]"*) C=buckwell;; esac
-  M=""; for k in QUESTION RIEN VISIBLE LENT; do case "$*" in *"[$k]"*) M="$M [$k]";; esac; done
-  echo "{\"is_error\":false,\"structured_output\":{\"reply\":\"C'est noté.\",\"actions\":[{\"type\":\"create_ticket\",\"clientId\":\"$C\",\"title\":\"Titre <img src=x onerror=alert(1)>\",\"request\":\"Le titre est faux <script>alert(1)</script>$M\",\"kind\":\"bug\"},{\"type\":\"update_client\",\"id\":\"arion\",\"autoProd\":true}]}}"
+  C=arion; case "$*" in *"[BUCKWELL]"*) C=buckwell;; *"[GARONNE]"*) C=garonne;; esac
+  X=""; case "$*" in *"[FORGE]"*) X=',"files":["/etc/hosts"],"source":{"channel":"mail","from":"pirate@evil.example"}';; esac
+  M=""; for k in QUESTION RIEN VISIBLE LENT DOUBLE; do case "$*" in *"[$k]"*) M="$M [$k]";; esac; done
+  T="{\"type\":\"create_ticket\",\"clientId\":\"$C\",\"title\":\"Titre <img src=x onerror=alert(1)>\",\"request\":\"Le titre est faux <script>alert(1)</script>$M\",\"kind\":\"bug\"$X}"
+  case "$*" in *"[DOUBLE]"*) T="$T,$T";; esac
+  echo "{\"is_error\":false,\"structured_output\":{\"reply\":\"C'est noté.\",\"actions\":[$T,{\"type\":\"update_client\",\"id\":\"arion\",\"autoProd\":true}]}}"
   exit 0;; esac
 echo "travail" >> "$L/claude.log"
+printf '%s' "$*" > "$L/prompt.txt"
+[ -n "$FAUX_CLAUDE_PANNE" ] && [ -e "$FAUX_CLAUDE_PANNE" ] && { echo "faux : panne" >&2; exit 1; }
 case "$*" in *"[LENT]"*) sleep 4;; esac
 P=$(echo "$*" | sed -n 's/.*--add-dir \([^ ]*\/preuves\/[^ ]*\).*/\1/p')
 echo '{"type":"system","subtype":"init","session_id":"sess-1"}'

@@ -1,3 +1,4 @@
 #!/bin/sh
-# faux open : WhatsApp et le Finder ne s'ouvrent jamais
+# faux open : WhatsApp et le Finder ne s'ouvrent jamais ; lent tant que $FAUX_OPEN_LENT existe
+[ -n "$FAUX_OPEN_LENT" ] && [ -e "$FAUX_OPEN_LENT" ] && sleep 1
 echo "open $*" >> "${FAUX_LOG:-$(dirname "$0")}/open.log"

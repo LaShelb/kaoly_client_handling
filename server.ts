@@ -46,13 +46,15 @@ export function matchContact(contact: string, channel: "mail" | "whatsapp", from
   if (channel === "mail") return c.startsWith("@") ? from.toLowerCase().endsWith(c) : from.toLowerCase() === c;
   if (c.includes("@")) return false;
   const d = digits(c);
-  return d.length >= 8 ? digits(from.split("@")[0]) === d : name.trim().toLowerCase() === c; // numéro, sinon nom du groupe
+  // numéro, sinon nom d'un groupe ; jamais le nom d'une discussion à deux, que l'inconnu choisit lui-même
+  return d.length >= 8 ? digits(from.split("@")[0]) === d : from.endsWith("@g.us") && name.trim().toLowerCase() === c;
 }
 
 // Un mail n'ouvre une demande que si le serveur qui l'a reçu a vérifié l'expéditeur pour son propre domaine.
 // ponytail : on lit le premier en-tête Authentication-Results, celui que pose la boîte de Simon (Gmail le met en tête).
 export function authOk(header: string, from: string) {
-  const dom = from.toLowerCase().split("@")[1], h = header.toLowerCase();
+  // les commentaires « (…) » et les chaînes « "…" » recopient l'adresse choisie par l'expéditeur : on ne lit que les propriétés
+  const dom = from.toLowerCase().split("@")[1], h = header.toLowerCase().replace(/"[^"]*"/g, "").replace(/\([^)]*\)/g, "");
   if (!dom) return false;
   const mine = (d: string) => d === dom || d.endsWith(`.${dom}`);
   const any = (re: RegExp) => [...h.matchAll(re)].some((m) => mine(m[1]));
@@ -81,6 +83,9 @@ export function allowed(method: string, host: string | null, origin: string | nu
 export const STEPS = ["copie du dépôt", "travail de Claude", "envoi du code", "mise en ligne", "envoi au client"];
 export const resumeAt = (t: { step?: string; draft?: any }) => (t.draft && STEPS.indexOf(t.step ?? "") > 1 ? "finish" : "work");
 
+// Deux demandes au même titre dans la même milliseconde (un tri qui en rend plusieurs) : -2, -3…, jamais le même identifiant.
+export const uniqueId = (base: string, taken: (id: string) => boolean) => { let id = base; for (let n = 2; taken(id); n++) id = `${base}-${n}`; return id; };
+
 // ───────────────────────── état ─────────────────────────
 
 const DEFAULTS = {
@@ -107,7 +112,8 @@ const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+
 
 function addTicket(x: { clientId: string; title: string; request: string; kind: Kind; source?: any; files?: string[] }) {
   if (!cfg().clients.some((c: any) => c.id === x.clientId)) throw new Error(`Client inconnu : ${x.clientId}`);
-  const t = { id: `${Date.now().toString(36)}-${slug(String(x.title)) || "demande"}`, status: "file", createdAt: now(), updatedAt: now(),
+  const id = uniqueId(`${Date.now().toString(36)}-${slug(String(x.title)) || "demande"}`, (id) => tickets.some((t) => t.id === id));
+  const t = { id, status: "file", createdAt: now(), updatedAt: now(),
     clientId: x.clientId, title: String(x.title ?? "").slice(0, 200), request: String(x.request ?? ""), source: x.source ?? { channel: "toi" }, files: x.files ?? [],
     kind: (["bug", "visible", "question"].includes(x.kind) ? x.kind : "visible") as Kind };
   tickets.unshift(t); saveT(); pump();
@@ -116,11 +122,17 @@ function addTicket(x: { clientId: string; title: string; request: string; kind: 
 
 // ───────────────────────── commandes ─────────────────────────
 
+// Toute commande a un délai : un git ou un gh bloqué (réseau, demande de mot de passe) tiendrait la file du dépôt pour toujours.
+const DELAI = +(process.env.KAOLY_DELAI ?? 10 * 60_000);
 async function sh(cmd: string[], cwd?: string) {
-  const p = Bun.spawn(cmd, { cwd, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-  const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
-  if (code) throw new Error(`${cmd.slice(0, 3).join(" ")} : ${(err || out).trim().slice(-400)}`);
-  return out.trim();
+  const p = Bun.spawn(cmd, { cwd, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" }, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+  const out = new Response(p.stdout).text(), err = new Response(p.stderr).text();
+  let timer: any;
+  const code = await Promise.race([p.exited, new Promise((ok) => (timer = setTimeout(() => { p.kill(); ok("délai"); }, DELAI)))]);
+  clearTimeout(timer);
+  if (code === "délai") throw new Error(`${cmd.slice(0, 3).join(" ")} : bloqué plus de ${Math.round(DELAI / 1000)} s, arrêté.`);
+  if (code) throw new Error(`${cmd.slice(0, 3).join(" ")} : ${((await err) || (await out)).trim().slice(-400)}`);
+  return (await out).trim();
 }
 
 // Une file par dépôt : deux demandes du même dépôt ne se marchent pas dessus dans .git.
@@ -243,12 +255,14 @@ const work = (t: any, followUp?: string) => guarded(t, async () => {
     });
     else mkdirSync(wt, { recursive: true }); // client sans dépôt : Claude ne fait que rédiger la réponse
   }
-  set(t, { step: STEPS[1] });
+  if (t.status === "fini") return cleanup(t); // classée pendant la copie : Claude ne démarre pas
+  // la remarque de Simon reste dans la demande tant que Claude n'a pas répondu : « Relancer » la lui redonne
+  set(t, { step: STEPS[1], followUp: followUp ?? null });
   const r = await agent(t, wt, proofs, followUp ?? `Demande du client ${c.name} (${t.source.channel}${t.source.from ? `, de ${t.source.from}` : ""}) :\n\n${t.title}\n\n${t.request}${
     t.files?.length ? `\n\nPièces jointes du client, à regarder : ${t.files.join(", ")}` : ""}${repo ? "" : "\n\nIl n'y a pas de dépôt pour ce client : rédige seulement la réponse."}`);
   if (t.status === "fini") return; // classée pendant que Claude travaillait
-  if (r.status === "question") return set(t, { status: "question", question: r.question || r.summary, summary: r.summary });
-  set(t, { kind: strictest(t.kind, r.kind), summary: r.summary, change: r.change ?? "", reserve: r.reserve ?? "",
+  if (r.status === "question") return set(t, { status: "question", question: r.question || r.summary, summary: r.summary, followUp: null });
+  set(t, { followUp: null, kind: strictest(t.kind, r.kind), summary: r.summary, change: r.change ?? "", reserve: r.reserve ?? "",
     draft: { to: recipient(t.source.from, c.contacts), subject: r.message?.subject ?? "", body: r.message?.body ?? "" } });
   await finish(t);
 });
@@ -451,8 +465,12 @@ async function chat(text: string) {
   const r = await askClaude(`Clients : ${JSON.stringify(s.clients)}\nDemandes ouvertes : ${JSON.stringify(tickets.filter((t) => t.status !== "fini").map((t) => ({ id: t.id, client: t.clientId, titre: t.title, etat: t.status, question: t.question })))}\n\nSimon écrit :\n${text}`, CHAT, CHAT_SCHEMA);
   const done: string[] = [], propose: any[] = [];
   for (const a of r.actions ?? []) try {
-    if (a.type === "create_ticket") { addTicket(a); done.push(`Demande ouverte : ${a.title}`); }
-    else if (a.type === "answer_ticket") { answer(tickets.find((t) => t.id === a.id), String(a.text ?? "")); done.push("Transmis à Claude"); }
+    // ni pièce jointe ni expéditeur : un texte collé ne doit pas joindre un fichier du Mac ni choisir le destinataire
+    if (a.type === "create_ticket") { addTicket({ clientId: a.clientId, title: a.title, request: a.request, kind: a.kind }); done.push(`Demande ouverte : ${a.title}`); }
+    else if (a.type === "answer_ticket") {
+      if (busy.has(a.id)) throw new Error("Déjà en cours."); // la barre ne relance pas Claude pendant une mise en ligne
+      answer(tickets.find((t) => t.id === a.id), String(a.text ?? "")); done.push("Transmis à Claude");
+    }
     // jamais appliqué ici : la page montre ce qui changerait et Simon clique « Appliquer » (POST /api/config {client})
     else if (a.type === "add_client") propose.push({ ...a, id: undefined });
     else if (a.type === "update_client") { if (!s.clients.some((c: any) => c.id === a.id)) throw new Error(`Client inconnu : ${a.id}`); propose.push(a); }
@@ -468,6 +486,7 @@ const state = () => {
     tickets: tickets.map((t) => ({ ...t, client: clientOf(t)?.name ?? t.clientId, proofs: proofsOf(t), live: t.status === "travail" ? (live[t.id] ?? []).slice(-6) : undefined })) };
 };
 
+const busy = new Set<string>();
 async function handle(req: Request) {
   const h = req.headers;
   if (!allowed(req.method, h.get("host"), h.get("origin"), h.get("x-kaoly"))) return new Response("Refusé", { status: 403 });
@@ -481,7 +500,9 @@ async function handle(req: Request) {
     const t = tickets.find((x) => x.id === file[2]), name = decodeURIComponent(file[3]);
     const path = !t ? null : file[1] === "preuve" ? (proofsOf(t).includes(name) ? `${DIR}/preuves/${t.id}/${name}` : null)
       : (t.files ?? []).find((f: string) => basename(f) === name);
-    return path && isFile(path) ? new Response(Bun.file(path)) : new Response("Introuvable", { status: 404 });
+    // bac à sable : une pièce jointe HTML ou SVG ouverte ne s'exécute pas avec les droits de la page (jeton, envoi)
+    return path && isFile(path) ? new Response(Bun.file(path), { headers: { "content-security-policy": "sandbox", "x-content-type-options": "nosniff" } })
+      : new Response("Introuvable", { status: 404 });
   }
   if (req.method !== "POST") return new Response("Introuvable", { status: 404 });
   try {
@@ -500,25 +521,30 @@ async function handle(req: Request) {
     } else if (pathname === "/api/ticket") {
       const t = tickets.find((x) => x.id === body.id);
       if (!t) throw new Error("Demande introuvable.");
-      if (body.action === "valider") {
-        if (t.status !== "valider") throw new Error("Cette demande n'est pas à valider.");
-        if (body.send) setDraft(t, body); // le message relu est gardé même si l'envoi échoue
-        await ship(t);
-        if (body.send) await send(t); // en cas d'échec, la demande reste en ligne, message à envoyer
-      }
-      else if (body.action === "retouche") { if (!String(body.text ?? "").trim()) throw new Error("Écris d'abord ta remarque."); answer(t, String(body.text)); }
-      else if (body.action === "envoyer") {
-        if (t.status !== "message") throw new Error("Ce message n'est pas prêt.");
-        setDraft(t, body);
-        await send(t);
-      }
-      else if (body.action === "relancer") {
-        if (t.status !== "erreur") throw new Error("Cette demande n'est pas arrêtée.");
-        if (resumeAt(t) === "finish") guarded(t, () => finish(t)); // Claude a déjà fini : on reprend à l'envoi du code
-        else work(t, t.sessionId ? "Tu as été interrompu. Reprends où tu en étais et termine." : undefined);
-      }
-      else if (body.action === "fermer") { running.get(t.id)?.kill(); set(t, { status: "fini", dropped: !t.shipped }); cleanup(t); }
-      else throw new Error("Action inconnue.");
+      // un double clic ne met pas en ligne deux fois et n'envoie pas deux messages au client
+      if (busy.has(t.id)) throw new Error("Déjà en cours.");
+      busy.add(t.id);
+      try {
+        if (body.action === "valider") {
+          if (t.status !== "valider") throw new Error("Cette demande n'est pas à valider.");
+          if (body.send) setDraft(t, body); // le message relu est gardé même si l'envoi échoue
+          await ship(t);
+          if (body.send) await send(t); // en cas d'échec, la demande reste en ligne, message à envoyer
+        }
+        else if (body.action === "retouche") { if (!String(body.text ?? "").trim()) throw new Error("Écris d'abord ta remarque."); answer(t, String(body.text)); }
+        else if (body.action === "envoyer") {
+          if (t.status !== "message") throw new Error("Ce message n'est pas prêt.");
+          setDraft(t, body);
+          await send(t);
+        }
+        else if (body.action === "relancer") {
+          if (t.status !== "erreur") throw new Error("Cette demande n'est pas arrêtée.");
+          if (resumeAt(t) === "finish") guarded(t, () => finish(t)); // Claude a déjà fini : on reprend à l'envoi du code
+          else work(t, t.followUp ?? (t.sessionId ? "Tu as été interrompu. Reprends où tu en étais et termine." : undefined));
+        }
+        else if (body.action === "fermer") { running.get(t.id)?.kill(); set(t, { status: "fini", dropped: !t.shipped }); cleanup(t); }
+        else throw new Error("Action inconnue.");
+      } finally { busy.delete(t.id); }
     } else return new Response("Introuvable", { status: 404 });
     return Response.json(state());
   } catch (e: any) { return Response.json({ error: e.message }, { status: 400 }); }
@@ -537,12 +563,15 @@ function check() {
   eq([matchContact("Claire@Buckwell.fr", "mail", "claire@buckwell.fr"), matchContact("@buckwell.fr", "mail", "x@buckwell.fr"), matchContact("@buckwell.fr", "mail", "x@notbuckwell.com"), matchContact("claire@buckwell.fr", "whatsapp", "claire@buckwell.fr")],
     [true, true, false, false], "contacts mail");
   eq([matchContact("06 12 34 56 78", "whatsapp", "33612345678@s.whatsapp.net"), matchContact("+33 6 12 34 56 78", "whatsapp", "33612345678@s.whatsapp.net"), matchContact("+33612345679", "whatsapp", "33612345678@s.whatsapp.net"),
-    matchContact("Arion x Kaoly", "whatsapp", "1203630@g.us", "Arion x Kaoly"), matchContact("", "whatsapp", "", "")], [true, true, false, true, false], "contacts WhatsApp");
+    matchContact("Arion x Kaoly", "whatsapp", "1203630@g.us", "Arion x Kaoly"), matchContact("", "whatsapp", "", ""), matchContact("Marc", "whatsapp", "33699999999@s.whatsapp.net", "Marc")],
+    [true, true, false, true, false, false], "contacts WhatsApp (un nom ne vaut que pour un groupe)");
   const gmail = "mx.google.com;\r\n dkim=pass header.i=@arion.fr header.s=g;\r\n spf=pass (google.com: domain of claire@arion.fr designates 1.2.3.4 as permitted sender) smtp.mailfrom=claire@arion.fr;\r\n dmarc=pass (p=NONE) header.from=arion.fr";
   eq([authOk(gmail, "claire@arion.fr"), authOk("mx.google.com; dkim=pass header.i=@evil.com; spf=pass smtp.mailfrom=x@evil.com", "claire@arion.fr"),
     authOk("mx.google.com; dkim=fail header.i=@arion.fr; spf=softfail smtp.mailfrom=claire@arion.fr", "claire@arion.fr"), authOk("mx.google.com; spf=pass smtp.mailfrom=arion.fr", "claire@arion.fr"),
-    authOk("mx.google.com; dkim=pass header.d=mail.arion.fr", "claire@arion.fr"), authOk("", "claire@arion.fr"), authOk(gmail, "")],
-    [true, false, false, true, true, false, false], "expéditeur vérifié (dkim ou spf pour son propre domaine)");
+    authOk("mx.google.com; dkim=pass header.d=mail.arion.fr", "claire@arion.fr"), authOk("", "claire@arion.fr"), authOk(gmail, ""),
+    authOk('mx.google.com; spf=pass (domain of "smtp.mailfrom=x@arion.fr"@evil.com) smtp.mailfrom="smtp.mailfrom=x@arion.fr"@evil.com', "claire@arion.fr"),
+    authOk('mx.google.com; spf=pass (domain of "a)smtp.mailfrom=x@arion.fr("@evil.com designates) smtp.mailfrom=x@evil.com', "claire@arion.fr")],
+    [true, false, false, true, true, false, false, false, false], "expéditeur vérifié (dkim ou spf pour son propre domaine)");
   eq([safeName(".."), safeName(""), safeName(null), safeName("../../etc/passwd"), safeName("capture écran.png")], ["piece", "piece", "piece", "....etcpasswd", "capture écran.png"], "noms de pièces jointes");
   eq([recipient("claire@arion.fr", ["@arion.fr"]), recipient(undefined, ["@arion.fr", "marc@arion.fr"]), recipient("", ["@arion.fr"]), recipient(undefined, [])],
     ["claire@arion.fr", "marc@arion.fr", "", ""], "le destinataire n'est jamais un domaine");
@@ -551,6 +580,7 @@ function check() {
     [true, false, true, false, false, false, false, false], "origine, jeton et Host");
   eq([resumeAt({ step: "envoi du code", draft: {} }), resumeAt({ step: "mise en ligne", draft: {} }), resumeAt({ step: "travail de Claude", draft: {} }), resumeAt({ step: "envoi du code" }), resumeAt({})],
     ["finish", "finish", "work", "work", "work"], "Relancer reprend à l'étape");
+  eq([uniqueId("a", () => false), uniqueId("a", (id) => ["a", "a-2"].includes(id))], ["a", "a-3"], "identifiants uniques");
   console.log("vérification : tout est juste");
 }
 

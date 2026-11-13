@@ -1,10 +1,13 @@
 #!/bin/sh
-# faux gh : rien ne sort. « pr create » échoue tant que le fichier $FAUX_GH_PANNE existe ; « pr view » dit MERGED si $FAUX_GH_FUSIONNEE existe.
+# faux gh : rien ne sort. « pr create » échoue tant que le fichier $FAUX_GH_PANNE existe, reste bloqué tant que $FAUX_GH_BLOQUE existe ;
+# « pr view » dit MERGED si $FAUX_GH_FUSIONNEE existe ; « repo clone » copie lentement $FAUX_GH_DEPOT (un dépôt local), sinon échoue.
 echo "gh $*" >> "${FAUX_LOG:-$(dirname "$0")}/gh.log"
 case "$1 $2" in
-  "pr create") [ -n "$FAUX_GH_PANNE" ] && [ -e "$FAUX_GH_PANNE" ] && { echo "pull request create failed: faux" >&2; exit 1; }
+  "pr create") [ -n "$FAUX_GH_BLOQUE" ] && [ -e "$FAUX_GH_BLOQUE" ] && exec sleep 30
+    [ -n "$FAUX_GH_PANNE" ] && [ -e "$FAUX_GH_PANNE" ] && { echo "pull request create failed: faux" >&2; exit 1; }
     echo "https://github.com/x/y/pull/1";;
   "pr view") if [ -n "$FAUX_GH_FUSIONNEE" ] && [ -e "$FAUX_GH_FUSIONNEE" ]; then echo MERGED; else echo OPEN; fi;;
-  "repo clone") echo "faux gh : pas de clonage" >&2; exit 1;;
+  "repo clone") [ -n "$FAUX_GH_DEPOT" ] || { echo "faux gh : pas de clonage" >&2; exit 1; }
+    sleep 1; exec git clone -q "$FAUX_GH_DEPOT" "$4";;
 esac
 exit 0
