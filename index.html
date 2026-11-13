@@ -34,7 +34,7 @@
 
   /* ── la colonne ── */
   #col { width: 260px; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--filet); min-width: 0; }
-  #liste { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 8px 8px; }
+  #liste { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 8px 8px; scroll-padding: 12px 0; }
   .groupe { display: flex; align-items: baseline; gap: 8px; padding: 12px 10px 4px; font-size: 12px; color: var(--gris); }
   .groupe:first-child { padding-top: 4px; }
   .groupe .num { margin-left: auto; }
@@ -94,7 +94,7 @@
   .voix + .voix { margin-top: 18px; }
   .qui { font-size: 12px; color: var(--gris); margin-bottom: 2px; }
   .dit { max-width: 68ch; overflow-wrap: anywhere; }
-  .replie { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  .replie { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; } /* une liste du client garde ses retours à la ligne */
   .deplie { white-space: pre-wrap; }
   [data-act="deplier"] { cursor: pointer; }
   .reserve { margin-top: 4px; max-width: 68ch; }
@@ -196,7 +196,8 @@
     .fil { flex: 1; max-height: none; width: 100%; }
     .actions { padding-top: 12px; }
     .fiche { display: block; overflow-y: auto; }
-    .registre { max-height: none; margin-bottom: 24px; }
+    .registre { max-height: none; margin-bottom: 16px; }
+    .reg { padding: 6px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
@@ -352,7 +353,7 @@ const voix = (qui, corps, cls = "") => `<div class="voix ${cls}"><div class="qui
 function voixClient(t, serre) {
   const a = auteur(t), ouvert = !serre || deplies.has(t.id);
   // replié : on saute la formule d'appel pour que les deux lignes disent la demande
-  const txt = ouvert ? String(t.request ?? "").trim().replace(/\n\s*\n+/g, "\n") : String(t.request ?? "").replace(/^\s*(bonjour|bonsoir|hello|salut|coucou|hi)\b[^\n]{0,40}\n+/i, "").replace(/\s+/g, " ").trim();
+  const txt = ouvert ? String(t.request ?? "").trim().replace(/\n\s*\n+/g, "\n") : String(t.request ?? "").replace(/^\s*(bonjour|bonsoir|hello|salut|coucou|hi)\b[^\n]{0,40}\n+/i, "").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
   return voix(a ? `<span data-contenu>${esc(a)}</span>` : "Toi", `<div class="dit ${ouvert ? "deplie" : "replie"}"${serre ? ` data-act="deplier"` : ""} data-contenu>${esc(txt)}</div>`);
 }
 function voixClaude(t) {
@@ -380,7 +381,7 @@ function voixMessage(t, lecture) {
   if (!lecture && destEdit !== t.id) qui = `<span class="qui-ed">${qui}<button class="crayon" data-act="ecrire" aria-label="Modifier le message">${SVG_CRAYON}</button></span>`;
   const mail = canal === "mail";
   const corps = lecture
-    ? `${mail && d.subject ? `<div class="objet" data-contenu>${esc(d.subject)}</div>` : ""}<div class="envoye" data-contenu>${esc(d.body)}</div>`
+    ? `${mail && d.subject ? `<div class="objet gris" data-contenu>${esc(d.subject)}</div>` : ""}<div class="envoye" data-contenu>${esc(d.body)}</div>`
     : `${mail ? `<input class="ed objet" data-champ="subject" value="${esc(d.subject)}" aria-label="Objet">` : ""}<textarea class="ed" data-champ="body" rows="1" aria-label="Message">${esc(d.body)}</textarea>`;
   return voix(qui, corps);
 }
@@ -480,7 +481,7 @@ function rendre() {
   else if ("arrivees" in h) { cur = "arrivees"; html = vueArrivees(); }
   html ??= `<div class="vide-etat">Rien ne t'attend.</div>`;
 
-  if (pose("#liste", colonne(cur)) && cur !== dernierCur) $("#liste .on")?.scrollIntoView({ block: "nearest" }); // la ligne ouverte reste visible, même en petite fenêtre
+  if (pose("#liste", colonne(cur)) && cur !== dernierCur) requestAnimationFrame(() => $("#liste .on")?.scrollIntoView({ block: "nearest" })); // la ligne ouverte reste visible, même en petite fenêtre
   // les arrivées n'ont qu'une place : le pied de la colonne (éteinte, en panne ou à l'heure)
   const al = alertes()[0];
   pose("#releve", al ? `<i class="${al.rouge ? "rouge" : "non"}"></i><span>${al.t}</span>${al.geste === "allumer" ? `<button data-act="allumer">allumer</button>` : ""}`
