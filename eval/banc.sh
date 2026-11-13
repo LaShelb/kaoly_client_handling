@@ -355,5 +355,11 @@ EOF
   ok "la barre trouve avant de demander à Claude"
 fi
 
+# fenêtre qui reste : fermer ne coupe rien, les liens sortent vers le navigateur, les repères d'installation restent
+for m in 'applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { false }' 'isReleasedWhenClosed = false' 'applicationShouldHandleReopen' 'NSWorkspace.shared.open' 'performClose' '"__BUN__"' '"__ROOT__"'; do
+  grep -qF "$m" app/main.swift || echec "app/main.swift : $m absent"
+done
+ok "la fenêtre fermée garde l'application ouverte"
+
 grep -qi "unhandled\|TypeError\|ReferenceError" "$L/serveur.log" && echec "erreur dans le journal du serveur"
 echo "banc : tout est juste"
