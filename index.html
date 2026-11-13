@@ -180,7 +180,7 @@
   body.en-plein #col, body.en-plein #volet { visibility: hidden; }
   #plein .haut { display: flex; align-items: baseline; gap: 24px; width: min(100%, calc((100vh - 96px) * 1.6)); }
   #plein .haut span { flex: 1; min-width: 0; color: var(--gris); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #plein .cadre { width: min(100%, calc((100vh - 96px) * 1.6)); cursor: zoom-out; box-shadow: 0 18px 50px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.05); }
+  #plein .cadre { width: min(100%, calc((100vh - 96px) * 1.6)); cursor: zoom-out; }
 
   /* ── sous 1000 px : la colonne se resserre, la preuve passe au-dessus du fil, le bouton reste visible ── */
   @media (max-width: 999px) {
@@ -290,16 +290,17 @@ const raison = (t) => humain(t.error) || "Arrêtée sans explication.";
 function preuves(t) {
   const vid = [], av = [], ap = [];
   for (const f of t.proofs ?? []) (/\.(mp4|webm|mov)$/i.test(f) ? vid : /avant/i.test(f) ? av : ap).push(f);
-  const o = vid.map((f, i) => ({ cle: `video${i || ""}`, nom: `Vidéo${vid.length > 1 ? ` ${i + 1}` : ""}`, f, video: true }));
+  // « Après » d'abord : c'est ce que Simon valide ; la vidéo vient en dernier (sa première image ressemble à « Avant »)
+  const o = [];
   // ponytail : plusieurs paires deviennent « Après 2 · Avant 2 » à la suite, plutôt qu'un second sélecteur
   for (let i = 0, n = Math.max(av.length, ap.length); i < n; i++) {
     const s = n > 1 ? ` ${i + 1}` : "";
     if (ap[i]) o.push({ cle: `apres${i || ""}`, nom: `Après${s}`, f: ap[i] });
     if (av[i]) o.push({ cle: `avant${i || ""}`, nom: `Avant${s}`, f: av[i] });
   }
-  return o;
+  return o.concat(vid.map((f, i) => ({ cle: `video${i || ""}`, nom: `Vidéo${vid.length > 1 ? ` ${i + 1}` : ""}`, f, video: true })));
 }
-const choisie = (t, o) => o.find((x) => x.cle === choix[t.id]) ?? o[0];
+const choisie = (t, o) => { const h = adresse(), v = h.d === t.id ? h.v : null; return o.find((x) => x.cle === v) ?? o.find((x) => x.cle === choix[t.id]) ?? o[0]; };
 const media = (t, x, grand) => {
   const u = `/preuve/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`;
   return x.video ? `<video src="${u}" muted loop playsinline autoplay preload="auto"></video>` : `<img src="${u}" alt="${x.nom}">`;
