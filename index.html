@@ -335,6 +335,44 @@ const media = (t, x, grand) => {
   const u = `/preuve/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`;
   return x.video ? `<video src="${u}" muted loop playsinline autoplay preload="auto"></video>` : `<img src="${u}" alt="${x.nom}">`;
 };
+// ───────── la preuve cadrée : Avant et Après comparés, on montre ce qui a changé à taille lisible ─────────
+const ecarts = new Map(); // « avant|apres » → boîte en fractions, ou null (en attente : absent)
+const paire = (t) => { const o = preuves(t); return [o.find((x) => x.cle === "avant"), o.find((x) => x.cle === "apres")]; };
+const charge = (u) => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = u; });
+async function ecart(t) {
+  const [a, b] = paire(t); if (!a || !b) return null;
+  const k = `${t.id}/${a.f}|${b.f}`; if (ecarts.has(k)) return ecarts.get(k);
+  let r = null;
+  try {
+    const [i, j] = await Promise.all([a, b].map((x) => charge(`/preuve/${encodeURIComponent(t.id)}/${encodeURIComponent(x.f)}`)));
+    if (i.naturalWidth === j.naturalWidth && i.naturalHeight === j.naturalHeight) {
+      const w = 320, h = Math.max(1, Math.round((w * i.naturalHeight) / i.naturalWidth)), px = (im) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(im, 0, 0, w, h); return g.getImageData(0, 0, w, h).data; };
+      const d = px(i), e = px(j); let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let n = 0; n < d.length; n += 4) if (Math.abs(d[n] - e[n]) > 24 || Math.abs(d[n + 1] - e[n + 1]) > 24 || Math.abs(d[n + 2] - e[n + 2]) > 24) { const q = n / 4, x = q % w, y = (q / w) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 >= 0) r = { x0: x0 / w, y0: y0 / h, x1: (x1 + 1) / w, y1: (y1 + 1) / h };
+    }
+  } catch { r = null; }
+  ecarts.set(k, r); return r;
+}
+function cadrer() {
+  const img = $("#vue .cadre img"), cadre = img?.parentElement, h = adresse(); if (!img || "plein" in h) return;
+  const t = S?.tickets.find((x) => x.id === h.d), x = t && choisie(t, preuves(t));
+  const [a, b] = t ? paire(t) : [], box = x && (x.cle === "avant" || x.cle === "apres") && a && b ? ecarts.get(`${t.id}/${a.f}|${b.f}`) : null;
+  const rien = () => { img.style.cssText = ""; if (cadre) cadre.style.width = ""; };
+  if (box === undefined) ecart(t).then(cadrer); // demande réglée : hors de la file, calculée à l'ouverture
+  if (!box) return rien();
+  if (!img.complete || !img.naturalWidth) { img.addEventListener("load", cadrer, { once: true }); return rien(); }
+  rien(); // on mesure le cadre au repos
+  const cw = cadre.clientWidth, ch = cadre.clientHeight, nw = img.naturalWidth, nh = img.naturalHeight;
+  if (!cw || !ch || (box.x1 - box.x0) * (box.y1 - box.y0) >= 0.5) return rien();
+  const s0 = Math.min(cw / nw, ch / nh), bw = (box.x1 - box.x0) * nw, bh = (box.y1 - box.y0) * nh;
+  let s = nw > 1600 ? 0.5 : 1; // ponytail : les captures demandées à Claude font 1280 px
+  s = Math.min(s, (cw - 24) / bw, (ch - 24) / bh);
+  if (s < 1.25 * s0) return rien();
+  const W = nw * s, H = nh * s, m = (c, g, v) => (g <= c ? (c - g) / 2 : Math.min(0, Math.max(c - g, c / 2 - v * g)));
+  cadre.style.width = `${cw + 2}px`; // ponytail : en petite fenêtre le cadre prend la largeur de l'image ; on le fige à sa taille mesurée
+  img.style.cssText = `width:${W}px;height:auto;max-width:none;object-fit:fill;transform:translate(${m(cw, W, (box.x0 + box.x1) / 2)}px,${m(ch, H, (box.y0 + box.y1) / 2)}px)`;
+}
 const selecteur = (o, x) => (o.length > 1 ? `<div class="choix">${o.map((y) => `<button class="${y === x ? "on" : ""}" data-act="voir" data-cle="${y.cle}">${y.nom}</button>`).join("")}</div>` : "");
 
 // ───────── l'adresse ─────────
@@ -522,7 +560,7 @@ function rendre() {
   // une saisie en cours dans le volet n'est jamais effacée par le rafraîchissement
   const a = document.activeElement, saisie = a && $("#vue").contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== "checkbox";
   if (!saisie || cur !== dernierCur) { if (pose("#vue", html)) { $("#vue").querySelectorAll("textarea.ed").forEach(taille); } }
-  couperTout(cur !== dernierCur);
+  couperTout(cur !== dernierCur); cadrer();
 
   // la preuve en plein écran
   const o = t ? preuves(t) : [], plein = t && "plein" in h && o.length;
@@ -573,7 +611,7 @@ function couperTout(suivre) {
     couper(l, 8);
   }
 }
-addEventListener("resize", () => couperTout(false));
+addEventListener("resize", () => { couperTout(false); cadrer(); });
 function pose(sel, html) { if (rendus[sel] === html) return false; rendus[sel] = html; $(sel).innerHTML = html; return true; }
 function taille(el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight + 2}px`; }
 function tailleBarre() { say.style.height = "22px"; say.style.height = `${Math.min(160, Math.max(22, say.scrollHeight))}px`; }
@@ -581,7 +619,7 @@ function forcer() { rendus["#vue"] = null; rendre(); }
 
 // ───────── serveur ─────────
 async function tick() {
-  try { const r = await fetch("/api/state"); if (r.ok) { S = await r.json(); rendre(); } }
+  try { const r = await fetch("/api/state"); if (r.ok) { S = await r.json(); rendre(); for (const t of files().toi) ecart(t).then(cadrer); } }
   catch { dire("Le serveur local ne répond pas."); }
 }
 let derniereErreur = ""; // la raison du dernier POST raté ; post() continue de rendre null
