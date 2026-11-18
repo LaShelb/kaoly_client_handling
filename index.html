@@ -140,6 +140,8 @@
   .etapes small { display: block; font-size: 12.5px; font-weight: 400; color: var(--gris); overflow-wrap: anywhere; }
   .etapes .quand { font-size: 12px; font-weight: 400; color: var(--gris); white-space: nowrap; }
   .ctx { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 16px; margin: 0; font-size: 13px; }
+  .ctx .alerte { color: #9a3412; }
+  details.code { margin-top: 8px; font-size: 12.5px; } details.code summary { color: var(--gris); cursor: pointer; } details.code ul { margin: 8px 0 0; padding-left: 16px; overflow-wrap: anywhere; }
   .ctx dt { color: var(--gris); } .ctx dd { margin: 0; overflow-wrap: anywhere; } .ctx a:hover { text-decoration: underline; text-underline-offset: 3px; }
   .suivi .note { margin-top: 10px; font-size: 12.5px; color: var(--gris); white-space: pre-line; }
   .suivi .note .lien { text-decoration: underline; text-underline-offset: 3px; }
@@ -728,6 +730,18 @@ function etapes(t) {
     : { nom: "Réponse au client", e: s === "message" ? "toi" : "apres", sous: s === "message" ? "à toi de relire et d'envoyer" : "" });
   return l;
 }
+// le code : où Claude a travaillé et ce qu'il y a fait, en mots de Simon ; la liste des fichiers se déplie
+function code(t) {
+  const g = t.git; if (!g) return "";
+  const n = (k, mot) => `${k} ${mot}${k > 1 ? "s" : ""}`, pr = /^https:\/\//.test(t.pr ?? "") ? t.pr : null;
+  const etat = t.shipped ? "en ligne (fusionné dans la branche principale)" : pr ? "envoyé sur GitHub, pas encore en ligne" : g.nCommits ? "sur ce Mac seulement, pas encore envoyé" : "rien de changé";
+  return `<h2 class="lab">Code</h2><dl class="ctx"><dt>État</dt><dd>${etat}</dd>
+    <dt>Branche</dt><dd class="num" data-contenu>${esc(g.branche)}</dd>
+    <dt>Volume</dt><dd>${n(g.nCommits, "commit")} · ${n(g.nFichiers, "fichier")} · <span class="num">+${g.plus} −${g.moins}</span>${g.enCours ? ` · ${n(g.enCours, "fichier")} pas encore commité${g.enCours > 1 ? "s" : ""}` : ""}</dd>
+    ${g.nCommits > 40 ? `<dt></dt><dd class="alerte">Trop pour une seule demande : cette branche ne part pas de « ${esc(String(g.base).replace("origin/", ""))} ». La mise en ligne est bloquée tant que la branche de départ n'est pas la bonne (fiche du client, Détail).</dd>` : ""}
+    ${pr ? `<dt>GitHub</dt><dd><a class="lien" href="${esc(pr)}" target="_blank" rel="noopener">demande de fusion n° ${esc(pr.split("/").pop())}</a></dd>` : ""}</dl>
+    ${g.nCommits ? `<details class="code"><summary>Commits et fichiers</summary><ul data-contenu>${g.commits.map((c) => `<li>${esc(c)}</li>`).join("")}</ul><ul class="num" data-contenu>${g.fichiers.map((f) => `<li>${esc(f)}</li>`).join("")}${g.nFichiers > g.fichiers.length ? `<li>… et ${g.nFichiers - g.fichiers.length} autres</li>` : ""}</ul></details>` : ""}`;
+}
 function suivi(t, det) {
   const c = S.clients.find((x) => x.id === t.clientId), a = auteur(t), canal = t.source?.channel === "whatsapp" ? "WhatsApp" : t.source?.channel === "mail" ? "mail" : "";
   const fiche = `#c=${encodeURIComponent(t.clientId)}`;
@@ -735,6 +749,7 @@ function suivi(t, det) {
     <h2 class="lab">Contexte</h2><dl class="ctx"><dt>Client</dt><dd><a href="${fiche}" data-contenu>${esc(t.client)}</a></dd>
       ${canal ? `<dt>Canal</dt><dd>${canal}${a ? ` · <span data-contenu>${esc(a)}</span>` : ""}</dd>` : ""}${c?.repo ? `<dt>Dépôt</dt><dd data-contenu>${esc(c.repo)}</dd>` : ""}</dl>
     ${c ? `<p class="note">${c.context ? `<span data-contenu>${esc(c.context.length > 220 ? `${c.context.slice(0, 219)}…` : c.context)}</span>` : "Aucune note sur ce client pour Claude."} <a class="lien" href="${fiche}">${c.context ? "modifier" : "ajouter"}</a></p>` : ""}
+    ${code(t)}
     ${det.length ? `<h2 class="lab">Détail</h2><div class="detail">${det.join("")}</div>` : ""}</aside>`;
 }
 // les réponses que Claude propose à sa question : un clic ou ⌘1 à ⌘3
@@ -814,6 +829,7 @@ function vueClient(c) {
     <label class="bloc bascule"><span>Bugs sans validation</span><input type="checkbox" class="switch" data-cfg="autoProd"${c.autoProd ? " checked" : ""}></label>
     <details${!c.repo || detailOuvert ? " open" : ""}><summary>Détail</summary><div class="detail">
       <div class="bloc"><div class="qui">Dépôt</div><input class="ed" data-cfg="repo" value="${esc(c.repo)}" placeholder="propriétaire/nom" aria-label="Dépôt"></div>
+      <div class="bloc"><div class="qui">Branche de départ</div><input class="ed" data-cfg="branch" value="${esc(c.branch ?? "")}" placeholder="la branche principale du dépôt" aria-label="Branche de départ" title="D'où part le travail de Claude et où son code revient. À écrire quand le vrai travail du dépôt n'est pas sur la branche principale."></div>
       <div class="bloc"><div class="qui">Dossier des documents remis</div><input class="ed" data-cfg="docs" value="${esc(c.docs ?? "")}" placeholder="${esc(String(c.docsDir ?? "").replace(/^\/Users\/[^/]+/, "~"))}" aria-label="Dossier des documents remis" title="Les PV, comptes rendus et notes que Claude produit pour ce client y sont enregistrés, puis rangés dans le cerveau."></div>
       <button class="lien retirer" data-act="retirer-client">Retirer le client</button></div></details>
   </aside></div>`;
@@ -1273,6 +1289,7 @@ document.addEventListener("change", (e) => {
   const id = el.closest("[data-client]")?.dataset.client; if (!id) return;
   if (k === "context") return post("/api/config", { client: { id, context: el.value } }).then((j) => j && dire("✓ Contexte gardé"));
   if (k === "repo") post("/api/config", { client: { id, repo: el.value } }).then(forcer);
+  if (k === "branch") post("/api/config", { client: { id, branch: el.value } }).then(forcer);
   if (k === "envs") post("/api/config", { client: { id, envs: el.value } }).then(forcer);
   if (k === "docs") post("/api/config", { client: { id, docs: el.value } }).then(forcer);
   if (k === "autoProd") post("/api/config", { client: { id, autoProd: el.checked } }).then(forcer);

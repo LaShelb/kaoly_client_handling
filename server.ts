@@ -351,7 +351,7 @@ const work = (t: any, followUp?: string) => guarded(t, async () => {
   if (!existsSync(wt)) {
     if (repo) await queued(repo, async () => {
       await sh(["git", "-C", repo, "fetch", "origin"]);
-      const base = await sh(["git", "-C", repo, "symbolic-ref", "--short", "refs/remotes/origin/HEAD"]).catch(() => "origin/main");
+      const base = c.branch ? `origin/${c.branch}` : await sh(["git", "-C", repo, "symbolic-ref", "--short", "refs/remotes/origin/HEAD"]).catch(() => "origin/main");
       mkdirSync(`${DIR}/travail`, { recursive: true });
       await sh(["git", "-C", repo, "worktree", "add", "-b", `ticket/${t.id}`, wt, base]);
       set(t, { base });
@@ -364,12 +364,32 @@ const work = (t: any, followUp?: string) => guarded(t, async () => {
   const r = await agent(t, wt, proofs, (followUp ?? `Demande du client ${c.name} (${t.source.channel}${t.source.from ? `, de ${t.source.from}` : ""}) :\n\n${t.title}\n\n${t.request}${
     t.files?.length ? `\n\nPièces jointes du client, à regarder : ${t.files.join(", ")}` : ""}${repo ? "" : "\n\nIl n'y a pas de dépôt pour ce client : rédige seulement la réponse."}${c.context ? `\n\nContexte donné par Simon sur ce client, à garder en tête :\n${c.context}` : ""}`) + conversation(t));
   if (t.status === "fini") return; // classée pendant que Claude travaillait
+  await releverGit(t);
   if (r.status === "question") return set(t, { status: "question", question: r.question || r.summary, options: (Array.isArray(r.options) ? r.options : []).map((s) => String(s).trim().slice(0, 80)).filter(Boolean).slice(0, 3), summary: r.summary, followUp: null });
   // revalider : le brouillon déjà relu par Simon reste tel quel, Claude ne fait qu'intégrer la branche principale
   set(t, { followUp: null, kind: strictest(t.kind, r.kind), summary: r.summary, change: r.change ?? "", reserve: r.reserve ?? "",
     draft: t.revalider && t.draft ? t.draft : { to: recipient(t.source.from, c.contacts), subject: r.message?.subject ?? "", body: r.message?.body ?? "" } });
   await finish(t);
 });
+
+// La branche d'où part une demande et où son code revient : celle de la fiche du client si elle est écrite (un dépôt dont le vrai travail
+// n'est pas sur la branche principale, comme Arion et sa branche de dev), sinon celle relevée à la copie.
+const baseDe = (t: any) => { const b = clientOf(t)?.branch; return b ? `origin/${b}` : t.base ?? "origin/main"; };
+// ponytail : au-delà, la branche ne part visiblement pas de là où elle doit revenir ; seuil rond, à ajuster si une vraie demande le dépasse
+const TROP_DE_COMMITS = 40;
+
+// Ce que Claude a fait dans le dépôt, gardé sur la demande pour que Simon le lise : branche, commits, fichiers touchés, ce qui n'est pas encore commité.
+// Relevé à chaque retour de Claude et après l'envoi du code ; reste quand la copie de travail est rangée.
+async function releverGit(t: any) {
+  const wt = `${DIR}/travail/${t.id}`; if (!existsSync(`${wt}/.git`)) return;
+  try {
+    const base = baseDe(t), g = (...a: string[]) => sh(["git", "-C", wt, ...a]), lignes = (x: string) => x.split("\n").filter(Boolean);
+    const commits = lignes(await g("log", "--format=%s", `${base}..HEAD`)), f = lignes(await g("diff", "--numstat", `${base}...HEAD`)).map((l) => l.split("\t"));
+    const som = (i: number) => f.reduce((n, x) => n + (+x[i] || 0), 0);
+    set(t, { git: { branche: await g("branch", "--show-current"), base, commits: commits.slice(0, 12), nCommits: commits.length, fichiers: f.map((x) => x[2]).slice(0, 20), nFichiers: f.length,
+      plus: som(0), moins: som(1), enCours: lignes(await g("status", "--porcelain")).length } });
+  } catch {} // un dépôt illisible ne bloque pas la demande : le relevé manque, c'est tout
+}
 
 // Après Claude : commit, envoi du code, demande de fusion, puis la porte. Peut être rejoué seul par « Relancer ».
 async function finish(t: any) {
@@ -379,13 +399,15 @@ async function finish(t: any) {
   if (repo && existsSync(`${wt}/.git`)) {
     set(t, { step: STEPS[2] });
     if (await sh(["git", "-C", wt, "status", "--porcelain"])) { await sh(["git", "-C", wt, "add", "-A"]); await sh(["git", "-C", wt, "commit", "-m", t.title]); }
-    changed = +(await sh(["git", "-C", wt, "rev-list", "--count", `${t.base ?? "origin/main"}..HEAD`])) > 0;
+    changed = +(await sh(["git", "-C", wt, "rev-list", "--count", `${baseDe(t)}..HEAD`])) > 0;
     if (changed) {
       await queued(repo, () => sh(["git", "-C", wt, "push", "-u", "origin", `ticket/${t.id}`]));
-      if (!t.pr) set(t, { pr: await sh(["gh", "pr", "create", "--title", t.title, "--body", `${t.summary ?? ""}\n\nDemande d'origine :\n${t.request}`, "--head", `ticket/${t.id}`], wt) });
+      if (!t.pr) set(t, { pr: await sh(["gh", "pr", "create", "--title", t.title, "--body", `${t.summary ?? ""}\n\nDemande d'origine :\n${t.request}`, "--head", `ticket/${t.id}`, ...(c.branch ? ["--base", c.branch] : [])], wt) });
+      else if (c.branch && !t.shipped) await sh(["gh", "pr", "edit", t.pr, "--base", c.branch], wt); // la demande de fusion vise la branche de la fiche, même si elle a été ouverte avant
     }
   }
   if (t.status === "fini") return;
+  await releverGit(t);
   set(t, { changed });
   const next = gate(t.kind, !!c?.autoProd && !t.relu, changed);
   if (next === "production") await ship(t, true);
@@ -399,6 +421,8 @@ async function ship(t: any, auto = false): Promise<boolean> {
   set(t, { step: STEPS[3] });
   try {
     if (!t.pr) throw new Error("Le code n'a pas été envoyé sur GitHub.");
+    // garde-fou : une branche qui apporte des centaines de commits ne part pas de la branche où elle va être fusionnée ; on ne fusionne pas ça d'un clic
+    if (t.git?.nCommits > TROP_DE_COMMITS) throw new Error(`Cette branche apporterait ${t.git.nCommits} commits dans ${String(t.git.base).replace("origin/", "")} : elle n'en part pas. Écris la bonne branche de départ sur la fiche du client, puis relance.`);
     const state = await sh(["gh", "pr", "view", t.pr, "--json", "state", "-q", ".state"]).catch(() => "");
     if (state !== "MERGED") await sh(["gh", "pr", "merge", t.pr, "--squash"]); // déjà fusionnée à la main : rien à faire
     set(t, { status: "message", shipped: auto && state !== "MERGED" ? "auto" : "validé" });
@@ -625,6 +649,7 @@ function upsertClient(x: any) {
   if (typeof x.docs === "string") clean.docs = x.docs.trim().slice(0, 500); // dossier des documents remis ; vide : celui que l'application devine
   if (Array.isArray(x.contacts)) clean.contacts = x.contacts.map((s: any) => String(s).trim()).filter(Boolean);
   if (typeof x.autoProd === "boolean") clean.autoProd = x.autoProd;
+  if (typeof x.branch === "string" && /^[\w./-]{0,100}$/.test(x.branch.trim()) && !x.branch.includes("..")) clean.branch = x.branch.trim(); // d'où part le travail et où il revient ; vide : la branche principale du dépôt
   if (typeof x.envs === "string") clean.envs = x.envs.trim().slice(0, 1000); // « dev https://… » par ligne : un Chrome à part pour chacun
   if (typeof x.context === "string") clean.context = x.context.trim().slice(0, 4000); // ce que Simon veut que Claude sache sur ce client, relu à chaque demande
   const avant: string[] = i >= 0 ? clients[i].contacts ?? [] : [];
@@ -863,6 +888,7 @@ else if (import.meta.main) {
   await Promise.all([refreshMail(), refreshClaude()]);
   Bun.serve({ port: PORT, hostname: "127.0.0.1", fetch: handle, idleTimeout: 240 });
   for (const t of reprendre) relance(t); // pump() respecte MAX_SESSIONS
+  for (const t of tickets) if (t.status !== "fini" && !t.git) releverGit(t); // demandes d'avant ce relevé
   setInterval(intake, 120_000); intake(); pump();
   console.log(`Kaoly Clients sur ${ORIGIN}`);
 }
