@@ -2,6 +2,8 @@
 # faux Claude Code : aucun appel réel. Repères dans le texte : [BUCKWELL] ou [GARONNE] (client), [QUESTION], [VISIBLE], [RIEN] (aucun changement), [LENT],
 # [FORGE] (la barre tente d'imposer pièces jointes et expéditeur), [DOUBLE] (deux demandes identiques). Le travail échoue tant que $FAUX_CLAUDE_PANNE existe.
 L="${FAUX_LOG:-$(dirname "$0")}"
+# comptes : « auth status » dit un abonnement connecté, « auth login » et « auth logout » ne font rien
+case "$1" in auth) [ "$2" = status ] && echo '{"loggedIn":true,"authMethod":"claude.ai","email":"simon@kaoly.fr","subscriptionType":"max"}'; exit 0;; esac
 case "$*" in *stream-json*) ;; *)
   # tri des messages entrants (relève) ; échoue si le fichier $FAUX_TRI_PANNE existe
   case "$*" in *"Tu tries les messages"*)

@@ -24,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     window.title = "Kaoly Clients"
     window.titleVisibility = .hidden
     window.titlebarAppearsTransparent = true
-    window.backgroundColor = NSColor(red: 0.984, green: 0.980, blue: 0.969, alpha: 1)
+    window.backgroundColor = NSColor(red: 0.788, green: 0.875, blue: 0.929, alpha: 1) // le haut du ciel de la page (#c9dfed) : la barre de titre et la page ne font qu'un
     window.minSize = NSSize(width: 720, height: 480)
     window.center()
     window.setFrameAutosaveName("Kaoly Clients")
